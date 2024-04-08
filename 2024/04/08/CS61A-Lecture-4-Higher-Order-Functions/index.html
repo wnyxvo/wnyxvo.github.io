@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="上节课没讲完的例子，寻找一个数的因数： 1234567891011121314151617181920212223242526272829303132333435363738#  Prime numbers  素数def is_prime(n):    &quot;&quot;&quot;Return True iff N is prime.    &gt;&gt;&gt; is_prime(1)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CS61A-Lecture-4-Higher-Order-Functions">
+<meta property="og:url" content="http://example.com/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="上节课没讲完的例子，寻找一个数的因数： 1234567891011121314151617181920212223242526272829303132333435363738#  Prime numbers  素数def is_prime(n):    &quot;&quot;&quot;Return True iff N is prime.    &gt;&gt;&gt; is_prime(1)">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_Nested_Definitions.png">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_FuncProduceFunc.png">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_ConditionalFunc.png">
+<meta property="article:published_time" content="2024-04-08T15:15:19.000Z">
+<meta property="article:modified_time" content="2024-04-08T15:15:51.204Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="CS61A">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_Nested_Definitions.png">
+
+<link rel="canonical" href="http://example.com/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CS61A-Lecture-4-Higher-Order-Functions | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">1</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">4</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CS61A-Lecture-4-Higher-Order-Functions
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-08 23:15:19 / 修改时间：23:15:51" itemprop="dateCreated datePublished" datetime="2024-04-08T23:15:19+08:00">2024-04-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CS61A/" itemprop="url" rel="index"><span itemprop="name">CS61A</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>上节课没讲完的例子，寻找一个数的因数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#  Prime numbers  素数</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">is_prime</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Return True iff N is prime.</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(1)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(2)</span></span><br><span class="line"><span class="string">    True</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(8)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(21)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(23)</span></span><br><span class="line"><span class="string">    True</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">return</span> n &gt; <span class="number">1</span> <span class="keyword">and</span> smallest_factor(n) == n</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">smallest_factor</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Returns the smallest value k&gt;1 that evenly divides N.&quot;&quot;&quot;</span></span><br><span class="line">    <span class="comment"># The following can be speeded up a great deal!</span></span><br><span class="line">    k = <span class="number">2</span></span><br><span class="line">    <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">        <span class="keyword">if</span> n % k == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> k</span><br><span class="line">        k += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">print_factors</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Print the prime factors of N. # 打印一个数的质因数</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; print_factors(180)</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    5</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">while</span> n &gt; <span class="number">1</span>:</span><br><span class="line">        d = smallest_factor(n)</span><br><span class="line">        <span class="built_in">print</span>(d)</span><br><span class="line">        n = n // d     <span class="comment"># or n //= d</span></span><br></pre></td></tr></table></figure>
+
+<p>上述使用了上节介绍的 doctest，使用命令：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -m doctest &lt;FileName&gt;</span><br></pre></td></tr></table></figure>
+
+<p>Python 中使用 doctest，在运行这些测试前，会先扫描整个文件。这就允许了 doctest 出现在 smallest_factor() 前，还能调用smallest_factor()。</p>
+<h2 id="函数相关术语"><a href="#函数相关术语" class="headerlink" title="函数相关术语"></a>函数相关术语</h2><ol>
+<li>定义域：一个函数的可能参数值的集合，调用函数时的有效参数</li>
+<li>值域：函数可以返回的值集，受值域影响</li>
+<li>陪域(Codomain)又称上域、到达域。 函数的上域是一个比选择值域范围更大的集合。</li>
+</ol>
+<p>例如，我们可以说平方函数的定义域是实数，范围是非负数。我们可以选择将其上域描述为实数或仅描述为非负实数。</p>
+<h2 id="函数文档注释"><a href="#函数文档注释" class="headerlink" title="函数文档注释"></a>函数文档注释</h2><p>理想情况下，函数的文档注释提供了足够的信息，以便程序员可以正确使用该函数并理解它的作用，而无需阅读其代码主体。</p>
+<p>文档注释应该明确哪些输入在什么条件下是有效的，是可以调用函数的。还应该明确对于正确的输入，函数的结果输出或效果是什么。这些共同构成了函数的行为或语义。</p>
+<h2 id="两条函数设计原则"><a href="#两条函数设计原则" class="headerlink" title="两条函数设计原则"></a>两条函数设计原则</h2><ol>
+<li><p>函数应该做一件明确定义的事情（复杂的文档注释可能暗示你的函数做的太多）。</p>
+</li>
+<li><p>DRY (Don’t Repeat Yourself)</p>
+<p>看起来非常相似的多个代码段迫切需要重构。 用对单个通用函数的简单调用替换重复段，该通用函数仅声明一次它们的共享结构，并使用用于专门针对各种情况的参数。</p>
+</li>
+</ol>
+<h2 id="作为参数的函数"><a href="#作为参数的函数" class="headerlink" title="作为参数的函数"></a>作为参数的函数</h2><p>考虑下面两个函数，它们都计算总和。</p>
+<p>但 <code>sum_naturals</code> 专用于计算截至<code>n</code>的自然数的和：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_naturals</span>(<span class="params">n</span>):</span><br><span class="line">        total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">            total, k = total + k, k + <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> total</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_naturals(<span class="number">100</span>)</span><br><span class="line"><span class="number">5050</span></span><br></pre></td></tr></table></figure>
+
+<p>但<code>sum_cubes</code>，计算截至<code>n</code>的自然数的立方和：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_cubes</span>(<span class="params">n</span>):</span><br><span class="line">        total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">            total, k = total + <span class="built_in">pow</span>(k, <span class="number">3</span>), k + <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> total</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_cubes(<span class="number">100</span>)</span><br><span class="line"><span class="number">25502500</span></span><br></pre></td></tr></table></figure>
+
+<p>这两个函数在背后都具有相同模式。它们大部分相同，只是名字、用于计算被加项的<code>k</code>的函数，以及提供<code>k</code>的下一个值的函数不同。我们可以通过向相同的模板中填充槽位来生成每个函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> &lt;name&gt;(n):</span><br><span class="line">    total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">        total, k = total + &lt;term&gt;(k), &lt;<span class="built_in">next</span>&gt;(k)</span><br><span class="line">    <span class="keyword">return</span> total</span><br></pre></td></tr></table></figure>
+
+<p>这个通用模板的出现是一个强有力的证据，证明有一个实用抽象正在等着我们表现出来。作为程序的设计者，我们希望我们的语言足够强大，便于我们编写函数来自我表达求和的概念，而不仅仅是计算特定和的函数。我们可以在 Python 中使用上面展示的通用模板，并且把槽位变成形参来轻易完成它。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">summation</span>(<span class="params">n, term, <span class="built_in">next</span></span>):</span><br><span class="line">	total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">	<span class="keyword">while</span> k &lt;= n:</span><br><span class="line">		total, k = total + term(k), <span class="built_in">next</span>(k)</span><br><span class="line">	<span class="keyword">return</span> total</span><br></pre></td></tr></table></figure>
+
+<p>重新表示 sum_naturals()：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">identity</span>(<span class="params">k</span>):</span><br><span class="line">        <span class="keyword">return</span> k</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">successor</span>(<span class="params">k</span>):</span><br><span class="line">        <span class="keyword">return</span> k + <span class="number">1</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_naturals</span>(<span class="params">n</span>):</span><br><span class="line">        <span class="keyword">return</span> summation(n, identity, successor)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_naturals(<span class="number">10</span>)</span><br><span class="line"><span class="number">55</span></span><br></pre></td></tr></table></figure>
+
+<p>或者，可以创建匿名函数作为参数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sum_naturals(<span class="number">10</span>, <span class="keyword">lambda</span> x: x, <span class="keyword">lambda</span> x: x + <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="回顾-Lambda-表达式"><a href="#回顾-Lambda-表达式" class="headerlink" title="回顾 Lambda 表达式"></a>回顾 Lambda 表达式</h2><p>在 python 中，lambda 只是一个表达式，并不能执行复杂的语句。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">lambda</span> PARAMS: EXPRESSION</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">Name</span>(<span class="params">PARAMS</span>):</span><br><span class="line">    <span class="keyword">return</span> EXPRESSION</span><br></pre></td></tr></table></figure>
+
+<p>上述两式等价。注意 lambda 中没有<code>return</code>，主体必须只是一个简单表达式。</p>
+<p>Lambda 表达式非常简短和直接，但复合的 Lambda 表达式非常难以辨认，尽管它们很简洁。下面的定义是是正确的，但是不能很快地理解：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compose1 = <span class="keyword">lambda</span> f,g: <span class="keyword">lambda</span> x: f(g(x))</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">compose1</span>(<span class="params">f,g</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">func1</span>(<span class="params">x</span>):</span><br><span class="line">        <span class="keyword">return</span> f(g(x))</span><br><span class="line">    <span class="keyword">return</span> func1</span><br></pre></td></tr></table></figure>
+
+<p>通常，Python 的代码风格倾向于显式的<code>def</code>语句而不是 Lambda 表达式，但是允许它们在简单函数作为参数或返回值的情况下使用。</p>
+<h2 id="定义函数：嵌套定义"><a href="#定义函数：嵌套定义" class="headerlink" title="定义函数：嵌套定义"></a>定义函数：嵌套定义</h2><p><strong>词法作用域。</strong>局部定义的函数也可以访问它们定义所在作用域的名称绑定。在上述 <code>compose1()</code>中，<code>func1</code>引用了名称<code>f、g</code>，它们是外层函数<code>compose1</code>的形参。这种在嵌套函数中共享名称的规则叫做词法作用域。严格来说，内部函数能够访问定义所在环境（而不是调用所在位置）的名称。</p>
+<p>每个用户定义的函数都有一个关联环境：它的定义所在的环境。</p>
+<p>当一个用户定义的函数调用时，它的局部帧扩展于函数所关联的环境。</p>
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_Nested_Definitions.png" />
+
+<p>调用<code>com(256)</code>新建的局部帧的父节点指向 f1 帧，而不是直接指向全局环境。</p>
+<h2 id="返回值为函数的函数"><a href="#返回值为函数的函数" class="headerlink" title="返回值为函数的函数"></a>返回值为函数的函数</h2><p>函数是 <code>first-class values</code>，这意味着我们可以将它们赋值给变量，将它们传递给函数，并从函数返回它们。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">add_func</span>(<span class="params">f, g</span>):</span><br><span class="line"><span class="meta">... </span><span class="string">&quot;&quot;&quot;Return function that returns F(x)+G(x) for argument x.&quot;&quot;&quot;</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">def</span> <span class="title function_">adder</span>(<span class="params">x</span>): <span class="comment">#</span></span><br><span class="line"><span class="meta">... </span>		<span class="keyword">return</span> f(x) + g(x) <span class="comment"># or return lambda x: f(x) + g(x)</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">return</span> adder <span class="comment">#</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> math <span class="keyword">import</span> sin, cos, pi</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h = add_func(sin, cos)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sin(pi/<span class="number">4</span>) + cos(pi/<span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h(pi / <span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br></pre></td></tr></table></figure>
+
+<p>让我们做一个通用的函数组合函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">combine_funcs</span>(<span class="params">op</span>):</span><br><span class="line"><span class="meta">... </span><span class="string">&quot;&quot;&quot;combine funcs(OP)(f, g)(x) = OP(f(x), g(x)).&quot;&quot;&quot;</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">def</span> <span class="title function_">combined</span>(<span class="params">f, g</span>):</span><br><span class="line"><span class="meta">... </span>		<span class="keyword">return</span> <span class="keyword">lambda</span> x: op(f(x), g(x))</span><br><span class="line"><span class="meta">... </span>	<span class="keyword">return</span> combined</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> operator <span class="keyword">import</span> add</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>add_func = combine_funcs(add)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> math <span class="keyword">import</span> sin, cos, pi</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h = add func(sin, cos)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h(pi / <span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br></pre></td></tr></table></figure>
+
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_FuncProduceFunc.png" style="zoom:67%;" />
+
+<h2 id="条件函数？"><a href="#条件函数？" class="headerlink" title="条件函数？"></a>条件函数？</h2><p>设计一个函数 if_func ：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> func(<span class="number">1</span>/x, x &gt; <span class="number">0</span>, <span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>要求实现条件表达式：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>/x <span class="keyword">if</span> x &gt; <span class="number">0</span> <span class="keyword">else</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>可以实现吗？</p>
+<p>不能！因为函数总会计算全部参数的值，而条件表达式只会计算 TrueExpression、FalseExpression 中的一个。</p>
+<p>但是我们可以定义：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">if_func</span>(<span class="params">then_expr, condition, else_expr</span>):</span><br><span class="line">	<span class="keyword">return</span> then_expr() <span class="keyword">if</span> condition <span class="keyword">else</span> else_expr()</span><br></pre></td></tr></table></figure>
+
+<p>然后调用：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">if_func(<span class="keyword">lambda</span>: <span class="number">1</span>/x, x &gt; <span class="number">0</span>, <span class="keyword">lambda</span>: <span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这些无参数 lambda 的术语是 thunks 形实转换函数。</p>
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_ConditionalFunc.png" style="zoom:67%;" />
+
+<p>在执行<code>if_func(lambda: 1/x, x &gt; 0, lambda: 0)</code>时，只是计算了<code>x&gt;0</code>的值，引入了两个 thunks，并未求函数值。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CS61A/" rel="tag"># CS61A</a>
+              <a href="/tags/python/" rel="tag"># python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/08/CS61A-Lecture-3-Control/" rel="prev" title="CS61A-Lecture-3-Control">
+      <i class="fa fa-chevron-left"></i> CS61A-Lecture-3-Control
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E7%9B%B8%E5%85%B3%E6%9C%AF%E8%AF%AD"><span class="nav-number">1.</span> <span class="nav-text">函数相关术语</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%96%87%E6%A1%A3%E6%B3%A8%E9%87%8A"><span class="nav-number">2.</span> <span class="nav-text">函数文档注释</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%A4%E6%9D%A1%E5%87%BD%E6%95%B0%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="nav-number">3.</span> <span class="nav-text">两条函数设计原则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%9C%E4%B8%BA%E5%8F%82%E6%95%B0%E7%9A%84%E5%87%BD%E6%95%B0"><span class="nav-number">4.</span> <span class="nav-text">作为参数的函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9E%E9%A1%BE-Lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F"><span class="nav-number">5.</span> <span class="nav-text">回顾 Lambda 表达式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%87%BD%E6%95%B0%EF%BC%9A%E5%B5%8C%E5%A5%97%E5%AE%9A%E4%B9%89"><span class="nav-number">6.</span> <span class="nav-text">定义函数：嵌套定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E5%80%BC%E4%B8%BA%E5%87%BD%E6%95%B0%E7%9A%84%E5%87%BD%E6%95%B0"><span class="nav-number">7.</span> <span class="nav-text">返回值为函数的函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E5%87%BD%E6%95%B0%EF%BC%9F"><span class="nav-number">8.</span> <span class="nav-text">条件函数？</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">15k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">13 分钟</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
