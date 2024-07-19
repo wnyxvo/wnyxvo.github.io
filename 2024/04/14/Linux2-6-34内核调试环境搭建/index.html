@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="环境准备 windows11+ VMware 16   虚拟机镜像：ubuntu-14.04.6-desktop-amd64.iso Linux  源码版本：2.6.34 busybox 源码版本：1.20.1 qemu-system-x86_64 版本：2.0.0  gcc 源码版本：4.8.4  在 Ubuntu 中安装 SSH服务1sudo apt-get install openssh-s">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux2.6.34内核调试环境搭建">
+<meta property="og:url" content="http://example.com/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="环境准备 windows11+ VMware 16   虚拟机镜像：ubuntu-14.04.6-desktop-amd64.iso Linux  源码版本：2.6.34 busybox 源码版本：1.20.1 qemu-system-x86_64 版本：2.0.0  gcc 源码版本：4.8.4  在 Ubuntu 中安装 SSH服务1sudo apt-get install openssh-s">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-04-14T06:00:16.000Z">
+<meta property="article:modified_time" content="2024-04-16T04:11:02.676Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content=":LinuxKernel">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Linux2.6.34内核调试环境搭建 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">7</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">7</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux2.6.34内核调试环境搭建
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-04-14 14:00:16" itemprop="dateCreated datePublished" datetime="2024-04-14T14:00:16+08:00">2024-04-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-04-16 12:11:02" itemprop="dateModified" datetime="2024-04-16T12:11:02+08:00">2024-04-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%86%85%E6%A0%B8/" itemprop="url" rel="index"><span itemprop="name">Linux内核</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><ul>
+<li>windows11+ VMware 16</li>
+</ul>
+<ul>
+<li>虚拟机镜像：ubuntu-14.04.6-desktop-amd64.iso</li>
+<li>Linux  源码版本：2.6.34</li>
+<li>busybox 源码版本：1.20.1</li>
+<li>qemu-system-x86_64 版本：2.0.0 </li>
+<li>gcc 源码版本：4.8.4</li>
+</ul>
+<h3 id="在-Ubuntu-中安装-SSH服务"><a href="#在-Ubuntu-中安装-SSH服务" class="headerlink" title="在 Ubuntu 中安装 SSH服务"></a>在 Ubuntu 中安装 SSH服务</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install openssh-server</span><br></pre></td></tr></table></figure>
+
+<p>编辑<code>sshd_config</code>文件，修改<code>PasswordAuthentication </code>项 ，重启服务：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/ssh/sshd_config</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">PermitRootLogin prohibit-password</span></span><br><span class="line">PermitRootLogin yes</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo service ssh restart</span><br></pre></td></tr></table></figure>
+
+<h3 id="在Windows-Terminal-中连接-Ubuntu-时出现了错误"><a href="#在Windows-Terminal-中连接-Ubuntu-时出现了错误" class="headerlink" title="在Windows Terminal 中连接 Ubuntu 时出现了错误"></a>在Windows Terminal 中连接 Ubuntu 时出现了错误</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PS C:\Users\31259&gt; ssh w@10.70.0.1</span><br><span class="line">ssh: connect to host 10.70.0.1 port 22: Connection timed out</span><br></pre></td></tr></table></figure>
+
+<p>开始以为是 Ubuntu14.04 的问题， 经过更换端口号、设置防火墙等都未解决。尝试用 VMware 16 中的另一个Ubuntu22.04 连接 Ubuntu14.04，成功连接。那问题应该出在 Windows 端，排查到<code>‪C:\Users\31259\.ssh\config</code>中没配置好。</p>
+<h3 id="编译环境"><a href="#编译环境" class="headerlink" title="编译环境"></a>编译环境</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装编译环境</span></span><br><span class="line">sudo apt-get install -y libncurses5-dev build-essential</span><br><span class="line">sudo apt-get install -y lib32readline-gplv2-dev</span><br><span class="line">sudo apt-get install -y wget vim gdb</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装QEMU</span></span><br><span class="line">sudo apt-get install -y qemu-system-x86</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="编译内核"><a href="#编译内核" class="headerlink" title="编译内核"></a>编译内核</h2><h3 id="获取内核源码"><a href="#获取内核源码" class="headerlink" title="获取内核源码"></a>获取内核源码</h3><p>首先<a target="_blank" rel="noopener" href="https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/">下载内核</a>，选取与书中采用的 Linux-2.6.34。下载到本地后，解压，进入目录。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xvjf linux-2.6.34.tar.bz2</span><br><span class="line">cd linux-2.6.34</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译内核-1"><a href="#编译内核-1" class="headerlink" title="编译内核"></a>编译内核</h3><p>编译选项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=i386 defconfig</span><br><span class="line">make ARCH=i386 menuconfig</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">选择以下编译选项，使用空格键选择。然后退出</span></span><br><span class="line">Kernel hacking  ---&gt; </span><br><span class="line">    [*] Compile the kernel with debug info </span><br><span class="line">    [*] KGDB: kernel debugging with remote gdb </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">开始编译</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-jN 代表多任务并行化，数字一般为cpu核数*2</span></span><br><span class="line">make ARCH=i386 -j4</span><br></pre></td></tr></table></figure>
+
+<p>编译出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">arch/x86/kernel/ptrace.c:1733:17: error: conflicting types for ‘syscall_trace_enter’</span><br><span class="line"> asmregparm long syscall_trace_enter(struct pt_regs *regs)</span><br><span class="line">                 ^</span><br><span class="line">In file included from /home/w/linux-2.6.34/arch/x86/include/asm/vm86.h:130:0,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/processor.h:10,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/thread_info.h:22,</span><br><span class="line">                 from include/linux/thread_info.h:56,</span><br><span class="line">                 from include/linux/preempt.h:9,</span><br><span class="line">                 from include/linux/spinlock.h:50,</span><br><span class="line">                 from include/linux/seqlock.h:29,</span><br><span class="line">                 from include/linux/time.h:8,</span><br><span class="line">                 from include/linux/timex.h:56,</span><br><span class="line">                 from include/linux/sched.h:56,</span><br><span class="line">                 from arch/x86/kernel/ptrace.c:11:</span><br><span class="line">/home/w/linux-2.6.34/arch/x86/include/asm/ptrace.h:146:13: note: previous declaration of ‘syscall_trace_enter’ was here</span><br><span class="line"> extern long syscall_trace_enter(struct pt_regs *);</span><br><span class="line">             ^</span><br><span class="line">arch/x86/kernel/ptrace.c:1778:17: error: conflicting types for ‘syscall_trace_leave’</span><br><span class="line"> asmregparm void syscall_trace_leave(struct pt_regs *regs)</span><br><span class="line">                 ^</span><br><span class="line">In file included from /home/w/linux-2.6.34/arch/x86/include/asm/vm86.h:130:0,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/processor.h:10,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/thread_info.h:22,</span><br><span class="line">                 from include/linux/thread_info.h:56,</span><br><span class="line">                 from include/linux/preempt.h:9,</span><br><span class="line">                 from include/linux/spinlock.h:50,</span><br><span class="line">                 from include/linux/seqlock.h:29,</span><br><span class="line">                 from include/linux/time.h:8,</span><br><span class="line">                 from include/linux/timex.h:56,</span><br><span class="line">                 from include/linux/sched.h:56,</span><br><span class="line">                 from arch/x86/kernel/ptrace.c:11:</span><br><span class="line">/home/w/linux-2.6.34/arch/x86/include/asm/ptrace.h:147:13: note: previous declaration of ‘syscall_trace_leave’ was here</span><br><span class="line"> extern void syscall_trace_leave(struct pt_regs *);</span><br><span class="line">             ^</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/whatday/article/details/102074919">参考</a>，<code>arch/x86/kernel/ptrace.c</code>文件中第1733行的函数<code>syscall_trace_leave</code>和<code>syscall_trace_enter</code></li>
+</ul>
+<p>与<code>arch/x86/include/asm/ptrace.h</code>文件中该函数的声明有冲突。</p>
+<ul>
+<li>解决方法：将<code>ptrace.h</code>文件中的函数声明改得和<code>ptrace.c</code>中的相同即可。</li>
+</ul>
+<p>再次编译，出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">gcc: error: elf_i386: No such file or directory</span><br><span class="line">gcc: error: unrecognized command line option ‘-m’</span><br><span class="line">make[2]: *** [arch/x86/vdso/vdso32-int80.so.dbg] Error 1</span><br><span class="line">make[1]: *** [arch/x86/vdso] Error 2</span><br><span class="line">make: *** [arch/x86] Error 2</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/whatday/article/details/101855564">参考</a>，编译器版本太高（gcc-4.8.4），不再支持 linker-style 架构。</li>
+<li>解决方法：修改<code>arch/x86/vdso/Makefile</code>如下：将<code>-m elf_x86_64</code>改为<code>-m64</code>、把 <code>-m elf_i386</code>替换为<code>-m32</code>。</li>
+</ul>
+<p>再次编译，成功：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Root device is (8, 1)</span><br><span class="line">Setup is 13088 bytes (padded to 13312 bytes).</span><br><span class="line">System is 4103 kB</span><br><span class="line">CRC c85a2d7a</span><br><span class="line">Kernel: arch/x86/boot/bzImage is ready  (#2)</span><br><span class="line">  Building modules, stage 2.</span><br><span class="line">  MODPOST 2 modules</span><br></pre></td></tr></table></figure>
+
+<h2 id="制作根文件系统"><a href="#制作根文件系统" class="headerlink" title="制作根文件系统"></a>制作根文件系统</h2><p><a target="_blank" rel="noopener" href="https://busybox.net/downloads/">下载buysbox源码</a>，使用的版本是busybox-1.20.1，下载到本地后，解压，进入目录。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xvf busybox-1.20.1.tar.bz2</span><br><span class="line">cd busybox-1.20.1</span><br></pre></td></tr></table></figure>
+
+<p> 要编译32位的文件系统，修改 <code>Makefile: line 292</code>：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CC        = <span class="variable">$(CROSS_COMPILE)</span>gcc -m32</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+<p>编译出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">loginutils/passwd.c: In function ‘passwd_main’:</span><br><span class="line">loginutils/passwd.c:104:16: error: storage size of ‘rlimit_fsize’ isn’t known struct rlimit rlimit_fsize;</span><br><span class="line"></span><br><span class="line">loginutils/passwd.c:188:12: error: ‘RLIMIT_FSIZE’ undeclared (first use in this function)</span><br><span class="line">  setrlimit(RLIMIT_FSIZE, &amp;rlimit_fsize);</span><br><span class="line"> </span><br><span class="line">miscutils/time.c:23:16: error: field ‘ru’ has incomplete type</span><br><span class="line">  struct rusage ru;</span><br><span class="line">                </span><br><span class="line">networking/inetd.c:307:2: error: unknown type name ‘rlim_t’</span><br><span class="line">  rlim_t rlim_ofile_cur;</span><br><span class="line">  ^</span><br><span class="line">networking/inetd.c:308:16: error: field ‘rlim_ofile’ has incomplete type</span><br><span class="line">  struct rlimit rlim_ofile;</span><br><span class="line">                </span><br><span class="line">networking/inetd.c: In function ‘bump_nofile’:</span><br><span class="line">networking/inetd.c:459:16: error: storage size of ‘rl’ isn’t known</span><br><span class="line">  struct rlimit rl;</span><br><span class="line"> </span><br><span class="line">networking/inetd.c:195:25: error: ‘RLIMIT_OFILE’ undeclared (first use in this function)</span><br><span class="line"><span class="meta prompt_"> #</span><span class="language-bash">define RLIMIT_NOFILE   RLIMIT_OFILE</span></span><br><span class="line"> </span><br><span class="line">networking/ntpd.c:2015:15: error: ‘PRIO_PROCESS’ undeclared (first use in this function)</span><br><span class="line">   setpriority(PRIO_PROCESS, 0, -15);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/zouli415/article/details/89406778">参考</a>，</p>
+</li>
+<li><p>解决办法：修改源码，在<code>include/libbb.h </code>中添加一行 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;sys/resource.h&quot;</span></span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel ./linux-2.6.34/arch/x86/boot/bzImage   -initrd ./busybox-1.20.1/initrd.img  -append &quot;root=/dev/ram init=/linuxrc&quot; -serial file:output.txt -curses</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel ./linux-4.9.229/arch/x86_64/boot/bzImage  -initrd ./busybox-1.30.0/rootfs.img.gz  -append &quot;root=/dev/ram init=/linuxrc&quot; -serial file:output.txt -curses</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel ./linux-2.6.34/arch/x86/boot/bzImage   -initrd ./busybox-1.30.0/rootfs.img.gz   -append &quot;root=/dev/ram init=/linuxrc&quot;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/LinuxKernel/" rel="tag"># :LinuxKernel</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/" rel="prev" title="CS61A-Lecture-4-Higher-Order-Functions">
+      <i class="fa fa-chevron-left"></i> CS61A-Lecture-4-Higher-Order-Functions
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/" rel="next" title="版本控制（git）">
+      版本控制（git） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">1.</span> <span class="nav-text">环境准备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%A8-Ubuntu-%E4%B8%AD%E5%AE%89%E8%A3%85-SSH%E6%9C%8D%E5%8A%A1"><span class="nav-number">1.1.</span> <span class="nav-text">在 Ubuntu 中安装 SSH服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%A8Windows-Terminal-%E4%B8%AD%E8%BF%9E%E6%8E%A5-Ubuntu-%E6%97%B6%E5%87%BA%E7%8E%B0%E4%BA%86%E9%94%99%E8%AF%AF"><span class="nav-number">1.2.</span> <span class="nav-text">在Windows Terminal 中连接 Ubuntu 时出现了错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E7%8E%AF%E5%A2%83"><span class="nav-number">1.3.</span> <span class="nav-text">编译环境</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%86%85%E6%A0%B8"><span class="nav-number">2.</span> <span class="nav-text">编译内核</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E5%86%85%E6%A0%B8%E6%BA%90%E7%A0%81"><span class="nav-number">2.1.</span> <span class="nav-text">获取内核源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%86%85%E6%A0%B8-1"><span class="nav-number">2.2.</span> <span class="nav-text">编译内核</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%B6%E4%BD%9C%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.</span> <span class="nav-text">制作根文件系统</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">32k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">29 分钟</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
