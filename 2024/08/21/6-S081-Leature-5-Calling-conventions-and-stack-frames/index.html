@@ -20,21 +20,23 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="git init 在当前目录下初始化一个新的 Git 仓库、生成一个.git目录和启动 Git 的版本控制功能。 git status显示当前工作目录的状态信息。 git add于将工作区（workspace）中的文件添加到暂存区（staging area）。 123git add file.txt             # 将文件 file.txt 添加到暂存区git add director">
+  <meta name="description" content="RISC-V vs x86RISC-V：一种精简指令集（Reduced Instruction Set Computer）。 RISC-V区分了 Base Integer Instruction Set 和 Standard Extension Instruction Set。Base Integer Instruction Set 包含了所有的常用指令，比如add，mult。除此之外，处理器还可">
 <meta property="og:type" content="article">
-<meta property="og:title" content="版本控制（git）">
-<meta property="og:url" content="http://example.com/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/index.html">
+<meta property="og:title" content="6.S081-Leature 5 Calling conventions and stack frames">
+<meta property="og:url" content="http://example.com/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/index.html">
 <meta property="og:site_name" content="wnyxvo的博客">
-<meta property="og:description" content="git init 在当前目录下初始化一个新的 Git 仓库、生成一个.git目录和启动 Git 的版本控制功能。 git status显示当前工作目录的状态信息。 git add于将工作区（workspace）中的文件添加到暂存区（staging area）。 123git add file.txt             # 将文件 file.txt 添加到暂存区git add director">
+<meta property="og:description" content="RISC-V vs x86RISC-V：一种精简指令集（Reduced Instruction Set Computer）。 RISC-V区分了 Base Integer Instruction Set 和 Standard Extension Instruction Set。Base Integer Instruction Set 包含了所有的常用指令，比如add，mult。除此之外，处理器还可">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2024-04-23T03:42:09.000Z">
-<meta property="article:modified_time" content="2024-04-23T03:44:16.716Z">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/RISC-V%20calling%20convention%20register%20usage..jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/stack%20frame.png">
+<meta property="article:published_time" content="2024-08-20T16:07:02.000Z">
+<meta property="article:modified_time" content="2025-01-09T03:08:45.310Z">
 <meta property="article:author" content="wnyxvo">
-<meta property="article:tag" content="Missing Semester">
-<meta property="article:tag" content="tools">
+<meta property="article:tag" content="6.S081">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/RISC-V%20calling%20convention%20register%20usage..jpg">
 
-<link rel="canonical" href="http://example.com/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/">
+<link rel="canonical" href="http://example.com/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/">
 
 
 <script id="page-configurations">
@@ -47,7 +49,7 @@
   };
 </script>
 
-  <title>版本控制（git） | wnyxvo的博客</title>
+  <title>6.S081-Leature 5 Calling conventions and stack frames | wnyxvo的博客</title>
   
 
 
@@ -167,7 +169,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -180,7 +182,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          版本控制（git）
+          6.S081-Leature 5 Calling conventions and stack frames
         </h1>
 
         <div class="post-meta">
@@ -189,17 +191,23 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2024-04-23 11:42:09 / 修改时间：11:44:16" itemprop="dateCreated datePublished" datetime="2024-04-23T11:42:09+08:00">2024-04-23</time>
+              <time title="创建时间：2024-08-21 00:07:02" itemprop="dateCreated datePublished" datetime="2024-08-21T00:07:02+08:00">2024-08-21</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-01-09 11:08:45" itemprop="dateModified" datetime="2025-01-09T11:08:45+08:00">2025-01-09</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/missing-Semester/" itemprop="url" rel="index"><span itemprop="name">missing-Semester</span></a>
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
                 </span>
             </span>
 
@@ -209,14 +217,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.8k</span>
+              <span>1.2k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
+              <span>1 分钟</span>
             </span>
 
         </div>
@@ -228,45 +236,28 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><code>git init</code> 在当前目录下初始化一个新的 Git 仓库、生成一个.git目录和启动 Git 的版本控制功能。</p>
-<p><code>git status</code>显示当前工作目录的状态信息。</p>
-<p><code>git add</code>于将工作区（workspace）中的文件添加到暂存区（staging area）。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git add file.txt             # 将文件 file.txt 添加到暂存区</span><br><span class="line">git add directory/           # 将目录 directory/ 中的所有文件和子目录添加到暂存区</span><br><span class="line">git add .                    # 将当前目录中的所有文件和子目录添加到暂存区</span><br></pre></td></tr></table></figure>
-
-<p><code>git rm --cached</code>用于从暂存区（staging area）中移除文件，但保留工作目录中的实际文件。这意味着，执行 该命令后，Git 会停止跟踪该文件，但文件本身仍然保留在工作目录中。如果希望将被移除的文件彻底从工作目录中删除，并且不再受版本控制，请使用 <code>git rm</code> 命令。</p>
-<p><code>git commit -m &quot;Add Submission Information&quot;</code> 用于将暂存区中的文件更改提交到本地仓库。执行该命令会创建一个新的提交（commit），并将暂存区中的文件更改作为这个提交的一部分。</p>
-<p><code>git remote add</code> 用于向当前 Git 仓库添加一个新的远程存储库（remote repository）。执行该命令可以将一个远程存储库添加到当前 Git 仓库的配置中，并分配一个简单易记的名称给这个远程存储库。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git remote add origin https://github.com/username/repository.git</span><br></pre></td></tr></table></figure>
-
-<p> <code>git remote -v </code>参看远程仓库的地址。</p>
-<p> <code>git remote set-url</code>修改远程仓库的 URL。需要提供两个参数：远程仓库的名称和新的 URL。</p>
-<p><code>git branch</code>用于查看、创建、删除和管理分支（branch）。执行该命令可以列出当前 Git 仓库中的所有分支，或者创建新的分支。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git branch                                       # 列出所有已有分支</span><br><span class="line">git branch new-branch-name                       # 创建新分支</span><br><span class="line">git branch -d branch-to-delete                   # 删除分支</span><br><span class="line">git branch -m old-branch-name new-branch-name    # 重命名分支</span><br></pre></td></tr></table></figure>
-
-<p><code>git push</code> 将本地分支的提交推送到远程库。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git push origin master    # origin是远程库的名称，master是要推送的本地分支名称。</span><br></pre></td></tr></table></figure>
-
-<p> 执行 <code>git push</code> 命令时，需要进行身份验证，只有拥有推送权限的用户才能成功推送更改到远程存储库。</p>
-<p> 要生成 SSH 公钥认证，可以按照以下步骤进行：</p>
-<ol>
-<li>打开终端（或命令提示符），输入以下命令来检查是否已存在 SSH 密钥：<ol>
-<li><pre><code class="Bash">ls -al ~/.ssh
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">   2.   如果已经存在 SSH 密钥，则会显示已存在的密钥文件，通常`id_rsa`（私钥）和 `id_rsa.pub`（公钥）。</span><br><span class="line">2. 如果不存在 SSH 密钥，则可以使用以下命令生成新的 SSH 密钥：</span><br><span class="line">   1. ```Bash</span><br><span class="line">      ssh-keygen -t rsa -b 4096 -C &quot;your_email@example.com&quot;</span><br></pre></td></tr></table></figure>
-</code></pre>
-</li>
-<li><p>这条命令会生成一对新的 SSH 密钥，其中 <code>-t rsa</code> 指定密钥类型为 RSA，<code>-b 4096</code> 指定密钥长度为 4096 位，<code>-C &quot;``your_email@example.com``&quot;</code> 指定注释信息为您的邮箱地址。在生成密钥时，系统会提示您选择密钥的保存路径和输入密码。</p>
-</li>
-</ol>
-</li>
-<li>生成密钥后，可以使用以下命令来列出生成的 SSH 密钥：<ol>
-<li><pre><code class="Bash">ls -al ~/.ssh
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">4. 使用SSH **公钥**（`id_rsa.pub` 文件中的内容）进行身份验证。将公钥添加到 GitHub 的设置中，以便使用 SSH 协议进行身份验证。</span><br><span class="line"></span><br><span class="line">`git clone` 将远程存储库中的所有文件和历史记录复制到本地计算机，创建一个新的 Git 仓库副本。</span><br><span class="line"></span><br><span class="line">`git pull` 从远程存储库获取（fetch）最新的更改并合并（merge）到当前分支。</span><br><span class="line"></span><br><span class="line">`git checkout`用于切换分支、恢复文件、创建分支等操作。</span><br><span class="line"></span><br><span class="line">```Shell</span><br><span class="line">git checkout master           # 切换到 master 分支</span><br><span class="line">git checkout -b new-branch    # 创建分支并切换</span><br></pre></td></tr></table></figure>
-</code></pre>
-</li>
-</ol>
-</li>
-</ol>
-<p><code>git diff</code>用于比较文件内容或提交之间的差异。会显示当前工作目录中未暂存的更改和已暂存的更改之间的差异，或者显示两个提交之间的差异。</p>
+        <h2 id="RISC-V-vs-x86"><a href="#RISC-V-vs-x86" class="headerlink" title="RISC-V vs x86"></a>RISC-V vs x86</h2><p>RISC-V：一种精简指令集（Reduced Instruction Set Computer）。</p>
+<p>RISC-V区分了 Base Integer Instruction Set 和 Standard Extension Instruction Set。Base Integer Instruction Set 包含了所有的常用指令，比如add，mult。除此之外，处理器还可以选择性的支持 Standard Extension Instruction Set。每一个RISC-V处理器可以声明支持了哪些扩展指令集，然后编译器可以根据支持的指令集来编译代码。</p>
+<p>x86：一种复杂指令集（Complex Instruction Set Computer）。</p>
+<h2 id="RISC-V寄存器"><a href="#RISC-V寄存器" class="headerlink" title="RISC-V寄存器"></a>RISC-V寄存器</h2><p>下图展示了 RISC-V 的寄存器调用约定：</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/RISC-V%20calling%20convention%20register%20usage..jpg" alt="RVG calling convention"></p>
+<p>表中第一列是寄存器名称，但是一般使用第二列的 ABI 名称，在编写汇编代码时也是使用ABI 名称。</p>
+<p>在标准 RISC-V 调用约定中，堆栈向下增长，并且堆栈指针 sp 始终保持 16 字节对齐。</p>
+<p>在寄存器中传递参数，最多 8 个整数寄存器 a0–a7 和最多 8 个浮点寄存器 fa0–fa7。如果一个函数有超过8个参数，就需要用内存了。</p>
+<p>返回值保存在 a0 和 a1 以及浮点寄存器 fa0 和 fa1 。较大的返回值在内存中传递；调用者分配此内存区域并将指向它的指针作为第一个参数传递给被调用者。</p>
+<p>RISC-V 采用小端法保存数据。寄存器都是 64 bits，各种各样的数据类型都会被改造的可以放进这64bit中。。比如说有一个32bit的整数，取决于整数是不是有符号的，会通过在前面补32个0或者1来使得这个整数变成64bit并存在这些寄存器中。</p>
+<p>Caller Saved 调用者寄存器中的值有调用者保存，被调用者直接使用这些寄存器。</p>
+<p>Callee Saved 被调用者寄存器的用法与 Caller Saved 相对应。被调用者若想使用 Callee Saved Reg ，则需要在使用前保存寄存器中的值，并在返回前恢复寄存器。</p>
+<h2 id="Stack"><a href="#Stack" class="headerlink" title="Stack"></a>Stack</h2><p>函数的 stack frame 是由编译器生成的机器代码在运行时构造的，调整堆栈指针（<code>sp</code>）以分配栈帧。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/stack%20frame.png" alt="stack frame"></p>
+<p>对于Stack来说，是从高地址开始向低地址使用。所以栈总是向下增长。</p>
+<p>一个函数的Stack Frame包含了保存的寄存器，本地变量，并且，如果函数的参数多于8个，额外的参数会出现在Stack中。所以Stack Frame大小并不总是一样。</p>
+<p>fp是frame pointer，用于指向当前帧底部（高地址），保存在寄存器s0中，同时每个函数栈帧中保存了调用当前函数的函数（父函数）的fp（保存在to prev frame那一栏中）</p>
+<p>有关Stack Frame有两件事情是确定的：</p>
+<ul>
+<li>Return address总是会出现在Stack Frame的第一位</li>
+<li>指向前一个Stack Frame的指针也会出现在栈中的固定位置</li>
+</ul>
 
     </div>
 
@@ -287,8 +278,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/Missing-Semester/" rel="tag"># Missing Semester</a>
-              <a href="/tags/tools/" rel="tag"># tools</a>
+              <a href="/tags/6-S081/" rel="tag"># 6.S081</a>
           </div>
 
         
@@ -297,12 +287,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="prev" title="Linux2.6.34内核调试环境搭建">
-      <i class="fa fa-chevron-left"></i> Linux2.6.34内核调试环境搭建
+    <a href="/2024/08/14/6-S081-Lab3-Page-Tables/" rel="prev" title="6.S081-Lab3-Page Tables">
+      <i class="fa fa-chevron-left"></i> 6.S081-Lab3-Page Tables
     </a></div>
       <div class="post-nav-item">
-    <a href="/2024/06/10/6-S081-Lab1-Xv6-and-Unix-utilities/" rel="next" title="6.S081-Lab1-Xv6 and Unix utilities">
-      6.S081-Lab1-Xv6 and Unix utilities <i class="fa fa-chevron-right"></i>
+    <a href="/2024/08/29/LKD3-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/" rel="next" title="LKD3-进程管理">
+      LKD3-进程管理 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -362,6 +352,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#RISC-V-vs-x86"><span class="nav-number">1.</span> <span class="nav-text">RISC-V vs x86</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RISC-V%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">2.</span> <span class="nav-text">RISC-V寄存器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Stack"><span class="nav-number">3.</span> <span class="nav-text">Stack</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

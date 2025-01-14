@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="进程进程描述符及任务结构内核把进程的列表存放在任务队列中（task list）。链表中的每一项都是类型为task_struct的结构，被称为进程描述符（process descriptor）。该结构体定义在include&#x2F;linux&#x2F;sched.h&#x2F;line1172，大约400行。它包含了进程管理中所需的所有信息，如进程状态、进程标识符 (PID)、调度信息、内存管理信息、打开的文件等。task_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LKD3-进程管理">
+<meta property="og:url" content="http://example.com/2024/08/29/LKD3-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="进程进程描述符及任务结构内核把进程的列表存放在任务队列中（task list）。链表中的每一项都是类型为task_struct的结构，被称为进程描述符（process descriptor）。该结构体定义在include&#x2F;linux&#x2F;sched.h&#x2F;line1172，大约400行。它包含了进程管理中所需的所有信息，如进程状态、进程标识符 (PID)、调度信息、内存管理信息、打开的文件等。task_">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-08-29T15:49:26.000Z">
+<meta property="article:modified_time" content="2024-08-30T17:04:05.685Z">
+<meta property="article:author" content="wnyxvo">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2024/08/29/LKD3-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>LKD3-进程管理 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/29/LKD3-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LKD3-进程管理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-08-29 23:49:26" itemprop="dateCreated datePublished" datetime="2024-08-29T23:49:26+08:00">2024-08-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-08-31 01:04:05" itemprop="dateModified" datetime="2024-08-31T01:04:05+08:00">2024-08-31</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h2><h2 id="进程描述符及任务结构"><a href="#进程描述符及任务结构" class="headerlink" title="进程描述符及任务结构"></a>进程描述符及任务结构</h2><p>内核把进程的列表存放在任务队列中（task list）。链表中的每一项都是类型为<code>task_struct</code>的结构，被称为进程描述符（process descriptor）。该结构体定义在<code>include/linux/sched.h/line1172</code>，大约400行。它包含了进程管理中所需的所有信息，如进程状态、进程标识符 (PID)、调度信息、内存管理信息、打开的文件等。<code>task_struct</code> 在进程控制块 (PCB) 中扮演了关键角色，操作系统通过它来管理进程。</p>
+<h3 id="分配进程描述符"><a href="#分配进程描述符" class="headerlink" title="分配进程描述符"></a>分配进程描述符</h3><p>2.6以后的内核使用<code>slab</code>分配器动态生成<code>task_struct</code> ，并在栈底创建一个新的结构体<code>thread_info</code>，可以称为线程描述符。<code>thread_info</code> 保存了指向 <code>task_struct</code> 的指针，并且保存了一些与线程执行状态有关的低级别信息。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// arch/x86/include/asm/thread_info.h</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">thread_info</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span>	*<span class="title">task</span>;</span>		<span class="comment">/* main task structure */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">exec_domain</span>	*<span class="title">exec_domain</span>;</span>	<span class="comment">/* execution domain */</span></span><br><span class="line">	__u32			flags;		<span class="comment">/* low level flags */</span></span><br><span class="line">	__u32			status;		<span class="comment">/* thread synchronous flags */</span></span><br><span class="line">	__u32			cpu;		<span class="comment">/* current CPU */</span></span><br><span class="line">	<span class="type">int</span>			preempt_count;	<span class="comment">/* 0 =&gt; preemptable,</span></span><br><span class="line"><span class="comment">						          &lt;0 =&gt; BUG */</span></span><br><span class="line">	<span class="type">mm_segment_t</span>		addr_limit;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">restart_block</span>    <span class="title">restart_block</span>;</span></span><br><span class="line">	<span class="type">void</span> __user		*sysenter_return;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_X86_32</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>           previous_esp;   <span class="comment">/* ESP of the previous stack in</span></span><br><span class="line"><span class="comment">						   case of nested (IRQ) stacks */</span></span><br><span class="line">	__u8			supervisor_stack[<span class="number">0</span>];</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="type">int</span>			uaccess_err;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>task</strong>: 指向与该线程相关的主 <code>task_struct</code> 结构体。<code>task_struct</code> 是进程&#x2F;线程的主要描述符，而 <code>thread_info</code> 主要存储的是与特定线程的执行环境相关的低级信息。</li>
+<li><strong>exec_domain</strong>: 指向线程的执行域结构体，执行域决定了线程运行的上下文，特别是在跨平台内核中，这个域可以包含与线程执行相关的特定信息。</li>
+<li><strong>flags</strong>: 低级别的标志位，用于记录线程的各种状态和属性。这些标志位可以用于表示线程的某些特定状态，例如是否正在调试中，是否已被杀死等。</li>
+</ul>
+<ul>
+<li><strong>status</strong>: 线程的同步标志，主要用于管理线程的同步状态，例如阻塞、挂起等。</li>
+<li><strong>cpu</strong>: 当前线程正在运行的处理器编号。该字段在多核系统中特别重要，指示线程当前在哪个 CPU 核上执行。</li>
+<li><strong>preempt_count</strong>: 用于管理线程的抢占计数器。<code>0</code> 表示线程是可抢占的，如果该值为负数，则意味着发生了错误。</li>
+<li><strong>addr_limit</strong>: 线程的地址限制，用于定义线程能够访问的内存区域。通常用于区分用户态和内核态的地址空间。</li>
+<li><strong>restart_block</strong>: 线程重启块，用于处理系统调用在某些情况下（例如被信号中断）需要重新启动的情况。</li>
+<li><strong>sysenter_return</strong>: 指向用户态返回地址，用于 <code>sysenter</code> 系统调用快速路径的返回处理。</li>
+<li><strong>previous_esp</strong> (仅在 <code>CONFIG_X86_32</code> 配置下有效): 保存之前栈的 ESP 值，用于嵌套（例如 IRQ）栈的情况。</li>
+<li><strong>supervisor_stack</strong> (仅在 <code>CONFIG_X86_32</code> 配置下有效): 用于保存管理栈的值。</li>
+<li><strong>uaccess_err</strong>: 记录用户态访问错误，用于在执行用户空间内存访问时检测并处理潜在的错误。</li>
+</ul>
+<p>对每个进程来说，Linux都把两个不同的数据结构紧凑地存放在一个单独为进程分配的存储区间中：一个内核态的进程堆栈、另一个就是<code>thread_info</code>。这块区域的大小通常为8192B（2个连续的页），并且第一个页框的起始地址为2^13的倍数。<code>thread_info</code>结构时52个字节长，所以内核栈能扩展到8140字节。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">union</span> <span class="title">thread_union</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">thread_info</span> <span class="title">thread_info</span>;</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> <span class="built_in">stack</span>[<span class="number">2048</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="获取进程描述符"><a href="#获取进程描述符" class="headerlink" title="获取进程描述符"></a>获取进程描述符</h3><p>内核很容易利用<code>esp</code>寄存器（存放栈指针）的值获取当前CPU上运行的进程的<code>thread_info</code>结构的地址。因为<code>thread_union</code>的长度为8K，且起始地址是2^13的倍数，所以清除<code>esp</code>的低13位后就可得到<code>thread_union</code>的基地址。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// arch/x86/include/asm/thread_info.h</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="keyword">struct</span> thread_info *<span class="title function_">current_thread_info</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> (<span class="keyword">struct</span> thread_info *)</span><br><span class="line">		(current_stack_pointer &amp; ~(THREAD_SIZE - <span class="number">1</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>current_thread_info()-&gt;task</code>即可获得当前进程的<code>task_struct</code> 地址。</p>
+<h3 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h3><p>在 Linux 内核中，进程（<code>task_struct</code>）具有多种状态，用于表示进程当前的活动情况。这些状态定义在 <code>include/linux/sched.h</code> 文件中，并且通过不同的状态值来描述进程的不同执行情况。</p>
+<ul>
+<li><p>TASK_RUNNING（运行状态）：进程处于可执行状态，表示该进程正在运行或在就绪队列中等待 CPU 时间片。当 CPU 分配给该进程时，它将进入运行状态。</p>
+</li>
+<li><p>TASK_INTERRUPTIBLE（可中断的睡眠状态）：进程正在等待某个事件（例如 I&#x2F;O 操作完成），并且在等待期间可以被信号中断。如果进程收到信号，它将从睡眠状态唤醒，并处理信号。</p>
+</li>
+<li><p>TASK_UNINTERRUPTIBLE（不可中断的睡眠状态）：进程也在等待某个事件，但此状态下它不会响应任何信号，也不会被中断，直到等待的事件发生。例如，等待磁盘 I&#x2F;O 完成时，进程可能进入不可中断的睡眠状态。</p>
+</li>
+<li><p>TASK_STOPPED（停止状态）：进程已停止运行，通常是因为收到了 <code>SIGSTOP</code>、<code>SIGTSTP</code>、<code>SIGTTIN</code> 或 <code>SIGTTOU</code> 等信号。此时进程不会被调度执行，直到收到继续运行的信号（例如 <code>SIGCONT</code>）。</p>
+</li>
+<li><p>TASK_TRACED（跟踪状态）：进程处于被跟踪状态，通常是因为调试器（例如 <code>gdb</code>）正在跟踪该进程。当一个进程处于跟踪状态时，它不会被调度执行，除非被调试器释放。</p>
+</li>
+<li><p>EXIT_DEAD（僵尸进程状态）：进程的执行已经终止，所有资源已经被释放，但其父进程还没有通过 <code>wait()</code> 系列系统调用获取子进程的终止状态，导致进程仍然保留在进程表中。这种状态称为僵尸进程（Zombie）。</p>
+</li>
+<li><p>EXIT_ZOMBIE（僵尸状态）：进程已经终止，内核已经释放了该进程的大部分资源，但仍保留了一些信息以供父进程查询。这些信息会在父进程调用 <code>wait()</code> 后完全释放。</p>
+</li>
+<li><p>TASK_DEAD（死亡状态）：进程的所有资源都已经释放，进程完全终止。此状态意味着进程已不再存在。</p>
+</li>
+<li><p>TASK_WAKEKILL（可唤醒状态）：这是一个标志位，表示进程在 <code>TASK_INTERRUPTIBLE</code> 或 <code>TASK_UNINTERRUPTIBLE</code> 状态下，可以被唤醒并被信号杀死。</p>
+</li>
+<li><p>TASK_WAKING（唤醒中状态）：进程正在从睡眠状态转变为可运行状态，但尚未实际进入 <code>TASK_RUNNING</code> 状态。这是一个过渡状态，表示进程即将被调度器重新调度执行。</p>
+</li>
+<li><p>TASK_PARKED（暂停状态）：这个状态表示进程被暂停调度，一般与 CPU 热插拔或一些特殊的调度需求相关联。</p>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/" rel="prev" title="6.S081-Leature 5 Calling conventions and stack frames">
+      <i class="fa fa-chevron-left"></i> 6.S081-Leature 5 Calling conventions and stack frames
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/01/09/6-S081-Leature-6-Trap/" rel="next" title="6.S081-Leature 6 Trap">
+      6.S081-Leature 6 Trap <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">进程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%8F%8A%E4%BB%BB%E5%8A%A1%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">进程描述符及任务结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E9%85%8D%E8%BF%9B%E7%A8%8B%E6%8F%8F%E8%BF%B0%E7%AC%A6"><span class="nav-number">2.1.</span> <span class="nav-text">分配进程描述符</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E8%BF%9B%E7%A8%8B%E6%8F%8F%E8%BF%B0%E7%AC%A6"><span class="nav-number">2.2.</span> <span class="nav-text">获取进程描述符</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E7%8A%B6%E6%80%81"><span class="nav-number">2.3.</span> <span class="nav-text">进程状态</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">79k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:12</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

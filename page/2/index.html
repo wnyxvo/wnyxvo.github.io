@@ -122,7 +122,7 @@
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">7</span></a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">8</span></a>
 
   </li>
         <li class="menu-item menu-item-categories">
@@ -132,7 +132,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">12</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
 
   </li>
   </ul>
@@ -158,6 +158,456 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6%EF%BC%88git%EF%BC%89/" class="post-title-link" itemprop="url">版本控制（git）</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 11:42:09 / 修改时间：11:44:16" itemprop="dateCreated datePublished" datetime="2024-04-23T11:42:09+08:00">2024-04-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/missing-Semester/" itemprop="url" rel="index"><span itemprop="name">missing-Semester</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><code>git init</code> 在当前目录下初始化一个新的 Git 仓库、生成一个.git目录和启动 Git 的版本控制功能。</p>
+<p><code>git status</code>显示当前工作目录的状态信息。</p>
+<p><code>git add</code>于将工作区（workspace）中的文件添加到暂存区（staging area）。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git add file.txt             # 将文件 file.txt 添加到暂存区</span><br><span class="line">git add directory/           # 将目录 directory/ 中的所有文件和子目录添加到暂存区</span><br><span class="line">git add .                    # 将当前目录中的所有文件和子目录添加到暂存区</span><br></pre></td></tr></table></figure>
+
+<p><code>git rm --cached</code>用于从暂存区（staging area）中移除文件，但保留工作目录中的实际文件。这意味着，执行 该命令后，Git 会停止跟踪该文件，但文件本身仍然保留在工作目录中。如果希望将被移除的文件彻底从工作目录中删除，并且不再受版本控制，请使用 <code>git rm</code> 命令。</p>
+<p><code>git commit -m &quot;Add Submission Information&quot;</code> 用于将暂存区中的文件更改提交到本地仓库。执行该命令会创建一个新的提交（commit），并将暂存区中的文件更改作为这个提交的一部分。</p>
+<p><code>git remote add</code> 用于向当前 Git 仓库添加一个新的远程存储库（remote repository）。执行该命令可以将一个远程存储库添加到当前 Git 仓库的配置中，并分配一个简单易记的名称给这个远程存储库。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git remote add origin https://github.com/username/repository.git</span><br></pre></td></tr></table></figure>
+
+<p> <code>git remote -v </code>参看远程仓库的地址。</p>
+<p> <code>git remote set-url</code>修改远程仓库的 URL。需要提供两个参数：远程仓库的名称和新的 URL。</p>
+<p><code>git branch</code>用于查看、创建、删除和管理分支（branch）。执行该命令可以列出当前 Git 仓库中的所有分支，或者创建新的分支。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git branch                                       # 列出所有已有分支</span><br><span class="line">git branch new-branch-name                       # 创建新分支</span><br><span class="line">git branch -d branch-to-delete                   # 删除分支</span><br><span class="line">git branch -m old-branch-name new-branch-name    # 重命名分支</span><br></pre></td></tr></table></figure>
+
+<p><code>git push</code> 将本地分支的提交推送到远程库。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git push origin master    # origin是远程库的名称，master是要推送的本地分支名称。</span><br></pre></td></tr></table></figure>
+
+<p> 执行 <code>git push</code> 命令时，需要进行身份验证，只有拥有推送权限的用户才能成功推送更改到远程存储库。</p>
+<p> 要生成 SSH 公钥认证，可以按照以下步骤进行：</p>
+<ol>
+<li>打开终端（或命令提示符），输入以下命令来检查是否已存在 SSH 密钥：<ol>
+<li><pre><code class="Bash">ls -al ~/.ssh
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">   2.   如果已经存在 SSH 密钥，则会显示已存在的密钥文件，通常`id_rsa`（私钥）和 `id_rsa.pub`（公钥）。</span><br><span class="line">2. 如果不存在 SSH 密钥，则可以使用以下命令生成新的 SSH 密钥：</span><br><span class="line">   1. ```Bash</span><br><span class="line">      ssh-keygen -t rsa -b 4096 -C &quot;your_email@example.com&quot;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li><p>这条命令会生成一对新的 SSH 密钥，其中 <code>-t rsa</code> 指定密钥类型为 RSA，<code>-b 4096</code> 指定密钥长度为 4096 位，<code>-C &quot;``your_email@example.com``&quot;</code> 指定注释信息为您的邮箱地址。在生成密钥时，系统会提示您选择密钥的保存路径和输入密码。</p>
+</li>
+</ol>
+</li>
+<li>生成密钥后，可以使用以下命令来列出生成的 SSH 密钥：<ol>
+<li><pre><code class="Bash">ls -al ~/.ssh
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">4. 使用SSH **公钥**（`id_rsa.pub` 文件中的内容）进行身份验证。将公钥添加到 GitHub 的设置中，以便使用 SSH 协议进行身份验证。</span><br><span class="line"></span><br><span class="line">`git clone` 将远程存储库中的所有文件和历史记录复制到本地计算机，创建一个新的 Git 仓库副本。</span><br><span class="line"></span><br><span class="line">`git pull` 从远程存储库获取（fetch）最新的更改并合并（merge）到当前分支。</span><br><span class="line"></span><br><span class="line">`git checkout`用于切换分支、恢复文件、创建分支等操作。</span><br><span class="line"></span><br><span class="line">```Shell</span><br><span class="line">git checkout master           # 切换到 master 分支</span><br><span class="line">git checkout -b new-branch    # 创建分支并切换</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ol>
+</li>
+</ol>
+<p><code>git diff</code>用于比较文件内容或提交之间的差异。会显示当前工作目录中未暂存的更改和已暂存的更改之间的差异，或者显示两个提交之间的差异。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/14/Linux2-6-34%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="post-title-link" itemprop="url">Linux2.6.34内核调试环境搭建</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2024-04-14 14:00:16" itemprop="dateCreated datePublished" datetime="2024-04-14T14:00:16+08:00">2024-04-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-08-28 00:12:01" itemprop="dateModified" datetime="2024-08-28T00:12:01+08:00">2024-08-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%86%85%E6%A0%B8/" itemprop="url" rel="index"><span itemprop="name">Linux内核</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><ul>
+<li>windows11+ VMware 16</li>
+</ul>
+<ul>
+<li>虚拟机镜像：ubuntu-14.04.6-desktop-amd64.iso</li>
+<li>Linux  源码版本：2.6.34</li>
+<li>busybox 源码版本：1.20.1</li>
+<li>qemu-system-x86_64 版本：2.0.0 </li>
+<li>gcc 源码版本：4.8.4</li>
+</ul>
+<h3 id="在-Ubuntu-中安装-SSH服务"><a href="#在-Ubuntu-中安装-SSH服务" class="headerlink" title="在 Ubuntu 中安装 SSH服务"></a>在 Ubuntu 中安装 SSH服务</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install openssh-server</span><br></pre></td></tr></table></figure>
+
+<p>编辑<code>sshd_config</code>文件，修改<code>PasswordAuthentication </code>项 ，重启服务：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/ssh/sshd_config</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">PermitRootLogin prohibit-password</span></span><br><span class="line">PermitRootLogin yes</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo service ssh restart</span><br></pre></td></tr></table></figure>
+
+<h3 id="在Windows-Terminal-中连接-Ubuntu-时出现了错误"><a href="#在Windows-Terminal-中连接-Ubuntu-时出现了错误" class="headerlink" title="在Windows Terminal 中连接 Ubuntu 时出现了错误"></a>在Windows Terminal 中连接 Ubuntu 时出现了错误</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PS C:\Users\31259&gt; ssh w@10.70.0.1</span><br><span class="line">ssh: connect to host 10.70.0.1 port 22: Connection timed out</span><br></pre></td></tr></table></figure>
+
+<p>开始以为是 Ubuntu14.04 的问题， 经过更换端口号、设置防火墙等都未解决。尝试用 VMware 16 中的另一个Ubuntu22.04 连接 Ubuntu14.04，成功连接。那问题应该出在 Windows 端，排查到<code>‪C:\Users\31259\.ssh\config</code>中没配置好。</p>
+<h3 id="编译环境"><a href="#编译环境" class="headerlink" title="编译环境"></a>编译环境</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装编译环境</span></span><br><span class="line">sudo apt-get install -y libncurses5-dev build-essential</span><br><span class="line">sudo apt-get install -y lib32readline-gplv2-dev</span><br><span class="line">sudo apt-get install -y wget vim gdb</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装QEMU</span></span><br><span class="line">sudo apt-get install -y qemu-system-x86</span><br></pre></td></tr></table></figure>
+
+<h2 id="编译内核"><a href="#编译内核" class="headerlink" title="编译内核"></a>编译内核</h2><h3 id="获取内核源码"><a href="#获取内核源码" class="headerlink" title="获取内核源码"></a>获取内核源码</h3><p>首先<a target="_blank" rel="noopener" href="https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/">下载内核</a>，选取与书中采用的 Linux-2.6.34。下载到本地后，解压，进入目录。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xvjf linux-2.6.34.tar.bz2</span><br><span class="line">cd linux-2.6.34</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://cdn.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.34/">下载</a>补丁文件，解压。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">patch -p1 &lt; ../patch-2.6.34.15</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译内核-1"><a href="#编译内核-1" class="headerlink" title="编译内核"></a>编译内核</h3><p><a target="_blank" rel="noopener" href="https://www.bilibili.com/read/cv11271232/">参考</a>，编译选项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=i386 defconfig</span><br><span class="line">make ARCH=i386 menuconfig</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">选择以下编译选项，使用空格键选择。然后退出</span></span><br><span class="line">Kernel hacking  ---&gt; </span><br><span class="line">    [*] Compile the kernel with debug info </span><br><span class="line">    [*] KGDB: kernel debugging with remote gdb </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">开始编译</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-jN 代表多任务并行化，数字一般为cpu核数*2</span></span><br><span class="line">make ARCH=i386 -j4</span><br></pre></td></tr></table></figure>
+
+<p>编译出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">arch/x86/kernel/ptrace.c:1733:17: error: conflicting types for ‘syscall_trace_enter’</span><br><span class="line"> asmregparm long syscall_trace_enter(struct pt_regs *regs)</span><br><span class="line">                 ^</span><br><span class="line">In file included from /home/w/linux-2.6.34/arch/x86/include/asm/vm86.h:130:0,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/processor.h:10,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/thread_info.h:22,</span><br><span class="line">                 from include/linux/thread_info.h:56,</span><br><span class="line">                 from include/linux/preempt.h:9,</span><br><span class="line">                 from include/linux/spinlock.h:50,</span><br><span class="line">                 from include/linux/seqlock.h:29,</span><br><span class="line">                 from include/linux/time.h:8,</span><br><span class="line">                 from include/linux/timex.h:56,</span><br><span class="line">                 from include/linux/sched.h:56,</span><br><span class="line">                 from arch/x86/kernel/ptrace.c:11:</span><br><span class="line">/home/w/linux-2.6.34/arch/x86/include/asm/ptrace.h:146:13: note: previous declaration of ‘syscall_trace_enter’ was here</span><br><span class="line"> extern long syscall_trace_enter(struct pt_regs *);</span><br><span class="line">             ^</span><br><span class="line">arch/x86/kernel/ptrace.c:1778:17: error: conflicting types for ‘syscall_trace_leave’</span><br><span class="line"> asmregparm void syscall_trace_leave(struct pt_regs *regs)</span><br><span class="line">                 ^</span><br><span class="line">In file included from /home/w/linux-2.6.34/arch/x86/include/asm/vm86.h:130:0,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/processor.h:10,</span><br><span class="line">                 from /home/w/linux-2.6.34/arch/x86/include/asm/thread_info.h:22,</span><br><span class="line">                 from include/linux/thread_info.h:56,</span><br><span class="line">                 from include/linux/preempt.h:9,</span><br><span class="line">                 from include/linux/spinlock.h:50,</span><br><span class="line">                 from include/linux/seqlock.h:29,</span><br><span class="line">                 from include/linux/time.h:8,</span><br><span class="line">                 from include/linux/timex.h:56,</span><br><span class="line">                 from include/linux/sched.h:56,</span><br><span class="line">                 from arch/x86/kernel/ptrace.c:11:</span><br><span class="line">/home/w/linux-2.6.34/arch/x86/include/asm/ptrace.h:147:13: note: previous declaration of ‘syscall_trace_leave’ was here</span><br><span class="line"> extern void syscall_trace_leave(struct pt_regs *);</span><br><span class="line">             ^</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/whatday/article/details/102074919">参考</a>，<code>arch/x86/kernel/ptrace.c</code>文件中第1733行的函数<code>syscall_trace_leave</code>和<code>syscall_trace_enter</code>与<code>arch/x86/include/asm/ptrace.h</code>文件中该函数的声明有冲突。</p>
+</li>
+<li><p>解决方法：将<code>ptrace.h</code>文件中的函数声明改得和<code>ptrace.c</code>中的相同即可。</p>
+</li>
+</ul>
+<p>再次编译，出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">gcc: error: elf_i386: No such file or directory</span><br><span class="line">gcc: error: unrecognized command line option ‘-m’</span><br><span class="line">make[2]: *** [arch/x86/vdso/vdso32-int80.so.dbg] Error 1</span><br><span class="line">make[1]: *** [arch/x86/vdso] Error 2</span><br><span class="line">make: *** [arch/x86] Error 2</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/whatday/article/details/101855564">参考</a>，编译器版本太高（gcc-4.8.4），不再支持 linker-style 架构。</li>
+<li>解决方法：修改<code>arch/x86/vdso/Makefile</code>如下：将<code>-m elf_x86_64</code>改为<code>-m64</code>、把 <code>-m elf_i386</code>替换为<code>-m32</code>。</li>
+</ul>
+<p>再次编译，成功：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Root device is (8, 1)</span><br><span class="line">Setup is 13088 bytes (padded to 13312 bytes).</span><br><span class="line">System is 4118 kB</span><br><span class="line">CRC 4b80fac1</span><br><span class="line">Kernel: arch/x86/boot/bzImage is ready  (#4)</span><br><span class="line">  Building modules, stage 2.</span><br><span class="line">  MODPOST 2 modules</span><br><span class="line">  CC      arch/x86/kernel/test_nx.mod.o</span><br><span class="line">  LD [M]  arch/x86/kernel/test_nx.ko</span><br><span class="line">  CC      drivers/scsi/scsi_wait_scan.mod.o</span><br><span class="line">  LD [M]  drivers/scsi/scsi_wait_scan.ko</span><br></pre></td></tr></table></figure>
+
+<h2 id="制作根文件系统"><a href="#制作根文件系统" class="headerlink" title="制作根文件系统"></a>制作根文件系统</h2><p><a target="_blank" rel="noopener" href="https://busybox.net/downloads/">下载buysbox源码</a>，使用的版本是busybox-1.20.1，下载到本地后，解压，进入目录。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xvf busybox-1.20.1.tar.bz2</span><br><span class="line">cd busybox-1.20.1</span><br></pre></td></tr></table></figure>
+
+<p> 要编译32位的文件系统，修改 <code>Makefile: line 292</code>：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CC        = <span class="variable">$(CROSS_COMPILE)</span>gcc -m32</span><br></pre></td></tr></table></figure>
+
+<p>配置buysbox源码，<a target="_blank" rel="noopener" href="https://www.bilibili.com/read/cv11271232/">参考</a>。开始编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+
+<p>出错：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">loginutils/passwd.c: In function ‘passwd_main’:</span><br><span class="line">loginutils/passwd.c:104:16: error: storage size of ‘rlimit_fsize’ isn’t known struct rlimit rlimit_fsize;</span><br><span class="line"></span><br><span class="line">loginutils/passwd.c:188:12: error: ‘RLIMIT_FSIZE’ undeclared (first use in this function)</span><br><span class="line">  setrlimit(RLIMIT_FSIZE, &amp;rlimit_fsize);</span><br><span class="line"> </span><br><span class="line">miscutils/time.c:23:16: error: field ‘ru’ has incomplete type</span><br><span class="line">  struct rusage ru;</span><br><span class="line">                </span><br><span class="line">networking/inetd.c:307:2: error: unknown type name ‘rlim_t’</span><br><span class="line">  rlim_t rlim_ofile_cur;</span><br><span class="line">  ^</span><br><span class="line">networking/inetd.c:308:16: error: field ‘rlim_ofile’ has incomplete type</span><br><span class="line">  struct rlimit rlim_ofile;</span><br><span class="line">                </span><br><span class="line">networking/inetd.c: In function ‘bump_nofile’:</span><br><span class="line">networking/inetd.c:459:16: error: storage size of ‘rl’ isn’t known</span><br><span class="line">  struct rlimit rl;</span><br><span class="line"> </span><br><span class="line">networking/inetd.c:195:25: error: ‘RLIMIT_OFILE’ undeclared (first use in this function)</span><br><span class="line"><span class="meta prompt_"> #</span><span class="language-bash">define RLIMIT_NOFILE   RLIMIT_OFILE</span></span><br><span class="line"> </span><br><span class="line">networking/ntpd.c:2015:15: error: ‘PRIO_PROCESS’ undeclared (first use in this function)</span><br><span class="line">   setpriority(PRIO_PROCESS, 0, -15);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>出错原因：<a target="_blank" rel="noopener" href="https://blog.csdn.net/zouli415/article/details/89406778">参考</a>，</p>
+</li>
+<li><p>解决办法：修改源码，在<code>include/libbb.h </code>中添加一行 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;sys/resource.h&quot;</span></span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>启动qemu：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel ./linux-2.6.34/arch/x86/boot/bzImage  -initrd ./busybox-1.20.1/rootfs.img.gz  -append &quot;root=/dev/ram init=/linuxrc&quot; -serial file:output.txt -curses</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/08/CS61A-Lecture-4-Higher-Order-Functions/" class="post-title-link" itemprop="url">CS61A-Lecture-4-Higher-Order-Functions</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-08 23:28:24 / 修改时间：23:29:01" itemprop="dateCreated datePublished" datetime="2024-04-08T23:28:24+08:00">2024-04-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CS61A/" itemprop="url" rel="index"><span itemprop="name">CS61A</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>上节课没讲完的例子，寻找一个数的因数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#  Prime numbers  素数</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">is_prime</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Return True iff N is prime.</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(1)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(2)</span></span><br><span class="line"><span class="string">    True</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(8)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(21)</span></span><br><span class="line"><span class="string">    False</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; is_prime(23)</span></span><br><span class="line"><span class="string">    True</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">return</span> n &gt; <span class="number">1</span> <span class="keyword">and</span> smallest_factor(n) == n</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">smallest_factor</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Returns the smallest value k&gt;1 that evenly divides N.&quot;&quot;&quot;</span></span><br><span class="line">    <span class="comment"># The following can be speeded up a great deal!</span></span><br><span class="line">    k = <span class="number">2</span></span><br><span class="line">    <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">        <span class="keyword">if</span> n % k == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> k</span><br><span class="line">        k += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">print_factors</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Print the prime factors of N. # 打印一个数的质因数</span></span><br><span class="line"><span class="string">    &gt;&gt;&gt; print_factors(180)</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    2</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    3</span></span><br><span class="line"><span class="string">    5</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">while</span> n &gt; <span class="number">1</span>:</span><br><span class="line">        d = smallest_factor(n)</span><br><span class="line">        <span class="built_in">print</span>(d)</span><br><span class="line">        n = n // d     <span class="comment"># or n //= d</span></span><br></pre></td></tr></table></figure>
+
+<p>上述使用了上节介绍的 doctest，使用命令：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -m doctest &lt;FileName&gt;</span><br></pre></td></tr></table></figure>
+
+<p>Python 中使用 doctest，在运行这些测试前，会先扫描整个文件。这就允许了 doctest 出现在 smallest_factor() 前，还能调用smallest_factor()。</p>
+<h2 id="函数相关术语"><a href="#函数相关术语" class="headerlink" title="函数相关术语"></a>函数相关术语</h2><ol>
+<li>定义域：一个函数的可能参数值的集合，调用函数时的有效参数</li>
+<li>值域：函数可以返回的值集，受值域影响</li>
+<li>陪域(Codomain)又称上域、到达域。 函数的上域是一个比选择值域范围更大的集合。</li>
+</ol>
+<p>例如，我们可以说平方函数的定义域是实数，范围是非负数。我们可以选择将其上域描述为实数或仅描述为非负实数。</p>
+<h2 id="函数文档注释"><a href="#函数文档注释" class="headerlink" title="函数文档注释"></a>函数文档注释</h2><p>理想情况下，函数的文档注释提供了足够的信息，以便程序员可以正确使用该函数并理解它的作用，而无需阅读其代码主体。</p>
+<p>文档注释应该明确哪些输入在什么条件下是有效的，是可以调用函数的。还应该明确对于正确的输入，函数的结果输出或效果是什么。这些共同构成了函数的行为或语义。</p>
+<h2 id="两条函数设计原则"><a href="#两条函数设计原则" class="headerlink" title="两条函数设计原则"></a>两条函数设计原则</h2><ol>
+<li><p>函数应该做一件明确定义的事情（复杂的文档注释可能暗示你的函数做的太多）。</p>
+</li>
+<li><p>DRY (Don’t Repeat Yourself)</p>
+<p>看起来非常相似的多个代码段迫切需要重构。 用对单个通用函数的简单调用替换重复段，该通用函数仅声明一次它们的共享结构，并使用用于专门针对各种情况的参数。</p>
+</li>
+</ol>
+<h2 id="作为参数的函数"><a href="#作为参数的函数" class="headerlink" title="作为参数的函数"></a>作为参数的函数</h2><p>考虑下面两个函数，它们都计算总和。</p>
+<p>但 <code>sum_naturals</code> 专用于计算截至<code>n</code>的自然数的和：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_naturals</span>(<span class="params">n</span>):</span><br><span class="line">        total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">            total, k = total + k, k + <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> total</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_naturals(<span class="number">100</span>)</span><br><span class="line"><span class="number">5050</span></span><br></pre></td></tr></table></figure>
+
+<p>但<code>sum_cubes</code>，计算截至<code>n</code>的自然数的立方和：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_cubes</span>(<span class="params">n</span>):</span><br><span class="line">        total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">        <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">            total, k = total + <span class="built_in">pow</span>(k, <span class="number">3</span>), k + <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> total</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_cubes(<span class="number">100</span>)</span><br><span class="line"><span class="number">25502500</span></span><br></pre></td></tr></table></figure>
+
+<p>这两个函数在背后都具有相同模式。它们大部分相同，只是名字、用于计算被加项的<code>k</code>的函数，以及提供<code>k</code>的下一个值的函数不同。我们可以通过向相同的模板中填充槽位来生成每个函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> &lt;name&gt;(n):</span><br><span class="line">    total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> k &lt;= n:</span><br><span class="line">        total, k = total + &lt;term&gt;(k), &lt;<span class="built_in">next</span>&gt;(k)</span><br><span class="line">    <span class="keyword">return</span> total</span><br></pre></td></tr></table></figure>
+
+<p>这个通用模板的出现是一个强有力的证据，证明有一个实用抽象正在等着我们表现出来。作为程序的设计者，我们希望我们的语言足够强大，便于我们编写函数来自我表达求和的概念，而不仅仅是计算特定和的函数。我们可以在 Python 中使用上面展示的通用模板，并且把槽位变成形参来轻易完成它。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">summation</span>(<span class="params">n, term, <span class="built_in">next</span></span>):</span><br><span class="line">	total, k = <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">	<span class="keyword">while</span> k &lt;= n:</span><br><span class="line">		total, k = total + term(k), <span class="built_in">next</span>(k)</span><br><span class="line">	<span class="keyword">return</span> total</span><br></pre></td></tr></table></figure>
+
+<p>重新表示 sum_naturals()：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">identity</span>(<span class="params">k</span>):</span><br><span class="line">        <span class="keyword">return</span> k</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">successor</span>(<span class="params">k</span>):</span><br><span class="line">        <span class="keyword">return</span> k + <span class="number">1</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">sum_naturals</span>(<span class="params">n</span>):</span><br><span class="line">        <span class="keyword">return</span> summation(n, identity, successor)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sum_naturals(<span class="number">10</span>)</span><br><span class="line"><span class="number">55</span></span><br></pre></td></tr></table></figure>
+
+<p>或者，可以创建匿名函数作为参数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sum_naturals(<span class="number">10</span>, <span class="keyword">lambda</span> x: x, <span class="keyword">lambda</span> x: x + <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="回顾-Lambda-表达式"><a href="#回顾-Lambda-表达式" class="headerlink" title="回顾 Lambda 表达式"></a>回顾 Lambda 表达式</h2><p>在 python 中，lambda 只是一个表达式，并不能执行复杂的语句。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">lambda</span> PARAMS: EXPRESSION</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">Name</span>(<span class="params">PARAMS</span>):</span><br><span class="line">    <span class="keyword">return</span> EXPRESSION</span><br></pre></td></tr></table></figure>
+
+<p>上述两式等价。注意 lambda 中没有<code>return</code>，主体必须只是一个简单表达式。</p>
+<p>Lambda 表达式非常简短和直接，但复合的 Lambda 表达式非常难以辨认，尽管它们很简洁。下面的定义是是正确的，但是不能很快地理解：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">compose1 = <span class="keyword">lambda</span> f,g: <span class="keyword">lambda</span> x: f(g(x))</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">compose1</span>(<span class="params">f,g</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">func1</span>(<span class="params">x</span>):</span><br><span class="line">        <span class="keyword">return</span> f(g(x))</span><br><span class="line">    <span class="keyword">return</span> func1</span><br></pre></td></tr></table></figure>
+
+<p>通常，Python 的代码风格倾向于显式的<code>def</code>语句而不是 Lambda 表达式，但是允许它们在简单函数作为参数或返回值的情况下使用。</p>
+<h2 id="定义函数：嵌套定义"><a href="#定义函数：嵌套定义" class="headerlink" title="定义函数：嵌套定义"></a>定义函数：嵌套定义</h2><p><strong>词法作用域。</strong>局部定义的函数也可以访问它们定义所在作用域的名称绑定。在上述 <code>compose1()</code>中，<code>func1</code>引用了名称<code>f、g</code>，它们是外层函数<code>compose1</code>的形参。这种在嵌套函数中共享名称的规则叫做词法作用域。严格来说，内部函数能够访问定义所在环境（而不是调用所在位置）的名称。</p>
+<p>每个用户定义的函数都有一个关联环境：它的定义所在的环境。</p>
+<p>当一个用户定义的函数调用时，它的局部帧扩展于函数所关联的环境。</p>
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_Nested_Definitions.png" />
+
+<p>调用<code>com(256)</code>新建的局部帧的父节点指向 f1 帧，而不是直接指向全局环境。</p>
+<h2 id="返回值为函数的函数"><a href="#返回值为函数的函数" class="headerlink" title="返回值为函数的函数"></a>返回值为函数的函数</h2><p>函数是 <code>first-class values</code>，这意味着我们可以将它们赋值给变量，将它们传递给函数，并从函数返回它们。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">add_func</span>(<span class="params">f, g</span>):</span><br><span class="line"><span class="meta">... </span><span class="string">&quot;&quot;&quot;Return function that returns F(x)+G(x) for argument x.&quot;&quot;&quot;</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">def</span> <span class="title function_">adder</span>(<span class="params">x</span>): <span class="comment">#</span></span><br><span class="line"><span class="meta">... </span>		<span class="keyword">return</span> f(x) + g(x) <span class="comment"># or return lambda x: f(x) + g(x)</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">return</span> adder <span class="comment">#</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> math <span class="keyword">import</span> sin, cos, pi</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h = add_func(sin, cos)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>sin(pi/<span class="number">4</span>) + cos(pi/<span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h(pi / <span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br></pre></td></tr></table></figure>
+
+<p>让我们做一个通用的函数组合函数：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">def</span> <span class="title function_">combine_funcs</span>(<span class="params">op</span>):</span><br><span class="line"><span class="meta">... </span><span class="string">&quot;&quot;&quot;combine funcs(OP)(f, g)(x) = OP(f(x), g(x)).&quot;&quot;&quot;</span></span><br><span class="line"><span class="meta">... </span>	<span class="keyword">def</span> <span class="title function_">combined</span>(<span class="params">f, g</span>):</span><br><span class="line"><span class="meta">... </span>		<span class="keyword">return</span> <span class="keyword">lambda</span> x: op(f(x), g(x))</span><br><span class="line"><span class="meta">... </span>	<span class="keyword">return</span> combined</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> operator <span class="keyword">import</span> add</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>add_func = combine_funcs(add)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">from</span> math <span class="keyword">import</span> sin, cos, pi</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h = add func(sin, cos)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>h(pi / <span class="number">4</span>)</span><br><span class="line"><span class="number">1.414213562373095</span></span><br></pre></td></tr></table></figure>
+
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_FuncProduceFunc.png" style="zoom:67%;" />
+
+<h2 id="条件函数？"><a href="#条件函数？" class="headerlink" title="条件函数？"></a>条件函数？</h2><p>设计一个函数 if_func ：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> func(<span class="number">1</span>/x, x &gt; <span class="number">0</span>, <span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>要求实现条件表达式：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>/x <span class="keyword">if</span> x &gt; <span class="number">0</span> <span class="keyword">else</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>可以实现吗？</p>
+<p>不能！因为函数总会计算全部参数的值，而条件表达式只会计算 TrueExpression、FalseExpression 中的一个。</p>
+<p>但是我们可以定义：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">if_func</span>(<span class="params">then_expr, condition, else_expr</span>):</span><br><span class="line">	<span class="keyword">return</span> then_expr() <span class="keyword">if</span> condition <span class="keyword">else</span> else_expr()</span><br></pre></td></tr></table></figure>
+
+<p>然后调用：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">if_func(<span class="keyword">lambda</span>: <span class="number">1</span>/x, x &gt; <span class="number">0</span>, <span class="keyword">lambda</span>: <span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这些无参数 lambda 的术语是 thunks 形实转换函数。</p>
+<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/CS61A/L04_Higher_ConditionalFunc.png" style="zoom:67%;" />
+
+<p>在执行<code>if_func(lambda: 1/x, x &gt; 0, lambda: 0)</code>时，只是计算了<code>x&gt;0</code>的值，引入了两个 thunks，并未求函数值。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -671,7 +1121,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">15</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -684,7 +1134,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -711,7 +1161,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -720,12 +1170,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">60k</span>
+    <span title="站点总字数">79k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">54 分钟</span>
+    <span title="站点阅读时长">1:12</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

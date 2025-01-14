@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="有三种事件会导致CPU暂停当前普通指令的执行，强制将控制权转移给处理该事件的特殊代码。  系统调用 syscall：用户程序执行 ecall 指令要求内核为其做某事时。 指令异常 exception：一条指令（用户或内核）做了一些非法的事情，如除以零或使用无效的虚拟地址。 设备中断 interrupt：外部设备发出请求信号，例如当磁盘硬件完成一个读写请求时。  前两种来自 CPU 内部（同步），第">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6.S081-Leature 6 Trap">
+<meta property="og:url" content="http://example.com/2025/01/09/6-S081-Leature-6-Trap/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="有三种事件会导致CPU暂停当前普通指令的执行，强制将控制权转移给处理该事件的特殊代码。  系统调用 syscall：用户程序执行 ecall 指令要求内核为其做某事时。 指令异常 exception：一条指令（用户或内核）做了一些非法的事情，如除以零或使用无效的虚拟地址。 设备中断 interrupt：外部设备发出请求信号，例如当磁盘硬件完成一个读写请求时。  前两种来自 CPU 内部（同步），第">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_trap_flow.png">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb1.jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_mem1.jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb2.jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb3.jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb4.jpg">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb5.jpg">
+<meta property="article:published_time" content="2025-01-09T03:07:41.000Z">
+<meta property="article:modified_time" content="2025-01-14T09:32:55.296Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="6.S081">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_trap_flow.png">
+
+<link rel="canonical" href="http://example.com/2025/01/09/6-S081-Leature-6-Trap/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>6.S081-Leature 6 Trap | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/09/6-S081-Leature-6-Trap/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          6.S081-Leature 6 Trap
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-01-09 11:07:41" itemprop="dateCreated datePublished" datetime="2025-01-09T11:07:41+08:00">2025-01-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-01-14 17:32:55" itemprop="dateModified" datetime="2025-01-14T17:32:55+08:00">2025-01-14</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>有三种事件会导致CPU暂停当前普通指令的执行，强制将控制权转移给处理该事件的特殊代码。</p>
+<ul>
+<li>系统调用 syscall：用户程序执行 <strong>ecall</strong> 指令要求内核为其做某事时。</li>
+<li>指令异常 exception：一条指令（用户或内核）做了一些非法的事情，如除以零或使用无效的虚拟地址。</li>
+<li>设备中断 interrupt：外部设备发出请求信号，例如当磁盘硬件完成一个读写请求时。</li>
+</ul>
+<p>前两种来自 CPU 内部（同步），第三种来自 CPU 外部的 I&#x2F;O 设备（异步）。在本课程中这三者统称为<strong>trap</strong>。</p>
+<p>trap的执行对当前正常指令流是透明的。通常的顺序是：</p>
+<ul>
+<li><p>trap迫使控制权转移到内核；</p>
+</li>
+<li><p>内核保存寄存器和其他状态，以便恢复执行；</p>
+</li>
+<li><p>内核执行适当的处理程序代码（例如，系统调用实现或设备驱动程序）；</p>
+</li>
+<li><p>内核恢复保存的状态，并从trap中返回；</p>
+</li>
+<li><p>代码从原来的地方恢复执行。</p>
+</li>
+</ul>
+<p>Xv6 trap 处理分为四个阶段：</p>
+<ul>
+<li><p>RISC-V CPU采取的硬件行为，</p>
+</li>
+<li><p>为内核C代码准备入口的汇编程序，如<code>trampoline.S</code> 中的uservec</p>
+</li>
+<li><p>处理trap的C 处理程序，</p>
+</li>
+<li><p>系统调用处理或设备驱动服务。</p>
+</li>
+</ul>
+<h2 id="RISC-V-trap-machinery"><a href="#RISC-V-trap-machinery" class="headerlink" title="RISC-V trap machinery"></a>RISC-V trap machinery</h2><p>每个RISC-V CPU都有一组控制寄存器，当系统发生一个陷阱（trap）时，这些寄存器会被使用或修改以处理 trap。</p>
+<p>可能会用到的特权寄存器：</p>
+<ol>
+<li><p><code>sepc</code> (Supervisor Exception Program Counter)</p>
+<ul>
+<li>保存发生 trap 时的程序计数器（PC），在 trap 处理完成后，<code>sepc</code> 的值通常用于恢复到 trap 发生的地方继续执行。</li>
+<li>当 trap 发生时，硬件会自动将当前 PC 的值保存到 <code>sepc</code>。</li>
+<li><code>sret</code>（从trap中返回）指令将<code>sepc</code>复制到<code>pc</code>中。内核可以写<code>sepc</code>来控制<code>sret</code>的返回到哪里。</li>
+</ul>
+</li>
+<li><p><code>stvec</code>(Supervisor Trap Vector Register)</p>
+<ul>
+<li>内核在这里写下trap处理程序的地址；RISC-V跳转到这里来处理trap。</li>
+</ul>
+</li>
+<li><p><code>scause</code>(Supervisor Cause Register)</p>
+<ul>
+<li>保存导致陷阱的原因</li>
+</ul>
+</li>
+<li><p><code>sstatus</code> (Supervisor Status Register)</p>
+<ul>
+<li>保存陷阱发生时的系统状态，例如中断使能位。</li>
+</ul>
+</li>
+<li><p><code>satp</code> (Supervisor Address Translation and Protection Register)</p>
+<ul>
+<li>保存根页表的地址</li>
+</ul>
+</li>
+<li><p><code>SSRATCH</code>(Supervisor Scratch Register)</p>
+<ul>
+<li><p>是一个通用寄存器，没有固定用途</p>
+</li>
+<li><p>保存操作系统在进入中断或异常处理前需要暂存的值。</p>
+</li>
+</ul>
+</li>
+</ol>
+<p>当需要执行trap时，<strong>RISC-V 硬件</strong>对所有的trap类型（除定时器中断外）进行以下操作：</p>
+<ol>
+<li>如果该trap是设备中断，且<code>sstatus</code> <strong>SIE</strong>位为0，则不执行以下任何操作。</li>
+<li>通过清除SIE来禁用中断。</li>
+<li>复制<code>pc</code>到<code>sepc</code>。</li>
+<li>将当前模式（用户态或特权态）保存在<code>sstatus</code>的<strong>SPP</strong>位。</li>
+<li>在<code>scause</code>设置该次trap的原因。</li>
+<li>将模式转换为特权态。</li>
+<li>将<code>stvec</code>复制到<code>pc</code>。</li>
+<li>从新的<code>pc</code>开始执行。</li>
+</ol>
+<p>切换为 supervisor mode 后可以读写上述的特权寄存器和可以使用 PTE_U 标志位为 0 的PTE。supervisor mode 中的代码并不能读写任意物理地址。在supervisor mode中，就像普通的用户代码一样，也需要通过page table来访问内存，受限于当前页表设置的虚拟地址。。</p>
+<h2 id="Trap-代码执行流程"><a href="#Trap-代码执行流程" class="headerlink" title="Trap 代码执行流程"></a>Trap 代码执行流程</h2><p>下面以 shell 中调用 write 系统调用为例子说明 trao 代码的执行流程。</p>
+<p>从Shell的角度来说，write 就是个Shell代码中的C函数调用，但是实际上，write 通过执行ECALL指令来执行系统调用。ECALL指令会切换到具有supervisor mode的内核中。在这个过程中，内核中执行的第一个指令是一个由汇编语言写的函数，叫做<code>uservec</code>。这个函数是内核代码<code>trampoline.s</code>文件的一部分。所以执行的第一个代码就是这个uservec汇编函数。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_trap_flow.png" alt="trap_flow"></p>
+<h2 id="ECALL-指令执行之前的状态"><a href="#ECALL-指令执行之前的状态" class="headerlink" title="ECALL 指令执行之前的状态"></a>ECALL 指令执行之前的状态</h2><p><code>sh.c</code>中的 getcmd() 调用了 fprintf() ，fprintf()封装了 write 库函数。可以在 <code>usys.S</code>（由 usys.pl 生成）在查看这个库函数的源代码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">.global write</span><br><span class="line">write:</span><br><span class="line"> li a7, SYS_write</span><br><span class="line"> ecall</span><br><span class="line"> ret</span><br></pre></td></tr></table></figure>
+
+<p>首先将系统调用号<code>SYS_write</code>加载到 a7 寄存器，再执行<code>ecall</code>指令，从这里开始代码执行跳转到了内核。内核完成它的工作之后，代码执行会返回到用户空间，继续执行<code>ecall</code>之后的指令<code>ret</code>，最终返回到Shell中。</p>
+<p>为了在<code>ecall</code>指令处放置一个断点，可以通过查看由编译过程产生的<code>sh.asm</code>找出这个地址。这里的地址是 <code>0xde4</code>。打好断点，执行，如下图。还可以查看当前寄存器中的值。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb1.jpg"></p>
+<p>这里的a0，a1，a2是Shell传递给write系统调用的参数。所以a0是文件描述符2；a1是Shell想要写入字符串的指针；a2是想要写入的字符数。查看<code>stvec</code>中的值，执行<code>ecall</code>后会跳转到这里。</p>
+<p>使用 gdb-multiarch 调试，<code>si</code>后无法追踪<code>ecall</code>，而是直接到了<code>ret</code>。所以需要手动打断点，跳转到<code>03ffffff000</code>。另若不在 ecall 后追踪 03ffffff000 而是进入gdb后直接打断点，程序停止运行的 03ffffff000 不是我们所需要的。</p>
+<p>从QEMU界面，输入<code>ctrl a + c</code>可以进入到QEMU的console，之后输入<em>info mem</em>，QEMU会打印完整的page table。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_mem1.jpg"></p>
+<p>当前的地址属于第一条PTE指向的空间，且这条PTE用户空间可访问，可见当前是在用户态。最后两条PTE的虚拟地址非常大，非常接近虚拟地址的顶端，这两个page分别是trapframe page和trampoline page。它们都没有设置 u 标志，所以用户代码不能访问这两条PTE。一旦我们进入到了supervisor mode，就可以访问这两条PTE了。</p>
+<p>即使trampoline page是在用户地址空间的user page table完成的映射，但用户代码不能写它，因为这些page对应的PTE并没有设置PTE_u标志位。这也是为什么trap机制是安全的。</p>
+<h2 id="ECALL-指令执行之后的状态"><a href="#ECALL-指令执行之后的状态" class="headerlink" title="ECALL 指令执行之后的状态"></a>ECALL 指令执行之后的状态</h2><p>现在已经到了<code>uservec</code>处，再次打印页表，发现<strong>页表并没有改变</strong>。而且当前的地址属于最后一条PTE指向的空间<code>trampoline</code>，这里没有设置 u 标志。可以访问且程序没有崩溃，说明此时已不是用户态了。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb2.jpg"></p>
+<p>查看寄存器，值也没有改变，这里还是用户程序拥有的一些寄存器内容。接下<code>uservec</code>中的代码就是要保存寄存器中的值。</p>
+<p>ecall实际上只会改变三件事情：</p>
+<ul>
+<li>user mode 改到 supervisor mode</li>
+<li>将 PC 的值保存在了<code>SEPC</code>寄存器</li>
+<li>跳转到 <code>STVEC</code> 寄存器指向的指令</li>
+</ul>
+<p>RISC-V秉持了这样一个观点：<code>ecal</code>l只完成尽量少必须要完成的工作，其他的工作都交给软件完成。这样能为软件和操作系统的程序员提供最大的灵活性，这样他们就能按照他们想要的方式开发操作系统。</p>
+<h2 id="uservec-函数"><a href="#uservec-函数" class="headerlink" title="uservec 函数"></a>uservec 函数</h2><p>现在程序位于trampoline page的起始，也是uservec函数的起始。现在要做的第一件事情就是保存寄存器的内容。在RISC-V中，supervisor mode下的代码不允许直接访问物理内存。所以只能使用page table中的内容。</p>
+<p>对于保存用户寄存器，XV6在RISC-V上的实现包括了两个部分:</p>
+<ol>
+<li><p>XV6在每个user page table映射了trapframe page，这样每个进程都有自己的trapframe page。这个page中放置了<code>trapframe</code>结构体（定义在<code>proc.h</code>），有用来保存用户寄存器的32个空槽位和5个特殊用途槽位（对应了特殊的寄存器）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">trapframe</span> &#123;</span></span><br><span class="line">  <span class="comment">/*   0 */</span> uint64 kernel_satp;   <span class="comment">// kernel page table</span></span><br><span class="line">  <span class="comment">/*   8 */</span> uint64 kernel_sp;     <span class="comment">// top of process&#x27;s kernel stack</span></span><br><span class="line">  <span class="comment">/*  16 */</span> uint64 kernel_trap;   <span class="comment">// usertrap()</span></span><br><span class="line">  <span class="comment">/*  24 */</span> uint64 epc;           <span class="comment">// saved user program counter</span></span><br><span class="line">  <span class="comment">/*  32 */</span> uint64 kernel_hartid; <span class="comment">// saved kernel tp</span></span><br><span class="line">  <span class="comment">/*  40 */</span> uint64 ra;</span><br><span class="line">  <span class="comment">/*  48 */</span> uint64 sp;</span><br><span class="line">  <span class="comment">/*  56 */</span> uint64 gp;</span><br><span class="line">  ......</span><br></pre></td></tr></table></figure>
+
+<p>比如第一个数据保存了kernel page table地址，这将会是trap处理代码将要加载到<code>SATP</code>寄存器的数值。这些值的设置在<code>usertrapret</code>函数中。</p>
+</li>
+<li><p><code>SSCRATCH</code>寄存器。它在这里的作用就是保存另一个寄存器的值，并将自己的值加载给另一个寄存器。RISC-V有一个指令<code>csrrw</code>允许交换任意两个寄存器的值。</p>
+<p><code>csrrw</code>指令执行前，<code>SSCRATCH</code>寄存器中保存trapframe page的起始地址，a0寄存器保存的是write函数的第一个参数。这里换值，是为了下面使用a0寄存器而又要保存原值。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb3.jpg"></p>
+</li>
+</ol>
+<p><strong>当与 a0 寄存器进行交换时，trapframe page的地址是怎么出现在<code>SSCRATCH</code>寄存器中的？</strong></p>
+<p>​	在内核<strong>上一次</strong>切换回用户空间时，内核会执行set sscratch指令，将这个寄存器的内容设置为0x3fffffe000，也就是trapframe page的虚拟地址。具体来说就是，在 <code>trampoline.S</code> 的 <code>userret</code> 的最后两行，也是内核返回到用户空间前的最后两行代码。内核已经提前设置了a0保存的是trapframe地址。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># restore user a0, and save TRAPFRAME in sscratch</span><br><span class="line">csrrw a0, sscratch, a0</span><br><span class="line"></span><br><span class="line"># return to user mode and user pc.</span><br><span class="line"># usertrapret() set up sstatus and sepc.</span><br><span class="line">sret</span><br></pre></td></tr></table></figure>
+
+<p><strong>那 a0 是如何有trapframe page的地址？（有点套娃）</strong></p>
+<p>​	无论是内核启动后第一次切换到用户空间，还是 trap 完成后返回到用户空间，都要执行<code>sret</code> 流程。在 xv6 中，<code>sret</code> 被封装在 <code>trampoline.S</code> 的 <code>userret</code> 函数中。大概流程：</p>
+<ul>
+<li>要切换到用户空间时，调用<code>trap.c/usertrapret()</code>。详见下文。</li>
+<li><code>usertrapret()</code>再调用 <code>trampoline.S</code> 中的 <code>userret</code> 函数，并为<code>userret</code> 设置参数TRAPFRAME, satp。调用函数时，第一个参数<code>TRAPFRAME</code>当然会存在a0中。也就是说哪怕在处理 trap 时使用的 a0 寄存器也是ok的（a0 在开始时存放了trapframe page的地址），内核会再次设置。</li>
+</ul>
+<hr>
+<p><code>csrrw</code>指令后，a0 中就是trapframe page地址了。接下就是将寄存器中的值保存到trapframe 。</p>
+<p>然后开始将 trapframe 中提前设置好的5个特殊值写入寄存器中。首先是加载进程的kernel stack pointer到 sp 寄存器。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb4.jpg"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Virtual Address Space:</span><br><span class="line"><span class="number">0x3ffffff000</span> - TRAMPOLINE (trampoline code)</span><br><span class="line"><span class="number">0x3fffffe000</span> - TRAPFRAME (trapframe <span class="keyword">struct</span>)</span><br><span class="line"><span class="number">0x3fffffd000</span> - Guard <span class="title function_">Page</span> <span class="params">(unmapped, invalid access)</span></span><br><span class="line">0x3fffffc000 - Kernel <span class="title function_">Stack</span> <span class="params">(<span class="keyword">for</span> process <span class="number">0</span>)</span></span><br><span class="line">0x3fffffb000 - Guard <span class="title function_">Page</span> <span class="params">(unmapped, invalid access)</span></span><br><span class="line">0x3fffffa000 - Kernel <span class="title function_">Stack</span> <span class="params">(<span class="keyword">for</span> process <span class="number">1</span>)</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>下一条指令是向 tp 寄存器写入处理器编号。make 时配置了单核运行，所以只能运行在核0上。</p>
+<p>下一条指令是向 t0 寄存器写入函数<code>usertrap</code>的指针，这是将要执行的第一个C函数的指针。</p>
+<p>下一条指令是向 t1 寄存器写入kernel page table的地址；接下来交换<code>SATP</code>和t1寄存器。这条指令执行完成之后，当前程序会从user page table切换到kernel page table。在QEMU中打印page table，可以看出与之前的page table不一样了。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec06_gdb5.jpg"></p>
+<p>trampoline 代码在用户空间和内核空间都映射到了同一个地址，所以即使是切换了页表程序仍能运行。至于前面加载的几个值，本来就是内核空间中的地址。</p>
+<p>最后一条指令是 <em>jr t0</em>。执行了这条指令，就从 trampoline 跳到内核的C代码中。</p>
+<h2 id="usertrap-函数"><a href="#usertrap-函数" class="headerlink" title="usertrap 函数"></a>usertrap 函数</h2><p><code>usertrap</code>函数是位于<code>trap.c</code>文件的一个函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// handle an interrupt, exception, or system call from user space.</span></span><br><span class="line"><span class="comment">// called from trampoline.S</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">usertrap</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> which_dev = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>((r_sstatus() &amp; SSTATUS_SPP) != <span class="number">0</span>)</span><br><span class="line">    panic(<span class="string">&quot;usertrap: not from user mode&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// send interrupts and exceptions to kerneltrap(),</span></span><br><span class="line">  <span class="comment">// since we&#x27;re now in the kernel.</span></span><br><span class="line">  w_stvec((uint64)kernelvec);</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span> =</span> myproc();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// save user program counter.</span></span><br><span class="line">  p-&gt;trapframe-&gt;epc = r_sepc();</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span>(r_scause() == <span class="number">8</span>)&#123;</span><br><span class="line">    <span class="comment">// system call</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(p-&gt;killed)</span><br><span class="line">      <span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// sepc points to the ecall instruction,</span></span><br><span class="line">    <span class="comment">// but we want to return to the next instruction.</span></span><br><span class="line">    p-&gt;trapframe-&gt;epc += <span class="number">4</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// an interrupt will change sstatus &amp;c registers,</span></span><br><span class="line">    <span class="comment">// so don&#x27;t enable until done with those registers.</span></span><br><span class="line">    intr_on();</span><br><span class="line"></span><br><span class="line">    syscall();</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span>((which_dev = devintr()) != <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="comment">// ok</span></span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;usertrap(): unexpected scause %p pid=%d\n&quot;</span>, r_scause(), p-&gt;pid);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;            sepc=%p stval=%p\n&quot;</span>, r_sepc(), r_stval());</span><br><span class="line">    p-&gt;killed = <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(p-&gt;killed)</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// give up the CPU if this is a timer interrupt.</span></span><br><span class="line">  <span class="keyword">if</span>(which_dev == <span class="number">2</span>)</span><br><span class="line">    yield();</span><br><span class="line"></span><br><span class="line">  usertrapret();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>更换中断向量表。当前已经处于内核空间中，此时若发生 trap ，处理方式与处于用户空间不同。</li>
+<li>要获取当前进程，因为处于用户空间的参数等数据已被拷贝到 trapframe 中，需要通过proc 来获取。</li>
+<li>要保存用户程序计数器，它仍然保存在<code>SEPC</code>寄存器中。因为当程序还在内核中执行时，可能切换到另一个进程，并进入到那个程序的用户空间，然后那个进程可能再调用一个系统调用进而导致<code>SEPC</code>寄存器的内容被覆盖。</li>
+<li><code>SCAUSE</code>寄存器会根据 trap 的类型不同而设置不同的值，需要据此了解当前 trap 的类型，进而进行不同的处理。</li>
+<li><code> p-&gt;trapframe-&gt;epc += 4</code>，因为之前保存的用户 pc 是发生 ecall 指令的地址，返回用户态要执行的是下一条指令。</li>
+<li>设置<code>SSTATUS_SIE</code>，Supervisor Interrupt Enable。XV6会在处理系统调用的时候使能中断，这样可以更快地处理中断，有些系统调用需要许多时间处理。中断总是会被RISC-V的trap硬件关闭，所以在这个时间点，需要显式的打开中断。</li>
+<li>系统调用的核心逻辑由 <code>syscall()</code> 处理，而 <code>usertrap</code> 仅负责识别和转发。</li>
+<li>syscall() 中会将系统调用返回值写入<code>trapframe-&gt;a0</code>，当返回到用户空间，trapframe中的 a0 槽位的数值会写到实际的 a0 寄存器。</li>
+</ol>
+<h2 id="usertrapret-函数"><a href="#usertrapret-函数" class="headerlink" title="usertrapret 函数"></a>usertrapret 函数</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// return to user space</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">usertrapret</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span> =</span> myproc();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// we&#x27;re about to switch the destination of traps from</span></span><br><span class="line">  <span class="comment">// kerneltrap() to usertrap(), so turn off interrupts until</span></span><br><span class="line">  <span class="comment">// we&#x27;re back in user space, where usertrap() is correct.</span></span><br><span class="line">  intr_off();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// send syscalls, interrupts, and exceptions to trampoline.S</span></span><br><span class="line">  w_stvec(TRAMPOLINE + (uservec - trampoline));</span><br><span class="line"></span><br><span class="line">  <span class="comment">// set up trapframe values that uservec will need when</span></span><br><span class="line">  <span class="comment">// the process next re-enters the kernel.</span></span><br><span class="line">  p-&gt;trapframe-&gt;kernel_satp = r_satp();         <span class="comment">// kernel page table</span></span><br><span class="line">  p-&gt;trapframe-&gt;kernel_sp = p-&gt;kstack + PGSIZE; <span class="comment">// process&#x27;s kernel stack</span></span><br><span class="line">  p-&gt;trapframe-&gt;kernel_trap = (uint64)usertrap;</span><br><span class="line">  p-&gt;trapframe-&gt;kernel_hartid = r_tp();         <span class="comment">// hartid for cpuid()</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// set up the registers that trampoline.S&#x27;s sret will use</span></span><br><span class="line">  <span class="comment">// to get to user space.</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment">// set S Previous Privilege mode to User.</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> x = r_sstatus();</span><br><span class="line">  x &amp;= ~SSTATUS_SPP; <span class="comment">// clear SPP to 0 for user mode</span></span><br><span class="line">  x |= SSTATUS_SPIE; <span class="comment">// enable interrupts in user mode</span></span><br><span class="line">  w_sstatus(x);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// set S Exception Program Counter to the saved user pc.</span></span><br><span class="line">  w_sepc(p-&gt;trapframe-&gt;epc);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// tell trampoline.S the user page table to switch to.</span></span><br><span class="line">  uint64 satp = MAKE_SATP(p-&gt;pagetable);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// jump to trampoline.S at the top of memory, which </span></span><br><span class="line">  <span class="comment">// switches to the user page table, restores user registers,</span></span><br><span class="line">  <span class="comment">// and switches to user mode with sret.</span></span><br><span class="line">  uint64 fn = TRAMPOLINE + (userret - trampoline);</span><br><span class="line">  ((<span class="type">void</span> (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p>将要返回用户态了，关闭<code>SSTATUS_SIE</code>。 </p>
+</li>
+<li><p>更换中断向量表，将要返回用户空间了。<code>TRAMPOLINE + (uservec - trampoline)</code> 为什么这么写？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># MAXVA:  MAXVA is actually one bit less than the max allowed by Sv39</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> TRAMPOLINE (MAXVA - PGSIZE)</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>w_stvec</code>的参数必须是物理地址。</li>
+<li><code>TRAMPOLINE </code>是trapframe page的固定虚拟地址，但是映射到物理空间的也是这个地址。</li>
+<li><code>uservec - trampoline</code>计算的是绝对偏移量，这样写也便于维护。</li>
+</ul>
+</li>
+<li><p>设置进程的内核栈，<code>p-&gt;kstack</code> 是进程分配到的进程栈的栈底（低地址），<code>p-&gt;kstack + PGSIZE</code>才是栈顶。</p>
+</li>
+<li><p><code>SSTATUS_SPIE</code> 是 Supervisor Previous Interrupt Enable 位，也在 <code>sstatus</code> 寄存器中。它保存了<strong>上一个模式</strong>的中断使能状态。在异常或系统调用发生时，<code>SPIE</code> 的值 硬件自动保存到 <code>SSTATUS</code> 寄存器中。</p>
+</li>
+<li><p><code>((void (*)(uint64,uint64))fn)(TRAPFRAME, satp)</code>调用<code>userret</code>函数，并为其准备了参数。</p>
+</li>
+</ol>
+<h2 id="userret-函数"><a href="#userret-函数" class="headerlink" title="userret 函数"></a>userret 函数</h2><p>现在程序执行又到了<code>trampoline.S</code>。<strong>到这里，<code>a0</code>寄存器中放置的是 trapframe page 地址。</strong>其中多次用到了<code>t0</code>寄存器，因为有些指令的操作数只能是寄存器。</p>
+<ol>
+<li>切换回用户页表。user page table 在<code>usertrapret</code>中作为第二个参数传递给了这里的<code>userret</code>函数，所以存在a1寄存器中。</li>
+<li>恢复用户寄存器。<code>trapframe-&gt;a0</code>槽位的值作为返回值写入<code>ra</code>寄存器。</li>
+<li>将 trap 前的 a0 寄存器中的值（一直保存在 trapframe中）写入 <code>SSCRATCH</code>，交换<code>SSCRATCH</code>和<code>a0</code>中的值。</li>
+<li><code>SRET</code>。具体作用：<ul>
+<li>根据 <code>SSTATUS.SPP</code> 位决定返回的模式</li>
+<li>跳转到 <code>sepc</code> 中保存的地址</li>
+<li>根据 <code>SSTATUS.SPIE</code> 位，恢复之前的中断状态</li>
+</ul>
+</li>
+</ol>
+<h2 id="Code-System-call-arguments"><a href="#Code-System-call-arguments" class="headerlink" title="Code: System call arguments"></a>Code: System call arguments</h2><ol>
+<li><p>内核的系统调用实现需要找到用户代码传递的参数。</p>
+<ul>
+<li>用户代码调用系统调用的包装函数，参数首先会存放在寄存器a0、a1…中，<code>trampoline.S</code>将用户寄存器中的值保存到当前进程的trapframe中。函数<code>argint</code>、<code>argaddr</code>和<code>argfd</code>从trap rame中以整数、指针或文件描述符的形式检索第n个系统调用参数。</li>
+<li>一些系统调用传递指针作为参数，而内核必须使用这些指针来读取或写入用户内存。但是这些地址可能是恶意的，况且内核页表映射与用户页表映射不一样，所以内核不能使用普通指令从用户提供的地址加载或存储。</li>
+</ul>
+</li>
+<li><p>内核需要将数据复制到到用户提供的地址，例如系统调用需要将结果保存到提供的结构体中。</p>
+<ul>
+<li><code>fetchstr</code>（kernel&#x2F;syscall.c）</li>
+<li><code>copyinstr</code>（kernel&#x2F;vm.c）</li>
+<li><code>copyout</code>（kernel&#x2F;vm.c）</li>
+</ul>
+</li>
+</ol>
+<h2 id="Traps-from-kernel-space"><a href="#Traps-from-kernel-space" class="headerlink" title="Traps from kernel space"></a>Traps from kernel space</h2><p>Xv6 会根据当前是在用户空间还是内核空间，对<code>stvec</code>寄存器的配置略有不同行为。当处于内核空间时，<code>stvec</code>指向<code>kernelvec</code>上的汇编代码（kernel&#x2F;kernelvec.S）。由于xv6已经在内核中，<code>kernelvec</code>使用内核页表和内核的堆栈指针。</p>
+<p><code>kernelvec</code>首先将所有寄存器保存到（被 trap 的）内核栈中，随后跳转到<code>kerneltrap</code>。</p>
+<ol>
+<li>要保存 trap 发生时的 <code>sepc</code>、<code>sstatus</code> 。因为当前 trao 若是定时器中断，当前进程会放弃 CPU， <code>sepc</code>、<code>sstatus</code>会被覆盖。</li>
+<li>同样根据<code>scause</code> 中断号进行不同的处理。主要还是分为设备中断、定时器中断。</li>
+<li>当<code>kerneltrap</code>的工作完成时，它需要返回到被中断的代码。也就需要恢复<code>sepc</code>、<code>sstatus</code> 。</li>
+</ol>
+<p><code>kerneltrap</code>执行完成后，<code>kernelvec</code>从栈中恢复保存的寄存器并执行<code>sret</code>，<code>sret</code>将<code>sepc</code>复制到<code>pc</code>并恢复中断的内核代码。</p>
+<p>另，当CPU从用户空间进入内核时，Xv6将CPU的<code>stvec</code>设置为<code>kernelvec</code>的操作并不是首先执行的。内核空间一开始有段运行时间中<code>stvec</code>被设置为<code>uservec</code>，所以在这个窗口期，禁用设备中断是至关重要的。<strong>RISC-V总是在开始使用 trap 时禁用中断</strong>，xv6在设置<code>stvec</code>之前不会再次启用它们。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/6-S081/" rel="tag"># 6.S081</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2024/08/29/LKD3-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/" rel="prev" title="LKD3-进程管理">
+      <i class="fa fa-chevron-left"></i> LKD3-进程管理
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#RISC-V-trap-machinery"><span class="nav-number">1.</span> <span class="nav-text">RISC-V trap machinery</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Trap-%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">Trap 代码执行流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ECALL-%E6%8C%87%E4%BB%A4%E6%89%A7%E8%A1%8C%E4%B9%8B%E5%89%8D%E7%9A%84%E7%8A%B6%E6%80%81"><span class="nav-number">3.</span> <span class="nav-text">ECALL 指令执行之前的状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ECALL-%E6%8C%87%E4%BB%A4%E6%89%A7%E8%A1%8C%E4%B9%8B%E5%90%8E%E7%9A%84%E7%8A%B6%E6%80%81"><span class="nav-number">4.</span> <span class="nav-text">ECALL 指令执行之后的状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#uservec-%E5%87%BD%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">uservec 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#usertrap-%E5%87%BD%E6%95%B0"><span class="nav-number">6.</span> <span class="nav-text">usertrap 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#usertrapret-%E5%87%BD%E6%95%B0"><span class="nav-number">7.</span> <span class="nav-text">usertrapret 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#userret-%E5%87%BD%E6%95%B0"><span class="nav-number">8.</span> <span class="nav-text">userret 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-System-call-arguments"><span class="nav-number">9.</span> <span class="nav-text">Code: System call arguments</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Traps-from-kernel-space"><span class="nav-number">10.</span> <span class="nav-text">Traps from kernel space</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">79k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:12</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -28,7 +28,7 @@
 <meta property="og:description" content="Speed up system calls一些操作系统（如 Linux）通过在用户空间和内核之间共享只读区域中的数据来加快某些系统调用的速度。创建每个进程时，在 USYSCALL（memlayout.h 中定义的一个 VA）处映射一个只读页面。 在该页面的开头，存储一个 struct usyscall（也在 memlayout.h 中定义），并将其初始化以存储当前进程的 PID。 在本实验中，用户">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2024-08-14T12:42:54.000Z">
-<meta property="article:modified_time" content="2024-08-20T15:59:50.869Z">
+<meta property="article:modified_time" content="2025-01-07T10:29:11.680Z">
 <meta property="article:author" content="wnyxvo">
 <meta property="article:tag" content="6.S081">
 <meta name="twitter:card" content="summary">
@@ -125,7 +125,7 @@
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">7</span></a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">8</span></a>
 
   </li>
         <li class="menu-item menu-item-categories">
@@ -135,7 +135,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">12</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
 
   </li>
   </ul>
@@ -196,7 +196,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-08-20 23:59:50" itemprop="dateModified" datetime="2024-08-20T23:59:50+08:00">2024-08-20</time>
+                <time title="修改时间：2025-01-07 18:29:11" itemprop="dateModified" datetime="2025-01-07T18:29:11+08:00">2025-01-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -242,6 +242,7 @@
 <li><p>创建每个进程时完成映射。在<code>kernel/proc.c</code>的<code>proc_pagetable()</code>中学习<code>TRAMPOLINE</code>和<code>TRAPFRAME</code>的映射方式。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// map one read-only page at USYSCALL(a VA defined in memlayout.h) just below   TRAPFRAME</span></span><br><span class="line"><span class="comment">// to speed up system calls who needs get the the PID of the current process.</span></span><br><span class="line"><span class="comment">// At the start of this page, store a struct usyscall (also defined in memlayout.h),</span></span><br><span class="line"><span class="comment">// and initialize it to store the PID of the current process.</span></span><br><span class="line"><span class="keyword">if</span>(mappages(pagetable, USYSCALL, PGSIZE,</span><br><span class="line">            (uint64)(p-&gt;usyscallpage), PTE_R | PTE_U) &lt; <span class="number">0</span>)&#123;</span><br><span class="line">  uvmfree(pagetable, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<p>注意要设置<code>PTE_U</code>，确保用户态下可以访问该PTE。</p>
 <p>参照<code>p-&gt;trapframe</code>，需要在<code>proc</code>结构体中定义<code>usyscallpage</code>用于存放<code>struct usyscall</code>的地址，实际上就是<code>USYSCALL</code>的物理地址。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">usyscall</span> *<span class="title">usyscallpage</span>;</span> <span class="comment">// Shared with kernel</span></span><br></pre></td></tr></table></figure>
 </li>
@@ -321,7 +322,10 @@
     <a href="/2024/07/24/6-S081-Leature-4-Page-tables/" rel="prev" title="6.S081-Leature 4 Page tables">
       <i class="fa fa-chevron-left"></i> 6.S081-Leature 4 Page tables
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/" rel="next" title="6.S081-Leature 5 Calling conventions and stack frames">
+      6.S081-Leature 5 Calling conventions and stack frames <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -394,7 +398,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">15</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -407,7 +411,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -434,7 +438,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -443,12 +447,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">60k</span>
+    <span title="站点总字数">79k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">54 分钟</span>
+    <span title="站点阅读时长">1:12</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

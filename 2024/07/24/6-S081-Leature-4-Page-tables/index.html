@@ -32,10 +32,9 @@
 <meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter3_address_mapped.png">
 <meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter3_useraddress_space.png">
 <meta property="article:published_time" content="2024-07-24T14:55:27.000Z">
-<meta property="article:modified_time" content="2024-08-20T15:53:38.499Z">
+<meta property="article:modified_time" content="2025-01-09T03:08:41.648Z">
 <meta property="article:author" content="wnyxvo">
 <meta property="article:tag" content="6.S081">
-<meta property="article:tag" content="risc-v">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter3_pagework.jpg">
 
@@ -131,7 +130,7 @@
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">7</span></a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">8</span></a>
 
   </li>
         <li class="menu-item menu-item-categories">
@@ -141,7 +140,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">12</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
 
   </li>
   </ul>
@@ -202,7 +201,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2024-08-20 23:53:38" itemprop="dateModified" datetime="2024-08-20T23:53:38+08:00">2024-08-20</time>
+                <time title="修改时间：2025-01-09 11:08:41" itemprop="dateModified" datetime="2025-01-09T11:08:41+08:00">2025-01-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -220,14 +219,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>6k</span>
+              <span>9.4k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
+              <span>9 分钟</span>
             </span>
 
         </div>
@@ -248,7 +247,7 @@
 <p>在Sv39 RISC-V中，虚拟地址的高25位不用于地址转换；将来RISC-V可能会使用这些位来定义更多的转换层。物理地址也有增长的空间：在PTE格式中，物理页号还有 10 位的增长空间。</p>
 <p>VPN转换成PPN的实际过程分三步进行。一个页表以三层树的形式存储在物理内存中，多级页表。树的根部是一个 4096 字节的页表页，它包含 512 个 PTE，这些 PTE 包含树的下一级页表页的物理地址。每一页都包含 512 个 PTE，用于指向下一个页表或物理地址。分页硬件用 27 位中的高 9 位选择<strong>根页表页</strong>中的 PTE，用中间 9 位选择树中下一级页表页中的 PTE，用低 9 位选择最后的 PTE。根页表页的基地址存放在<code>satp</code>寄存器中。<code>satp</code>寄存器包含了还一些控制位，用于配置地址转换和保护机制。</p>
 <p>页表页存放在单独的页中，每个页表页都包含 512 个 PTE，512*64bit&#x3D;4096B。</p>
-<p>每个进程都有自己独立的页表，这个页表定义了进程的地址空间。所以当操作系统将CPU从一个进程切换到另一个进程时，同时也需要切换SATP寄存器中的内容，从而指向新的进程保存在物理内存中的地址对应页表。写SATP寄存器是一条特权指令。</p>
+<p>每个进程都有自己独立的页表，这个页表定义了进程的地址空间。所以当操作系统将CPU从一个进程切换到另一个进程时，同时也需要切换SATP寄存器中的内容，从而指向新的进程保存在物理内存中的地址对应页表。写SATP寄存器是一条特权指令。在每个proc结构体，proc.h，里面有一个指向根页表的指针，这对应了SATP寄存器中的内容。</p>
 <p>如果转换一个地址所需的三个 PTE 中的任何一个不存在，分页硬件就会引发一个<strong>缺页异常（page-fault exception）</strong>，让内核来处理这个异常。</p>
 <p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter3_riscv_address_translation.jpg"></p>
 <p>每个 PTE 都包含标志位，用于告诉分页硬件相关的虚拟地址被允许怎样使用。</p>
@@ -259,18 +258,25 @@
 <li><code>PTE_U</code> 控制是否允许用户态下的指令访问页面；如果不设置 <code>PTE_U</code>， 对应 PTE 只能在内核态下使用。</li>
 </ul>
 <p>标志位和与分页硬件相关的数据结构定义在（<code>kernel/riscv.h</code>）中。</p>
+<p>每一级页表项可以有两种角色（前提是<code>PTE_V</code> 有效）：</p>
+<ul>
+<li><p><strong>指向物理页（叶节点）</strong>：如果设置了 R、W、X 中的任意一位，表示当前页表项是一个叶节点，映射到物理地址。</p>
+</li>
+<li><p><strong>指向下一级页表</strong>：如果 R&#x2F;W&#x2F;X 都为 0，表示当前页表项是一个中间节点，指向下一级页表。</p>
+</li>
+</ul>
 <h2 id="页表缓存TLB"><a href="#页表缓存TLB" class="headerlink" title="页表缓存TLB"></a>页表缓存TLB</h2><p>如果回想一下虚拟地址转换成物理地址的过程，基本上都要做3次内存查找，第一次在最高级的page directory，第二次在中间级的page directory，最后一次在最低级的page directory。所以对于一个虚拟内存地址的寻址，需要读三次内存，代价有点高。</p>
 <p>所以实际中，几乎所有的处理器都会对于最近使用过的虚拟地址的转换结果有缓存。这个缓存被称为<strong>页表缓存（Translation Lookside Buffer, TLB）</strong>。TLB是对PTE的缓存，TLB会保存虚拟地址到物理地址的映射关系。这样访问虚拟地址时，处理器优先查看TLB，若TLB中存在对应的缓存会直接返回物理地址，而不需要通过页表得到结果。若TLB没有对应的缓存，再查看页表。这里用到cache的思想。</p>
 <h2 id="内核地址空间"><a href="#内核地址空间" class="headerlink" title="内核地址空间"></a>内核地址空间</h2><p>Xv6 为每个进程维护一个用于描述进程的用户地址空间的页表，外加一个单独的描述内核地址空间的页表。</p>
 <p>内核配置其地址空间的布局，使其能够通过可预测的虚拟地址访问物理内存和各种硬件资源。下图显示了这个设计是如何将内核虚拟地址映射到物理地址的。文件（<code>kernel/memlayout.h</code>）声明了 xv6 内核内存布局的常量。</p>
 <p>图中左边是内核的虚拟地址空间，右边上半部分是物理内存（DRAM），右边下半部分是I&#x2F;O设备。图中的右半部分的结构完全由主板硬件设计者决定，如果得到的物理地址大于<code>0x80000000</code>会走向DRAM芯片，如果得到的物理地址低于<code>0x80000000</code>会流向不同的I&#x2F;O设备。在图中，I&#x2F;O设备是与DRAM统一编址的。</p>
-<p>CPU只是主板的一小部分，DRAM芯片位于处理器之外。是主板设计者将处理器，DRAM和许多I&#x2F;O设备汇总在一起。对于一个操作系统来说，CPU只是一个部分，I&#x2F;O设备同样也很重要。所以当你在写一个操作系统时，你需要同时处理CPU和I&#x2F;O设备。</p>
+<p>CPU只是主板的一小部分，DRAM芯片位于处理器之外。是主板设计者将处理器，DRAM和许多I&#x2F;O设备汇总在一起。对于一个操作系统来说，CPU只是一个部分，I&#x2F;O设备同样也很重要。所以当你在写一个操作系统时，你需要同时处理CPU和I&#x2F;O设备。下图左边是内核的虚拟地址空间，右边上半部分是物理内存或者说是DRAM。</p>
 <p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter3_address_mapped.png"></p>
 <p>回到上图的右侧，可以看到最下面是未被使用的地址。地址0x1000是boot ROM的物理地址，当主板上电时，主板做的第一件事情就是运行存储在boot ROM中的代码，当boot完成之后，会跳转到地址<code>0x80000000</code>，操作系统需要确保那个地址有一些数据能够接着启动操作系统。</p>
 <p>这里还有一些其他的I&#x2F;O设备：</p>
 <ul>
 <li>PLIC是中断控制器（Platform-Level Interrupt Controller）。</li>
-<li>CLINT（Core Local Interruptor）也是中断的一部分。所以多个设备都能产生中断，需要中断控制器来将这些中断路由到合适的处理函数。</li>
+<li>CLINT（Core Local Interruptor）也是中断的一部分。所以多个设备都能产生中断，需要中断控制器来将这些中断路由到合适 的处理函数。</li>
 <li>UART0（Universal Asynchronous Receiver&#x2F;Transmitter）负责与Console和显示器交互。</li>
 <li>VIRTIO disk，与磁盘进行交互。</li>
 </ul>
@@ -278,7 +284,7 @@
 <p>因为想让xv6尽可能的简单易懂，内核对RAM和内存映射的设备寄存器使用“直接映射”，也就是将这些资源映射到和它们物理地址相同的虚拟地址上。例如，内核本身在虚拟地址空间和物理内存中的位置都是<code>KERNBASE=0x80000000</code>。直接映射简化了读&#x2F;写物理内存的内核代码。例如，当 <code>fork</code> 为子进程分配用户内存时，分配器返回该内存的物理地址；<code>fork</code> 在将父进程的用户内存复制到子进程时，直接使用该地址作为虚拟地址。</p>
 <p>有几个内核虚拟地址不是直接映射：</p>
 <ul>
-<li><code>trampoline</code>页。它被映射在虚拟地址空间的顶端；用户页表也有这个映射。第 4 章讨论了 trampoline 页的作用，但我们在这里看到了页表的一个有趣的用例；一个物理页（存放 trampoline 代码）在内核的虚拟地址空间中被映射了两次：一次是在虚拟地址空间的顶部，一次是直接映射。可以两个虚拟地址映射到同一个物理地址。</li>
+<li><code>trampoline</code>页。它被映射在虚拟地址空间的顶端；用户页表也有这个映射。第 4 章讨论了 trampoline 页的作用，但我们在这里看到了页表的一个有趣的用例；一个物理页（存放 trampoline 代码）在内核的虚拟地址空间中被映射了两次：一次是在虚拟地址空间的顶部，一次是PHYSTOP下的Kernel text中直接映射，但是实际使用的时候用的是上面的部分，因为有Guard page会更加安全。可以两个虚拟地址映射到同一个物理地址。</li>
 <li>内核栈页。<strong>每个进程都有自己的内核栈</strong>，内核栈被映射到高地址处，所以 xv6 可以在它后面留下一个未映射的保护页。<strong>Guard page（保护页）</strong>是操作系统用于检测和防止程序栈溢出的一种内存管理技术。它是一种特殊的内存页，Guard page对应的PTE的Valid 标志位没有设置，故意将其标记为不可访问，来捕获对该页的访问异常，从而实现栈溢出检测和处理。同时又不想浪费物理内存给Guard page，所以Guard page不会映射到任何物理内存，它只是占据了虚拟地址空间的一段靠后的地址。</li>
 </ul>
 <p>内核将 trampoline 和 text（可执行程序的代码段）映射为有 <code>PTE_R</code> 和 <code>PTE_X</code> 权限的页。内核从这些页读取和执行指令。内核映射的其他页会有 <code>PTE_R</code> 和 <code>PTE_W</code> 权限，以便内核读写这些页面的内存。保护页的映射是无效的（不设置 <code>PTE_V</code>）。</p>
@@ -291,27 +297,54 @@
 <h2 id="Code-creating-an-address-space"><a href="#Code-creating-an-address-space" class="headerlink" title="Code: creating an address space"></a>Code: creating an address space</h2><p>大部分用于操作地址空间和页表的 xv6 代码都在<code>vm.c</code>（<code>kernel/vm.c:1</code>）中。核心数据结构是 <code>pagetable_t</code>，它实际上是一个指向 RISC-V 根页表页的指针；<code>pagetable_t</code>可以是内核页表，也可以是进程的页表。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> uint64 *<span class="type">pagetable_t</span>; <span class="comment">// 512 PTEs</span></span><br></pre></td></tr></table></figure>
 
-<p>在机器启动时，在启动序列的靠前部分，<code>main</code> 调用 <code>kvminit</code>（<code>kernel/vm.c:22</code>）来创建内核页表。这个调用发生在 xv6 在 RISC-V 启用分页之前，所以地址直接指向物理内存。<code>kvminit</code>中直接调用<code>kvmmake</code>，在<code>kvmmake</code>中首先分配一页物理内存来存放根页表页。然后调用 <code>kvmmap</code> 将内核所需要的硬件资源映射到物理地址。这些资源包括内核的指令和数据，<code>KERNBASE</code> 到 <code>PHYSTOP</code>的物理内存，以及实际上是设备的内存范围。随后调用 <code>proc_mapstacks</code>为每个进程分配一个内核栈，并将其映射到内核虚拟地址空间中。</p>
+<p>在机器启动时，在启动序列的靠前部分，<code>main</code> 调用 <code>kvminit</code>（<code>kernel/vm.c:22</code>）来创建内核页表。这个调用发生在 xv6 在 RISC-V 启用分页之前，所以地址直接指向物理内存。<code>kvminit</code>中直接调用<code>kvmmake</code>：</p>
 <ul>
-<li><p><code>kvmmap</code>（<code>kernel/vm.c:118</code>）调用 <code>mappages</code>（<code>kernel/vm.c:149</code>），它将指定范围的虚拟地址映射到一段物理地址。本质上就是将物理地址转换成虚拟地址格式填入页表项。</p>
-</li>
-<li><p>虚拟内存中的保护页不会实际映射到物理地址中。由下面的宏可知，连续的两个内核栈地址相差2个<code>PGSIZE</code>，一个内核栈实际只占一个页，剩余的一个页即为保护页。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> KSTACK(p) (TRAMPOLINE - (p)*2*PGSIZE - 3*PGSIZE)</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p><code>walk</code>：给定一个虚拟地址和一个页表，返回一个PTE指针。如果 PTE 无效，那么所需的物理页还没有被分配；如果 <code>alloc</code> 参数被设置，<code>walk</code> 会分配一个新的页表页，并把它的物理地址放在 PTE 中。它返回最低层PTE的地址（<code>kernel/vm.c:88</code>）。</p>
-</li>
+<li>为内核创建一个新的页表，分配顶级页表（根页表）。</li>
+<li>调用 <code>kvmmap</code> 将内核所需要的硬件资源映射到物理地址。这些资源包括内核的指令和数据，<code>KERNBASE</code> 到 <code>PHYSTOP</code>的物理内存，以及实际上是设备的内存范围。</li>
+<li>随后调用 <code>proc_mapstacks</code>为每个进程分配一个内核栈，并将其映射到内核虚拟地址空间中。</li>
 </ul>
+<p><code>kvmmap</code>（<code>kernel/vm.c:118</code>）调用 <code>mappages</code>（<code>kernel/vm.c:149</code>），它将指定范围的虚拟地址映射到一段物理地址。本质上就是按格式创建页表项。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// add a mapping to the kernel page table .</span></span><br><span class="line"><span class="comment">// only used when booting.</span></span><br><span class="line"><span class="comment">// does not flush TLB or enable paging.</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">kvmmap</span><span class="params">(<span class="type">pagetable_t</span> kpgtbl, uint64 va, uint64 pa, uint64 sz, <span class="type">int</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span>(mappages(kpgtbl, va, sz, pa, perm) != <span class="number">0</span>)</span><br><span class="line">    panic(<span class="string">&quot;kvmmap&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create PTEs for virtual addresses starting at va that refer to</span></span><br><span class="line"><span class="comment">// physical addresses starting at pa. va and size might not</span></span><br><span class="line"><span class="comment">// be page-aligned. Returns 0 on success, -1 if walk() couldn&#x27;t</span></span><br><span class="line"><span class="comment">// allocate a needed page-table page.</span></span><br><span class="line"><span class="comment">// perm: Permission flags for page table entries (e.g., PTE_R, PTE_W, PTE_X).</span></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">mappages</span><span class="params">(<span class="type">pagetable_t</span> pagetable, uint64 va, uint64 size, uint64 pa, <span class="type">int</span> perm)</span></span><br><span class="line">&#123;</span><br><span class="line">  uint64 a, last;</span><br><span class="line">  <span class="type">pte_t</span> *pte;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(size == <span class="number">0</span>)</span><br><span class="line">    panic(<span class="string">&quot;mappages: size&quot;</span>);</span><br><span class="line">  </span><br><span class="line">  a = PGROUNDDOWN(va);</span><br><span class="line">  last = PGROUNDDOWN(va + size - <span class="number">1</span>);</span><br><span class="line">  <span class="keyword">for</span>(;;)&#123;</span><br><span class="line">    <span class="keyword">if</span>((pte = walk(pagetable, a, <span class="number">1</span>)) == <span class="number">0</span>)</span><br><span class="line">      <span class="comment">// Page table not allocated and allocation of page table page failed</span></span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">if</span>(*pte &amp; PTE_V)</span><br><span class="line">      <span class="comment">// The page table entry has been marked as valid (PTE_V), </span></span><br><span class="line">      <span class="comment">// indicating that the virtual address has been mapped</span></span><br><span class="line">      panic(<span class="string">&quot;mappages: remap&quot;</span>);</span><br><span class="line">    *pte = PA2PTE(pa) | perm | PTE_V;</span><br><span class="line">    <span class="keyword">if</span>(a == last)</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    a += PGSIZE;</span><br><span class="line">    pa += PGSIZE;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>walk</code>：给定一个虚拟地址和一个页表，返回最低层页表中的PTE的地址，模拟MMU的功能。如果 PTE 无效，那么所需的物理页还没有被分配；如果 <code>alloc</code> 参数被设置，<code>walk</code> 会分配一个新的页表页，并把它的物理地址放在 PTE 中。（<code>kernel/vm.c:88</code>）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">pte_t</span> *</span><br><span class="line"><span class="title function_">walk</span><span class="params">(<span class="type">pagetable_t</span> pagetable, uint64 va, <span class="type">int</span> alloc)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span>(va &gt;= MAXVA)</span><br><span class="line">    panic(<span class="string">&quot;walk&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span>(<span class="type">int</span> level = <span class="number">2</span>; level &gt; <span class="number">0</span>; level--) &#123;</span><br><span class="line">    <span class="type">pte_t</span> *pte = &amp;pagetable[PX(level, va)];</span><br><span class="line">    <span class="keyword">if</span>(*pte &amp; PTE_V) &#123;</span><br><span class="line">      pagetable = (<span class="type">pagetable_t</span>)PTE2PA(*pte);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">if</span>(!alloc || (pagetable = (<span class="type">pde_t</span>*)kalloc()) == <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      <span class="built_in">memset</span>(pagetable, <span class="number">0</span>, PGSIZE);</span><br><span class="line">      *pte = PA2PTE(pagetable) | PTE_V;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> &amp;pagetable[PX(<span class="number">0</span>, va)];</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><code>proc_mapstacks</code> 为每个进程分配内核栈，并建立映射，确保每个栈的位置固定且相互隔离。通过引入保护页，进一步提高了内核的稳定性和安全性。<code>KSTACK</code> 宏计算了每个进程内核栈在虚拟地址空间中的位置，并保证了它们之间的分布合理且一致。</p>
+<p>虚拟内存中的保护页不会实际映射到物理地址中。由下面的宏可知，连续的两个内核栈地址相差2个<code>PGSIZE</code>，一个内核栈实际只占一个页，剩余的一个页即为保护页。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> KSTACK(p) (TRAMPOLINE - (p)*2*PGSIZE - 3*PGSIZE)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Allocate a page for each process&#x27;s kernel stack.</span></span><br><span class="line"><span class="comment">// Map it high in memory, followed by an invalid</span></span><br><span class="line"><span class="comment">// guard page.</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">proc_mapstacks</span><span class="params">(<span class="type">pagetable_t</span> kpgtbl)</span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span>;</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">for</span>(p = proc; p &lt; &amp;proc[NPROC]; p++) &#123;</span><br><span class="line">    <span class="type">char</span> *pa = kalloc();</span><br><span class="line">    <span class="keyword">if</span>(pa == <span class="number">0</span>)</span><br><span class="line">      panic(<span class="string">&quot;kalloc&quot;</span>);</span><br><span class="line">    uint64 va = KSTACK((<span class="type">int</span>) (p - proc));</span><br><span class="line">    kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p><code>main</code> 调用 <code>kvminithart</code>（<code>kernel/vm.c:53</code>）来映射内核页表。它将根页表页的物理地址写入寄存器 <code>satp</code> 中。在这之后，CPU 将使用内核页表翻译地址。</p>
 <p><code>main</code> 调用<code>procinit</code>（<code>kernel/proc.c:26</code>），为每个进程分配一个内核栈。就是将<code>KSTACK(p)</code> 赋给<code>proc-&gt;kstack</code>。</p>
 <p>每个 RISC-V CPU 都会在 **Translation Look-aside Buffer(TLB)**中缓存页表项，当 xv6 改变页表时，必须告诉 CPU 使相应的缓存 TLB 项无效。RISC-V 有一条指令 <code>sfence.vma</code>，可以刷新当前 CPU 的 TLB。xv6 在<code>kvminithart</code>中，重新加载 <code>satp</code> 寄存器后， 执行 <code>sfence.vma</code>，也会在从内核空间返回用户空间前，切换到用户页表的trampoline 代码中执行 <code>sfence.vma</code>（<code>kernel/trampoline.S:79</code>）。</p>
-<h2 id="物理内存分配"><a href="#物理内存分配" class="headerlink" title="物理内存分配"></a>物理内存分配</h2><p>xv6对kernel space和<code>PHYSTOP</code>之间的物理空间在运行时进行分配，分配以页(4096 bytes)为单位。分配和释放是通过对空闲页链表进行追踪完成的，分配空间就是将一个页从链表中移除，释放空间就是将一页增加到链表中</p>
-<p>kernel的物理空间的分配函数在<code>kernel/kalloc.c</code>中，每个页在链表中的元素是<code>struct run</code>，每个<code>run</code>存储在空闲页本身中。这个空闲页的链表<code>freelist</code>由自旋锁保护，包装在<code>struct kmem</code>中。</p>
+<h2 id="kvminithart"><a href="#kvminithart" class="headerlink" title="kvminithart"></a>kvminithart</h2><p><code>kvminithart</code> 是一个用于初始化每个硬件线程（hart）分页机制的函数。它的主要任务是将硬件的页表寄存器切换到内核页表，并启用分页。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Switch h/w page table register to the kernel&#x27;s page table,</span></span><br><span class="line"><span class="comment">// and enable paging.</span></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">kvminithart</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  w_satp(MAKE_SATP(kernel_pagetable));</span><br><span class="line">  sfence_vma();	<span class="comment">// flush the TLB.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数首先设置了SATP寄存器，kernel_pagetable变量来自于kvminit第一行。所以这里实际上是内核告诉MMU来使用刚刚设置好的page table。在这条指令之前，还不存在可用的page table，所以也就不存在地址翻译。执行完这条指令之后，程序计数器（Program Counter）增加了4。而之后的下一条指令被执行时，程序计数器会被内存中的page table翻译。</p>
+<p>所以这条指令的执行时刻是一个非常重要的时刻。因为整个地址翻译从这条指令之后开始生效，之后的每一个使用的内存地址都可能对应到与之不同的物理内存地址。因为在这条指令之前，我们使用的都是物理内存地址，这条指令之后page table开始生效，所有的内存地址都变成了另一个含义，也就是虚拟内存地址。</p>
+<h2 id="Code-Physical-memory-allocator"><a href="#Code-Physical-memory-allocator" class="headerlink" title="Code: Physical memory allocator"></a>Code: Physical memory allocator</h2><p>xv6对kernel space和<code>PHYSTOP</code>之间的物理空间在运行时进行分配，分配以页(4096 bytes)为单位。分配和释放是通过对空闲页链表进行追踪完成的，分配空间就是将一个页从链表中移除，释放空间就是将一页增加到链表中</p>
+<p>kernel的物理空间的分配函数在<code>kernel/kalloc.c</code>中，每个页在链表中的元素是<code>struct run</code>。这个空闲页的链表<code>freelist</code>由自旋锁保护，包装在<code>struct kmem</code>中。</p>
 <ul>
-<li><code>kinit()</code>：对分配函数进行初始化，将kernel结尾到PHYSTOP之间的所有空闲空间都添加到kmem链表中，这是通过调用<code>freerange(end, PHYSTOP)</code>实现的</li>
+<li><code>kinit()</code>：对自旋锁进行初始化，并将kernel结尾到PHYSTOP之间的所有空闲空间都添加到kmem链表中，这是通过调用<code>freerange(end, PHYSTOP)</code>实现的</li>
 <li><code>freerange()</code>对这个范围内所有页都调用一次<code>kfree</code>来将这个范围内的页添加到<code>freelist</code>链表中</li>
+<li><code>kfree()</code>接受参数pa，pa必须是物理页的起始地址。将该页空间用1填充，并加入空闲页链表<code>freelist</code>中</li>
+<li><code>kalloc()</code>从<code>freelist</code>中分配出一个空闲物理页。</li>
 </ul>
-<h2 id="Code-sbrk"><a href="#Code-sbrk" class="headerlink" title="Code: sbrk"></a>Code: sbrk</h2><p><code>sbrk</code> 是 一 个 进 程 收 缩 或 增 长 内 存 的 系 统 调 用 。 该 系 统 调 用 由 函 数<code>growproc</code>（<code>kernel/proc.c:239</code>）实现，<code>growproc</code> 调用 <code>uvmalloc</code> 或 <code>uvmdealloc</code>，取决于 <code>n</code> 是正数还是负数。<code>uvmalloc</code>（<code>kernel/vm.c:229</code>）通过 <code>kalloc</code> 分配物理内存，并使用 <code>mappages</code> 将 PTE 添加到用户页表中。 <code>uvmdealloc</code> 调用 <code>uvmunmap</code>（<code>kernel/vm.c:174</code>），它使用 <code>walk</code> 来查找 PTE 并使用 <code>kfree</code> 来释放它们所引用的物理内存。</p>
+<h2 id="Code-sbrk"><a href="#Code-sbrk" class="headerlink" title="Code: sbrk"></a>Code: sbrk</h2><p><code>sbrk</code> 是 一 个 进 程 收 缩 或 增 长 内 存 的 系 统 调 用 。 该 系 统 调 用 由 函 数<code>growproc</code>（<code>kernel/proc.c:239</code>）实现，<code>growproc</code> 调用 <code>uvmalloc</code> 或 <code>uvmdealloc</code>，取决于 <code>n</code> 是正数还是负数。</p>
+<ul>
+<li><p><code>uvmalloc</code>（<code>kernel/vm.c:229</code>）通过 <code>kalloc</code> 分配物理内存，并使用 <code>mappages</code> 将 PTE 添加到用户页表中。 </p>
+</li>
+<li><p><code>uvmdealloc</code> 调用 <code>uvmunmap</code>（<code>kernel/vm.c:174</code>），它使用 <code>walk</code> 来查找 PTE 并使用 <code>kfree</code> 来释放它们所引用的物理内存。</p>
+</li>
+</ul>
 <p>xv6 使用进程的页表不仅是为了告诉硬件如何映射用户虚拟地址，也是将其作为分配给该进程的物理地址的唯一记录。这就是为什么释放用户内存（<code>uvmunmap</code> 中）需要检查用户页表的原因。</p>
+<h2 id="Code-exec"><a href="#Code-exec" class="headerlink" title="Code: exec"></a>Code: exec</h2><p><code>exec</code> 系统调用用来创建一个地址空间的用户部分。相关代码在<code>kernel/exec.c</code>中，它读取储存在文件系统上的文件用来初始化一个地址空间的用户部分。其内部使用了<code>vm. c</code>和<code>kalloc.c</code>中的多个函数实现对用户地址空间的布置。</p>
+<ul>
+<li>二进制可执行文件数据读取，并检查ELF头部格式。首先通过<code>namei()</code>读取文件的inode，再快速检查文件是否是ELF格式。</li>
+<li>分配用户页表。<code>proc_pagetable()</code>中调用<code>uvmcreate()</code>创建一个空的用户页表，再调用<code>mappages()</code>将<code>trampoline</code>和<code>trapframe</code>载入页表。</li>
+<li>根据 ELF 文件的 Program headers 加载代码和数据段到内存。首先调用<code>uvmalloc</code>分配物理内存和PTE，再调用<code>loadseg</code>将各个segment写入内存中。</li>
+<li>分配两个页，其中一个作为用户栈，一个作为栈保护页。 将 <code>argv</code> 的内容和指针复制到用户栈中，设置栈指针。</li>
+<li>更新进程的页表、大小、用户栈指针以及入口点，并且释放该进程旧的页表。</li>
+</ul>
 
     </div>
 
@@ -333,7 +366,6 @@
       <footer class="post-footer">
           <div class="post-tags">
               <a href="/tags/6-S081/" rel="tag"># 6.S081</a>
-              <a href="/tags/risc-v/" rel="tag"># risc-v</a>
           </div>
 
         
@@ -407,7 +439,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8"><span class="nav-number">1.</span> <span class="nav-text">页表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8%E7%BC%93%E5%AD%98TLB"><span class="nav-number">2.</span> <span class="nav-text">页表缓存TLB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4"><span class="nav-number">3.</span> <span class="nav-text">内核地址空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4"><span class="nav-number">4.</span> <span class="nav-text">进程地址空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-creating-an-address-space"><span class="nav-number">5.</span> <span class="nav-text">Code: creating an address space</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="nav-number">6.</span> <span class="nav-text">物理内存分配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-sbrk"><span class="nav-number">7.</span> <span class="nav-text">Code: sbrk</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8"><span class="nav-number">1.</span> <span class="nav-text">页表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8%E7%BC%93%E5%AD%98TLB"><span class="nav-number">2.</span> <span class="nav-text">页表缓存TLB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4"><span class="nav-number">3.</span> <span class="nav-text">内核地址空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4"><span class="nav-number">4.</span> <span class="nav-text">进程地址空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-creating-an-address-space"><span class="nav-number">5.</span> <span class="nav-text">Code: creating an address space</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kvminithart"><span class="nav-number">6.</span> <span class="nav-text">kvminithart</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-Physical-memory-allocator"><span class="nav-number">7.</span> <span class="nav-text">Code: Physical memory allocator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-sbrk"><span class="nav-number">8.</span> <span class="nav-text">Code: sbrk</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Code-exec"><span class="nav-number">9.</span> <span class="nav-text">Code: exec</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -421,7 +453,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">15</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -434,7 +466,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -461,7 +493,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -470,12 +502,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">60k</span>
+    <span title="站点总字数">79k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">54 分钟</span>
+    <span title="站点阅读时长">1:12</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
