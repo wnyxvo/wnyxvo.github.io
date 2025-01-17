@@ -132,7 +132,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">15</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">16</span></a>
 
   </li>
   </ul>
@@ -158,6 +158,174 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/14/6-S081-Lab4-Traps/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/01/14/6-S081-Lab4-Traps/" class="post-title-link" itemprop="url">6.S081-Lab4-Traps</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-01-14 19:26:09" itemprop="dateCreated datePublished" datetime="2025-01-14T19:26:09+08:00">2025-01-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-01-17 13:53:18" itemprop="dateModified" datetime="2025-01-17T13:53:18+08:00">2025-01-17</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="RISC-V-assembly"><a href="#RISC-V-assembly" class="headerlink" title="RISC-V assembly"></a>RISC-V assembly</h2><ol>
+<li>Which registers contain arguments to functions? For example, which register holds 13 in main’s call to printf?<br> a0-7.<br> a2 holds 13，because 13 is the third parameter.</li>
+<li>Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)<br> The function f and g are handled with inline optimization. As can be seen from the code li a1,12, main directly computes the result and stores it.</li>
+<li>At what address is the function printf located?<br> ra &#x3D; 0x30，0x30 + 0x608 &#x3D; 0x638</li>
+<li>What value is in the register ra just after the jalr to printf in main?<br> jalr: PC + 4 &#x3D; 0x38</li>
+<li>Run the following code: unsigned int i &#x3D; 0x00646c72;printf(“H%x Wo%s”, 57616, &amp;i);What is the output? The output depends on that fact that the RISC-V is little-endian.<br>If the RISC-V were instead big-endian what would you set i to in order to yield the same output? Would you need to change 57616 to a different value?<br> 57616 &#x3D; 0xe110; little-endian:0x00646c72-&gt;72-6c-64-00; output: Hell0 World<br> For big-endian, i should be changed to 0x726c6400 without changing 57616</li>
+<li>In the following code, what is going to be printed after ‘y&#x3D;’? (note: the answer is not a specific value.) Why does this happen?<br>printf(“x&#x3D;%d y&#x3D;%d”, 3);<br> The result printed after y&#x3D; depends on the data previously saved in a2</li>
+</ol>
+<h2 id="Backtrace"><a href="#Backtrace" class="headerlink" title="Backtrace"></a>Backtrace</h2><p>在 kernel&#x2F;printf.c 中实现一个<code>backtrace</code>函数，来打印堆栈上的函数调用列表。在 sys_sleep 中插入对该函数的调用，然后运行 bttest，调用 sys_sleep。 输出结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">backtrace:</span><br><span class="line">0x00000000800020c8</span><br><span class="line">0x0000000080001fa4</span><br><span class="line">0x0000000080001c8e</span><br></pre></td></tr></table></figure>
+
+<p>bttest 之后退出 qemu。 在终端中：地址可能略有不同，但如果运行 addr2line -e kernel&#x2F;kernel（或 riscv64-unknown-elf-addr2line -e kernel&#x2F;kernel）并粘贴上述地址，则如下所示：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ addr2line -e kernel/kernel</span><br><span class="line">    0x0000000080002de2</span><br><span class="line">    0x0000000080002f4a</span><br><span class="line">    0x0000000080002bfc</span><br></pre></td></tr></table></figure>
+
+<p>编译器会在每个堆栈帧中放置一个帧指针，用于保存调用者帧指针的地址。<code>backtrace</code>应使用这些帧指针在堆栈中向上走动，并在每个堆栈帧中打印保存的返回地址。</p>
+<p>背景：</p>
+<ul>
+<li>xv6 为 stack 以 page 为单位分配空间。下面的实现简单根据 fp 是否还在当前页中来判断是否栈回溯到无效区域。</li>
+<li>stack frame 是 stack 的一部分，stack 中包含多个 stack frame。</li>
+<li>每次调用函数时，由编译器生成的指令完成栈帧的分配。函数返回后，栈帧被释放（通常通过调整栈指针 sp 完成）。</li>
+<li>帧指针 <code>fp</code> 指向当前栈帧的底部，栈指针 <code>sp</code> 指向当前栈的顶部。也就是<code>sp</code>会指向当前栈帧的顶部。</li>
+</ul>
+<p>实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">backtrace</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  uint64 fp, ra;</span><br><span class="line">  uint64 start, end;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;backtrace:\n&quot;</span>);</span><br><span class="line">  fp = r_fp();</span><br><span class="line">  end = PGROUNDUP(fp);</span><br><span class="line">  start = PGROUNDDOWN(fp);</span><br><span class="line">  <span class="keyword">while</span> (fp &gt; start &amp;&amp; fp &lt; end)</span><br><span class="line">  &#123;</span><br><span class="line">    ra = *(uint64 *)(fp - <span class="number">8</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%p\n&quot;</span>, ra);</span><br><span class="line">    fp = *(uint64 *)(fp - <span class="number">16</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>while (fp &gt; start &amp;&amp; fp &lt;= end)</code>是错的。<code>PGROUNDUP(sz)</code> 表示的是将给定地址向下取整到页面大小的倍数，实际已经不是当前页的地址范围了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PGROUNDUP(sz)  (((sz)+PGSIZE-1) &amp; ~(PGSIZE-1))</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Alarm"><a href="#Alarm" class="headerlink" title="Alarm"></a>Alarm</h2><p>添加一个新的<code>sigalarm(interval, handler)</code>系统调用，如果一个程序调用了<code>sigalarm(n, fn)</code>，那么每当程序消耗了CPU时间达到n个tick，内核应当使应用程序函数<code>fn</code>被调用。当<code>fn</code>返回时，应当在它离开的地方恢复执行。在XV6中，一个tick是一段相当任意的时间单元，取决于硬件计时器生成中断的频率。如果一个程序调用了<code>sigalarm(0, 0)</code>，系统应当停止生成周期性的报警调用。</p>
+<h3 id="test0-invoke-handler"><a href="#test0-invoke-handler" class="headerlink" title="test0: invoke handler"></a>test0: invoke handler</h3><p>首先修改内核以跳转到用户空间中的报警处理程序，这将导致<code>test0</code>打印“alarm!”。不用担心输出“alarm!”之后会发生什么；在打印“alarm！” 程序后崩溃。</p>
+<p>实现：</p>
+<ul>
+<li><p>按照提示，完成添加系统调用的常规操作。目前来说，<code>sys_sigreturn</code>返回零。</p>
+</li>
+<li><p>在<code>proc.h</code>中的<code>struct proc</code>新增3个新字段，并在<code>allocproc()</code>中完成初始化，在<code>freeproc()</code>中重置。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> sigticks;                <span class="comment">// the alarm interval</span></span><br><span class="line"><span class="type">void</span> (*sighandler)();        <span class="comment">// sigalarm handler function </span></span><br><span class="line"><span class="type">int</span> passedticks;             <span class="comment">// keep track of how many ticks have passed since the last call to a process&#x27;s alarm handler</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在<code>sysproc.c</code>中实现系统调用</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">uint64</span><br><span class="line"><span class="title function_">sys_sigreturn</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">uint64</span><br><span class="line"><span class="title function_">sys_sigalarm</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> ticks;</span><br><span class="line">  <span class="type">void</span> (*handler)();</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span> =</span> myproc();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(argint(<span class="number">0</span>, &amp;ticks) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">  <span class="keyword">if</span>(argaddr(<span class="number">1</span>, (uint64 *)&amp;handler) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">  p-&gt;sigticks = ticks;</span><br><span class="line">  p-&gt;sighandler = handler;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>修改<code>usertrap()</code>，以便当进程的报警间隔期满时，用户进程执行处理程序函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(which_dev == <span class="number">2</span>) &#123;</span><br><span class="line">    p-&gt;passedticks++;</span><br><span class="line">    <span class="keyword">if</span> (p-&gt;passedticks == p-&gt;sigticks) &#123;</span><br><span class="line">        p-&gt;passedticks = <span class="number">0</span>;</span><br><span class="line">        p-&gt;trapframe-&gt;epc = (uint64)p-&gt;sighandler;</span><br><span class="line">    &#125;</span><br><span class="line">    yield();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>想要从 trap 返回用户空间后执行警报处理函数，修改<code>p-&gt;trapframe-&gt;epc</code>，这里的值会被写入<code>SEPC</code>寄存器，在执行 <code>SRET</code>时被写入<code>PC</code>寄存器。</li>
+</ul>
+</li>
+</ul>
+<p>问题：</p>
+<ul>
+<li>直接将处理函数的值写入<code>p-&gt;trapframe-&gt;epc</code>，这里之前的值被覆盖，也就无法返回触发 定时器中断的用户空间处了。</li>
+<li><code>sigalarm(0, 0);</code>也没有实现关闭<code>sigalarm</code>的功能。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ alarmtest                                                             test0 start      </span><br><span class="line">...alarm!                    </span><br><span class="line">test0 passed     </span><br><span class="line">test1 start                             </span><br><span class="line">.alarm!                                                  </span><br><span class="line">alarm!                                                       </span><br><span class="line">.alarm!                                                         </span><br><span class="line">.alarm!                                                          </span><br><span class="line">alarm!                                                             </span><br><span class="line">alarm!                                                          </span><br><span class="line">.alarm!                                                         </span><br><span class="line">alarm!                                                            </span><br><span class="line">.alarm!                                                        </span><br><span class="line">alarm!                                                              </span><br><span class="line">test1 failed: foo() executed fewer times than it was called            </span><br><span class="line"><span class="title function_">usertrap</span><span class="params">()</span>: unexpected scause 0x000000000000000c pid=<span class="number">3</span>                </span><br><span class="line">            sepc=<span class="number">0xfffffffffffffac8</span> stval=<span class="number">0xfffffffffffffac8</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="test1-test2-resume-interrupted-code"><a href="#test1-test2-resume-interrupted-code" class="headerlink" title="test1&#x2F;test2(): resume interrupted code"></a>test1&#x2F;test2(): resume interrupted code</h3><p>要解决上述的问题，必须确保完成报警处理程序后，返回到用户程序最初被计时器中断的指令执行。必须确保寄存器内容恢复到中断时的值，以便用户程序在报警后可以不受干扰地继续运行。</p>
+<p>简单来说就是要在执行处理函数前保存当前的环境，处理程序需要在完成后调用<code>sigreturn</code>来恢复环境。</p>
+<p>同时，如果处理程序还没有返回，就不该再次调用它。假设处理程序执行的时间很长，在此期间又过了 sigticks 个 tick，此时不能再次调用处理函数。</p>
+<p>实现：</p>
+<ul>
+<li><p>为了保存跳转到处理函数之前的环境，新设一个<code>trapframe</code>结构体。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">trapframe</span> *<span class="title">savedtrapframe</span>;</span></span><br></pre></td></tr></table></figure>
+
+<p>并在<code>allocproc()</code>中分配空间，在<code>freeproc()</code>中释放空间。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// allocproc</span></span><br><span class="line"><span class="keyword">if</span>((p-&gt;savedtrapframe = (<span class="keyword">struct</span> trapframe *)kalloc()) == <span class="number">0</span>)&#123;</span><br><span class="line">   freeproc(p);</span><br><span class="line">   release(&amp;p-&gt;lock);</span><br><span class="line">   <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// freeproc</span></span><br><span class="line"><span class="keyword">if</span>(p-&gt;savedtrapframe)</span><br><span class="line">    kfree((<span class="type">void</span>*)p-&gt;savedtrapframe);</span><br><span class="line">  p-&gt;savedtrapframe = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>trap.c</code>中保存<code>p-&gt;trapframe</code>，在处理函数完成（调用 <code>sigreturn</code>）后恢复。<code>sigreturn</code> 处于内核空间，恢复<code>p-&gt;trapframe</code>就恢复了定时器中断发生时的PC。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(which_dev == <span class="number">2</span>) &#123;</span><br><span class="line">	p-&gt;passedticks++;</span><br><span class="line">    <span class="keyword">if</span> ((p-&gt;passedticks == p-&gt;sigticks) &amp;&amp; (p-&gt;ishandling == <span class="number">0</span>)) &#123;</span><br><span class="line">      p-&gt;ishandling = <span class="number">1</span>;</span><br><span class="line">      memmove(p-&gt;savedtrapframe, p-&gt;trapframe, PGSIZE);</span><br><span class="line">      p-&gt;trapframe-&gt;epc = (uint64)p-&gt;sighandler;</span><br><span class="line">    &#125;</span><br><span class="line">    yield();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行处理函数前保存当前的环境，处理程序需要在完成后调用<code>sigreturn</code>来恢复环境。</p>
+</li>
+<li><p>为了防止处理程序重复调用，设立一个参数来指示当前是否在执行处理函数。同时这个参数也可以用来实现<code>sigalarm(0, 0)</code>关闭<code>sigalarm</code>的功能，只要该参数指示当前在执行处理函数，自然就关闭了sigalarm。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> ishandling;   <span class="comment">// handler function is running? 1 is yes, 0 is no</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">uint64</span><br><span class="line"><span class="title function_">sys_sigreturn</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span> =</span> myproc();</span><br><span class="line">  </span><br><span class="line">  memmove(p-&gt;trapframe, p-&gt;savedtrapframe, PGSIZE);</span><br><span class="line">  p-&gt;ishandling = <span class="number">0</span>;</span><br><span class="line">  p-&gt;passedticks = <span class="number">0</span>; </span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">uint64</span><br><span class="line"><span class="title function_">sys_sigalarm</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> ticks;</span><br><span class="line">  <span class="type">void</span> (*handler)();</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span> =</span> myproc();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(argint(<span class="number">0</span>, &amp;ticks) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">  <span class="keyword">if</span>(argaddr(<span class="number">1</span>, (uint64 *)&amp;handler) &lt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(ticks == <span class="number">0</span> &amp;&amp; handler == <span class="number">0</span>) &#123;</span><br><span class="line">    p-&gt;ishandling = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  p-&gt;sigticks = ticks;</span><br><span class="line">  p-&gt;sighandler = handler;</span><br><span class="line">  p-&gt;ishandling = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将<code>passedticks</code>的重置放在了<code>sigreturn</code>中，也就是处理函数的执行间隔是：上一次执行完成到下一次开始执行中的间隔是<code>sigticks</code>个tick。</p>
+</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -626,7 +794,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-09 11:08:45" itemprop="dateModified" datetime="2025-01-09T11:08:45+08:00">2025-01-09</time>
+                <time title="修改时间：2025-01-15 14:44:38" itemprop="dateModified" datetime="2025-01-15T14:44:38+08:00">2025-01-15</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -685,6 +853,7 @@
 <li>Return address总是会出现在Stack Frame的第一位</li>
 <li>指向前一个Stack Frame的指针也会出现在栈中的固定位置</li>
 </ul>
+<p>返回地址位于堆栈帧指针的固定偏移量（-8）处，而保存的帧指针位于帧指针的固定偏移量（-16）处</p>
 
       
     </div>
@@ -1773,152 +1942,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/06/10/6-S081-Lab1-Xv6-and-Unix-utilities/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/06/10/6-S081-Lab1-Xv6-and-Unix-utilities/" class="post-title-link" itemprop="url">6.S081-Lab1-Xv6 and Unix utilities</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-06-10 00:28:36" itemprop="dateCreated datePublished" datetime="2024-06-10T00:28:36+08:00">2024-06-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-03 20:58:47" itemprop="dateModified" datetime="2025-01-03T20:58:47+08:00">2025-01-03</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>6.3k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>6 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="sleep"><a href="#sleep" class="headerlink" title="sleep"></a>sleep</h2><p>利用系统调用<code>sleep</code>实现指定tick的时间休眠。如果用户忘记传递参数，sleep 程序要打印错误信息。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/stat.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;user/user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(argc &lt; <span class="number">2</span>)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;Usage: sleep number_of_ticks\n&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  number = atoi(argv[<span class="number">1</span>]);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;(nothing happens for a little while)\n&quot;</span>);</span><br><span class="line">  sleep(number);</span><br><span class="line">  </span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="pingpong"><a href="#pingpong" class="headerlink" title="pingpong"></a>pingpong</h2><p>利用系统调用<code>fork</code>和<code>pipe</code>在父、子进程中传递信息。父、子进程交互流程：</p>
-<ul>
-<li><p>父进程应向子进程发送一个字节；</p>
-</li>
-<li><p>子进程应打印”<pid>: received ping”（<pid>是其进程 ID），并将该字节写入父进程的管道，然后退出；</p>
-</li>
-<li><p>父进程应从子进程读取该字节，打印”<pid>: received pong”，然后退出。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">make qemu</span></span><br><span class="line">...</span><br><span class="line">init: starting sh</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">pingpong</span></span><br><span class="line">4: received ping</span><br><span class="line">3: received pong</span><br><span class="line"><span class="meta prompt_">$</span></span><br></pre></td></tr></table></figure></li>
-</ul>
-<p>思路：</p>
-<ul>
-<li>正常情况下<code>fork()</code>过后，父、子进程的并发运行的，执行顺序并不能确定。</li>
-<li>要确保先运行父进程，必须要阻塞子进程。子进程要从管道中读取信息，当管道中暂时没有数据可读时，<code>read</code>就会阻塞子进程。</li>
-<li>父进程发完信息后，要等待子进程执行结束后再次运行。</li>
-<li>注意当管道的端口不再使用后要及时关闭。</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/stat.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;user/user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> p[<span class="number">2</span>];</span><br><span class="line">  <span class="type">int</span> buf[<span class="number">5</span>];</span><br><span class="line">  <span class="type">int</span> pid;</span><br><span class="line">  pipe(p);</span><br><span class="line">  <span class="keyword">if</span>(fork()==<span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    read(p[<span class="number">0</span>], buf, <span class="number">1</span>);</span><br><span class="line">    pid = getpid();</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%d: received ping\n&quot;</span>, pid);</span><br><span class="line">    write(p[<span class="number">1</span>], <span class="string">&quot;pong&quot;</span>, <span class="number">1</span>);</span><br><span class="line">    close(p[<span class="number">0</span>]);</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">  &#123;</span><br><span class="line">    write(p[<span class="number">1</span>], <span class="string">&quot;ping&quot;</span>, <span class="number">1</span>);</span><br><span class="line">    wait(<span class="number">0</span>);  <span class="comment">// waiting for child process to exit; not care about the return </span></span><br><span class="line">    read(p[<span class="number">0</span>], buf, <span class="number">1</span>);</span><br><span class="line">    pid = getpid();</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%d: received pong\n&quot;</span>, pid);</span><br><span class="line">    close(p[<span class="number">0</span>]);</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="primes"><a href="#primes" class="headerlink" title="primes"></a>primes</h2><p>质数筛选器：对于一组数，先print出最小的一个数，这是一个素数，然后用其他剩下的数依次尝试整除这个素数，如果可以整除则不是质数，则将其drop，不能整除则将其参与下一轮筛选，直到最后打印出所有的素数。</p>
-<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lab1_primes_filter.jpg"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">p = get a number from left neighbor</span><br><span class="line">print p</span><br><span class="line">loop:</span><br><span class="line">    n = get a number from left neighbor</span><br><span class="line">    if (p does not divide n)</span><br><span class="line">        send n to right neighbor</span><br></pre></td></tr></table></figure>
-
-<p>思路：</p>
-<ul>
-<li>主进程生成初始数字，子进程递归地负责筛选质数，进程间使用管道传递数字。</li>
-<li>内核中可以同时存在的管道数是有限的，当管道的端口不再使用后要及时关闭。</li>
-<li>在主进程中要注意等待子进程结束。</li>
-</ul>
-<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lab1_primes_filter2.jpg"></p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/stat.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;user/user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIZE_INT 4</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> </span><br><span class="line"><span class="title function_">Filter</span><span class="params">(<span class="type">int</span> pipe_fd[<span class="number">2</span>])</span></span><br><span class="line">&#123;</span><br><span class="line">  close(pipe_fd[<span class="number">1</span>]);  <span class="comment">// close the write port</span></span><br><span class="line">  <span class="type">int</span> prime;</span><br><span class="line">  <span class="keyword">if</span>(read(pipe_fd[<span class="number">0</span>], &amp;prime, SIZE_INT) != SIZE_INT)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;error when read the prime number\n&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;prime %d\n&quot;</span>, prime);</span><br><span class="line"></span><br><span class="line">  <span class="type">int</span> num;</span><br><span class="line">  <span class="type">int</span> flag = read(pipe_fd[<span class="number">0</span>], &amp;num, SIZE_INT);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(flag == <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="comment">// There are no more numbers to judge.</span></span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="type">int</span> pipe_fd2[<span class="number">2</span>];</span><br><span class="line">  pipe(pipe_fd2);</span><br><span class="line">  <span class="type">int</span> pid = fork();</span><br><span class="line">  <span class="keyword">if</span> (pid &gt; <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="comment">// parent process</span></span><br><span class="line">    close(pipe_fd2[<span class="number">0</span>]); <span class="comment">// close the read port</span></span><br><span class="line">    <span class="keyword">if</span>(num % prime != <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="comment">// the num is  a prime</span></span><br><span class="line">      write(pipe_fd2[<span class="number">1</span>], &amp;num, SIZE_INT);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span>(read(pipe_fd[<span class="number">0</span>], &amp;num, SIZE_INT) != <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="keyword">if</span>(num % prime != <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="comment">// the num is  a prime</span></span><br><span class="line">        write(pipe_fd2[<span class="number">1</span>], &amp;num, SIZE_INT);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    close(pipe_fd[<span class="number">0</span>]);</span><br><span class="line">    close(pipe_fd2[<span class="number">1</span>]);</span><br><span class="line">    wait(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span> (pid == <span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// child process</span></span><br><span class="line">    Filter(pipe_fd2);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;fork error\n&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> p[<span class="number">2</span>];</span><br><span class="line">  pipe(p);</span><br><span class="line">  <span class="type">int</span> pid = fork();</span><br><span class="line">  <span class="keyword">if</span> (pid &gt; <span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// parent process</span></span><br><span class="line">    close(p[<span class="number">0</span>]);  <span class="comment">// close the read port</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">2</span>; i &lt;= <span class="number">35</span>; i++)&#123;</span><br><span class="line">      <span class="keyword">if</span>(write(p[<span class="number">1</span>], &amp;i, SIZE_INT) != SIZE_INT)</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;error when write the number 2-35\n&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">    wait(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span> (pid == <span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="comment">// child process</span></span><br><span class="line">    Filter(p);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;error when fork in primes_main\n&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="find"><a href="#find" class="headerlink" title="find"></a>find</h2><p>一个简单版本的 UNIX find功能，在指定的文件夹下符合某个名字的文件，打印出其路径。</p>
-<ul>
-<li>首先按照提示阅读<strong>user&#x2F;ls.c</strong>学习如何读取目录，照猫画虎。</li>
-</ul>
-<ul>
-<li>注意检查find命令行中的path参数，要为目录名。</li>
-</ul>
-<ul>
-<li>字符串结尾处要有结束标识符<code>\0</code>。</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/stat.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;user/user.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/fs.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">find</span><span class="params">(<span class="type">char</span> *path, <span class="type">const</span> <span class="type">char</span> *target)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> buf[<span class="number">512</span>], *p;</span><br><span class="line">  <span class="type">int</span> fd;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">dirent</span> <span class="title">de</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">stat</span> <span class="title">st</span>;</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>((fd = open(path, <span class="number">0</span>)) &lt; <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;find: cannot open %s\n&quot;</span>, path);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(fstat(fd, &amp;st) &lt; <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;find: cannot stat %s\n&quot;</span>, path);</span><br><span class="line">    close(fd);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// The first argument to find must be a directory</span></span><br><span class="line">  <span class="keyword">if</span>(st.type != T_DIR)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;Usage: &lt;*directory*&gt; &lt;filename&gt;\n&quot;</span>);</span><br><span class="line">    close(fd);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(<span class="built_in">strlen</span>(path) + <span class="number">1</span> + DIRSIZ + <span class="number">1</span> &gt; <span class="keyword">sizeof</span> buf)&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;find: path too long\n&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">strcpy</span>(buf, path);</span><br><span class="line">  p = buf+<span class="built_in">strlen</span>(buf);</span><br><span class="line">  *p++ = <span class="string">&#x27;/&#x27;</span>; <span class="comment">// now the end is &#x27;/&#x27;, not &#x27;\0&#x27;</span></span><br><span class="line">  <span class="keyword">while</span>(read(fd, &amp;de, <span class="keyword">sizeof</span>(de)) == <span class="keyword">sizeof</span>(de))&#123;</span><br><span class="line">    <span class="comment">// Read one directory entry at a time</span></span><br><span class="line">    <span class="keyword">if</span>(de.inum == <span class="number">0</span> || <span class="built_in">strcmp</span>(de.name, <span class="string">&quot;.&quot;</span>) == <span class="number">0</span> || <span class="built_in">strcmp</span>(de.name, <span class="string">&quot;..&quot;</span>) == <span class="number">0</span>) </span><br><span class="line">      <span class="keyword">continue</span>;</span><br><span class="line">    memmove(p, de.name, DIRSIZ);</span><br><span class="line">    p[DIRSIZ] = <span class="number">0</span>;  <span class="comment">// add the null terminator, \0, to make it a C string.</span></span><br><span class="line">    <span class="comment">// Match successful?</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="built_in">strcmp</span>(de.name, target) == <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, buf);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(stat(buf, &amp;st) &lt; <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;find: cannot stat %s\n&quot;</span>, buf);</span><br><span class="line">      <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(st.type == T_DIR)&#123;</span><br><span class="line">      find(buf, target);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  close(fd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span> (argc != <span class="number">3</span>) &#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;Usage: %s &lt;directory&gt; &lt;filename&gt;\n&quot;</span>, argv[<span class="number">0</span>]);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  find(argv[<span class="number">1</span>], argv[<span class="number">2</span>]);</span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="xargs"><a href="#xargs" class="headerlink" title="xargs"></a>xargs</h2><p>实现一个简单版本的 UNIX xargs 程序，从标准输入中读取行，并为每一行运行一个指定的命令，同时将该行作为参数提供给命令。默认每次执行指定的命令时只从标准输入中额外获取一个参数。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> <span class="string">&quot;1\n2&quot;</span> | xargs <span class="built_in">echo</span> line</span></span><br><span class="line">line 1</span><br><span class="line">line 2</span><br></pre></td></tr></table></figure>
-
-<p>思路：</p>
-<ul>
-<li>从标准输入中读取字符，以分隔符为界分割出参数，使用<code>fork</code>和<code>exec</code>执行命令。</li>
-<li>ulibs.c中gets()提供类似按行读取的功能。</li>
-<li><code>argv[argc] </code>处必须是NULL，用于标识指针数组的结束。字符数组用<code>\0</code>标识结束。</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;kernel/param.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;user/user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> </span><br><span class="line"><span class="title function_">xargsexec</span><span class="params">(<span class="type">char</span> *argv_xargs[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> pid = fork();</span><br><span class="line">  <span class="keyword">if</span>(pid &lt; <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;error when xargsexec fork()&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">if</span>(pid == <span class="number">0</span>)&#123;</span><br><span class="line">    <span class="comment">// child process</span></span><br><span class="line">    exec(argv_xargs[<span class="number">0</span>], argv_xargs);</span><br><span class="line">    <span class="comment">// never get there</span></span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;error when exec()&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);  </span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="comment">// parent process</span></span><br><span class="line">    wait(<span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span> (argc &lt; <span class="number">3</span>) &#123;</span><br><span class="line">    <span class="built_in">fprintf</span>(<span class="number">2</span>, <span class="string">&quot;Usage: xargs needs three arguments at least\n&quot;</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="type">char</span> *argv_xargs[MAXARG];</span><br><span class="line">  <span class="type">char</span> buf[<span class="number">512</span>];</span><br><span class="line"></span><br><span class="line">  argv_xargs[<span class="number">0</span>] = argv[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span>(<span class="number">1</span>)&#123;</span><br><span class="line">    gets(buf, <span class="number">512</span>); <span class="comment">// Read a line from standard input</span></span><br><span class="line">    <span class="keyword">if</span>(buf[<span class="number">0</span>] == <span class="string">&#x27;\0&#x27;</span>)&#123; </span><br><span class="line">      <span class="comment">// There is no more text in the standard input</span></span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    buf[<span class="built_in">strlen</span>(buf) - <span class="number">1</span>] = <span class="string">&#x27;\0&#x27;</span>;  <span class="comment">// Read the ulib.c/gets(), gets() preserves \n or \r</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">1</span>; i &lt; argc - <span class="number">1</span>; i++)&#123;</span><br><span class="line">      argv_xargs[i] = argv[i + <span class="number">1</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    argv_xargs[argc - <span class="number">1</span>] = buf;</span><br><span class="line">    argv_xargs[argc] = (<span class="type">void</span> *)<span class="number">0</span>;  <span class="comment">// add the terminator NULL</span></span><br><span class="line"></span><br><span class="line">    xargsexec(argv_xargs);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1988,7 +2011,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2037,12 +2060,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">79k</span>
+    <span title="站点总字数">85k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:12</span>
+    <span title="站点阅读时长">1:17</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
