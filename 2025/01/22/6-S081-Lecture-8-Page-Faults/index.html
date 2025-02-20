@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Page Fault Basics虚拟内存有两个主要的优点：  隔离性。不同进程间的隔离，每个进程都拥有并使用自己的内存空间。同一进程中内核空间和用户空间的隔离。 level of indirection，提供了一层抽象。处理器和所有的指令都可以使用虚拟地址，而内核会定义从虚拟地址到物理地址的映射关系。  到目前为止，内存地址映射相对来说比较静态。不管是 user page table 还是 ke">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6.S081-Lecture 8 Page Faults">
+<meta property="og:url" content="http://example.com/2025/01/22/6-S081-Lecture-8-Page-Faults/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="Page Fault Basics虚拟内存有两个主要的优点：  隔离性。不同进程间的隔离，每个进程都拥有并使用自己的内存空间。同一进程中内核空间和用户空间的隔离。 level of indirection，提供了一层抽象。处理器和所有的指令都可以使用虚拟地址，而内核会定义从虚拟地址到物理地址的映射关系。  到目前为止，内存地址映射相对来说比较静态。不管是 user page table 还是 ke">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec08_scause_coding.png">
+<meta property="article:published_time" content="2025-01-22T10:27:21.000Z">
+<meta property="article:modified_time" content="2025-02-19T13:50:40.008Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="6.S081">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec08_scause_coding.png">
+
+<link rel="canonical" href="http://example.com/2025/01/22/6-S081-Lecture-8-Page-Faults/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>6.S081-Lecture 8 Page Faults | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">6</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">18</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/22/6-S081-Lecture-8-Page-Faults/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          6.S081-Lecture 8 Page Faults
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-01-22 18:27:21" itemprop="dateCreated datePublished" datetime="2025-01-22T18:27:21+08:00">2025-01-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-02-19 21:50:40" itemprop="dateModified" datetime="2025-02-19T21:50:40+08:00">2025-02-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="Page-Fault-Basics"><a href="#Page-Fault-Basics" class="headerlink" title="Page Fault Basics"></a>Page Fault Basics</h2><p>虚拟内存有两个主要的优点：</p>
+<ul>
+<li>隔离性。不同进程间的隔离，每个进程都拥有并使用自己的内存空间。同一进程中内核空间和用户空间的隔离。</li>
+<li>level of indirection，提供了一层抽象。处理器和所有的指令都可以使用虚拟地址，而内核会定义从虚拟地址到物理地址的映射关系。</li>
+</ul>
+<p>到目前为止，内存地址映射相对来说比较静态。不管是 user page table 还是 kernel page table，都是在最开始的时候设置好，之后就不会再做任何变动。<code>page fault</code>可以让地址映射关系变得动态起来。通过 page fault，内核可以更新page table。</p>
+<p>当发生 page fault 时，内核需要什么样的信息才能够响应 page fault：</p>
+<ul>
+<li><p>引起 page fault 的内存地址，即触发 page fault 的源。<code>STVAL</code>寄存器中会保留这个值。注意区分，触发 page fault 的地址与导致 page fault 的指令的地址。</p>
+</li>
+<li><p>引起 page fault 的原因类型。针对不同场景下的 page fault 有不同的响应。可以分为：</p>
+<ul>
+<li>因为 load 指令触发的 page faultr</li>
+<li>因为 store 指令触发的 page fault</li>
+<li>因为 jump 指令触发的 page fault</li>
+</ul>
+<p><code>SCAUSE</code>寄存器中保存了 trap 机制中进入到 supervisor mode 的原因。最高位：0（同步异常）、1（异步中断）。13 表示是因为load引起的page fault；15表示是因为store引起的page fault；12表示是因为指令执行引起的page fault。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec08_scause_coding.png"></p>
+</li>
+<li><p>引起 page fault 的 PC 值。作为trap处理代码的一部分，这个地址存放在<code>SEPC</code>寄存器中，并同时会保存在trapframe-&gt;epc中。因为这条指令触发了 page fault，该指令并没有正确执行，需要在处理完缺页异常后重新执行。</p>
+</li>
+</ul>
+<h2 id="Lazy-Page-Allocation"><a href="#Lazy-Page-Allocation" class="headerlink" title="Lazy Page Allocation"></a>Lazy Page Allocation</h2><p><code>sbrk</code>是XV6提供的系统调用，它使得用户应用程序能扩大自己的heap。进程的数据结构中的字段<code>p-&gt;sz</code>用来指示 heap 上使用的空间大小。当调用 <code>sbrk</code>时，它的参数是整数，代表了想要申请的字节数量。当<code>sbrk</code>实际发生或者被调用的时候，内核会分配一些物理内存，并将这些内存映射到用户应用程序的地址空间，然后将内存内容初始化为0。这样，应用程序可以通过多次<code>sbrk</code>系统调用来增加它所需要的内存。</p>
+<p>在XV6中，<code>sbrk</code>的实现默认是 eager allocation。即一旦调用了<code>sbrk</code>，内核会立即分配应用程序所需要的物理内存。但是实际上，对于应用程序来说很难预测自己需要多少内存，所以通常来说，应用程序倾向于申请多于自己所需要的内存。</p>
+<p>另一种思路是 lazy allocation，核心思想非常简单，<code>sbrk</code>系统调用基本上不做任何事情，唯一需要做的事情就是将<code>p-&gt;sz</code>增加n，其中 n 是需要新分配的内存字节数量。但是内核在当下并不会实际分配任何物理内存。之后在某个时间点，应用程序使用到了新申请的那部分内存，这时会触发 page fault，因为我们还没有将新的内存映射到 page table。</p>
+<p>所以，当我们遇到了一个 page fault ，相应的虚拟地址小于当前<em>p-&gt;sz</em>，同时大于 stack，那么我们就知道这是一个来自于 heap 的地址，但是内核还没有分配任何物理内存。所以在 page fault handler 中，通过kalloc函数分配一个内存page；初始化这个 page 内容为0；将这个内存page映射到 user page table 中；最后重新执行指令。</p>
+<p>如何在 xv6 的基础上修改为 lazy allocation：</p>
+<ul>
+<li>修改<code>sys_sbrk</code>函数，<code>sys_sbrk</code>会完成实际增加应用程序的地址空间，分配内存等等一系列相关的操作。现在只让它只对<code>p-&gt;sz</code>加 n，并不执行增加内存的操作。</li>
+<li>接下来的执行因为 lazy allocation 产生两种错误：<ul>
+<li>要写入某个地址时，该空间还没有实际分配，就会触发 page fault。修改<code>trap.c</code>中的<code>usertrap</code>函数，判断类型，<code>kalloc</code>分配物理空间，全零填充，<code>mappages</code>完成地址映射。 不同于其他异常，这里要重新执行发生异常的指令。</li>
+<li>要释放某块空间时，即尝试在释放一个并没有 map 的 page。唯一的原因是<code>sbrk</code>增加了p-&gt;sz，但是应用程序还没有使用那部分内存，那么对应的物理内存还没有分配。</li>
+</ul>
+</li>
+</ul>
+<h2 id="Zero-Fill-On-Demand"><a href="#Zero-Fill-On-Demand" class="headerlink" title="Zero Fill On Demand"></a>Zero Fill On Demand</h2><p>在用户程序的地址空间中，存在不同的<code>segment</code>：.text（程序的指令）、.data（初始化了的全局变量）、.bss（未被初始化或初始化为0的全局变量）等。</p>
+<p>在程序执行 <code>exec</code> 时，操作系统需要为新的地址空间分配虚拟内存，通常包括 <code>.text</code>、<code>.data</code> 和 <code>.bss</code> 段。</p>
+<p><strong><code>.bss</code> 段</strong> 存储未初始化的全局变量。这段区域往往需要初始化为零，但其内容可能会占用大量虚拟地址空间。</p>
+<ul>
+<li><code>.bss</code> 可能涉及许多连续虚拟页，每页都需要全零初始化。</li>
+<li>如果直接为每个 <code>.bss</code> 页分配物理内存并清零，启动时会造成性能损失和内存浪费。</li>
+</ul>
+<p>共享单页全零映射：</p>
+<ul>
+<li>预先分配 <strong>一个全零物理页</strong>（Zero Page），其物理内容完全为 0。</li>
+<li>所有需要全零的 <code>.bss</code> 页（虚拟地址空间）都指向该同一个零页。</li>
+<li>页表中设置这些映射为 <strong>只读</strong> 以避免数据篡改。</li>
+<li>当程序试图向 <code>.bss</code> 段写入数据时，由于全零页是只读的，触发 **页错误 (Page Fault)**。</li>
+<li>操作系统捕获异常，为该虚拟页分配新的物理内存，并将全零内容复制到新页。更新PTE中的映射关系，要设置成可读可写。</li>
+</ul>
+<h2 id="Copy-On-Write-Fork"><a href="#Copy-On-Write-Fork" class="headerlink" title="Copy On Write Fork"></a>Copy On Write Fork</h2><p>当 Shell 处理指令时，它会通过<code>fork</code>创建一个子进程。子进程执行的第一件事情就是调用<code>exec</code>运行一些其他程序，比如运行echo。现在的情况是，<code>fork</code>创建了<code>Shell</code>地址空间的一个完整的拷贝，而<code>exec</code>做的第一件事情就是丢弃这个地址空间，取而代之的是一个包含了<code>echo</code>的地址空间。</p>
+<p> <strong>Copy-on-Write Fork</strong> 的工作原理：</p>
+<ol>
+<li><p>父子进程共享同一物理内存页：</p>
+<ul>
+<li>在 <code>fork()</code> 时，操作系统 <strong>不复制内存</strong>，而是将父子进程的页表项指向相同的物理内存页。</li>
+<li>这些内存页被标记为 <strong>只读</strong>（read-only），这样父子进程共享同一内存数据，避免了不必要的复制。</li>
+</ul>
+</li>
+<li><p>写时触发复制：</p>
+<ul>
+<li>当父进程或子进程尝试写入这些共享的内存页时，由于页表中的内存页是只读的，这会<strong>触发 Page Fault</strong>。</li>
+<li>操作系统捕获到这个 Page Fault 后，<strong>为写操作的进程分配新的物理内存页</strong>，并将原来的内存页的内容复制到新分配的页中。新分配的页的 PTE 权限位为可读写，原来共享的物理内存页的 PTE 权限位页变为可读写。</li>
+<li>写操作的进程使用新的物理内存页，其他进程仍然共享原有的内存页，直到它们也触发写操作。</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p>学生提问：当发生page fault时，我们其实是在向一个只读的地址执行写操作。内核如何能分辨现在是一个copy-on-write fork的场景，而不是应用程序在向一个正常的只读地址写数据。是不是说默认情况下，用户程序的PTE都是可读写的，除非在copy-on-write fork的场景下才可能出现只读的PTE？</p>
+<p>Frans教授：内核必须要能够识别这是一个copy-on-write场景。几乎所有的page table硬件都支持了这一点。对于PTE的标志位，我之前介绍过第0bit到第7bit，但是没有介绍最后两位RSW。这两位保留给supervisor software使用，supervisor softeware指的就是内核。内核可以随意使用这两个bit位。所以可以做的一件事情就是，将bit8标识为当前是一个copy-on-write page。</p>
+</blockquote>
+<p>在 Copy-on-Write Fork 的实现中，父子进程共享物理内存页，带来一个新的问题：当父进程退出时是否要释放全部的物理 page。所以我们需要对于每一个物理内存页的引用进行计数，当我们释放虚拟页时，我们将物理内存页的引用数减1，如果引用数等于0，那么我们就能释放物理内存页。</p>
+<h2 id="Demand-Paging"><a href="#Demand-Paging" class="headerlink" title="Demand Paging"></a>Demand Paging</h2><ul>
+<li>从磁盘读文件到内存中开销大</li>
+<li>内存空间有限</li>
+<li>不是所有调入内存的页都会被访问，造成浪费</li>
+</ul>
+<p>在 <strong>Demand Paging（按需分页）</strong>中，进程启动时，<strong>只有必要的页（如程序入口点所在页）被加载到物理内存</strong>，其余的页仍然存放在磁盘（swap 或文件系统）中，对应的 PTE 中 Valid 为 0。只有当进程真正访问这些未加载的页时，才会触发<strong>缺页异常（Page Fault）</strong>，然后操作系统将所需页面加载到内存中，并更新页表。</p>
+<p>当内存空间耗尽时，会将一些页调出内存，这就涉及到页面替换算法。如 LRU，这就涉及到 PTE 中的另两个标志位：</p>
+<ul>
+<li>Accessed bit，一段时间内该页被读或被写都会置位</li>
+<li>Dirty bit，一段时间内该页被写会置位</li>
+</ul>
+<h2 id="Memory-Mapped-Files"><a href="#Memory-Mapped-Files" class="headerlink" title="Memory Mapped Files"></a>Memory Mapped Files</h2><p><strong>Memory-Mapped Files（MMF，内存映射文件）</strong> 是一种 <strong>将文件内容映射到进程的虚拟内存地址空间</strong> 的技术。这样，应用程序可以像访问普通内存一样访问文件，而不需要传统的 <code>read()</code> 和 <code>write()</code> 系统调用，提高 I&#x2F;O 访问效率。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/6-S081/" rel="tag"># 6.S081</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/01/14/6-S081-Lab4-Traps/" rel="prev" title="6.S081-Lab4-Traps">
+      <i class="fa fa-chevron-left"></i> 6.S081-Lab4-Traps
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/02/17/6-S081-Lab5-COW-Fork-for-xv6/" rel="next" title="6.S081-Lab5-COW Fork for xv6">
+      6.S081-Lab5-COW Fork for xv6 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Page-Fault-Basics"><span class="nav-number">1.</span> <span class="nav-text">Page Fault Basics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lazy-Page-Allocation"><span class="nav-number">2.</span> <span class="nav-text">Lazy Page Allocation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Zero-Fill-On-Demand"><span class="nav-number">3.</span> <span class="nav-text">Zero Fill On Demand</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Copy-On-Write-Fork"><span class="nav-number">4.</span> <span class="nav-text">Copy On Write Fork</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demand-Paging"><span class="nav-number">5.</span> <span class="nav-text">Demand Paging</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Memory-Mapped-Files"><span class="nav-number">6.</span> <span class="nav-text">Memory Mapped Files</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">95k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:26</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

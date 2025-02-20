@@ -132,7 +132,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">16</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">18</span></a>
 
   </li>
   </ul>
@@ -158,6 +158,343 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/02/17/6-S081-Lab5-COW-Fork-for-xv6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/02/17/6-S081-Lab5-COW-Fork-for-xv6/" class="post-title-link" itemprop="url">6.S081-Lab5-COW Fork for xv6</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-02-17 14:09:27" itemprop="dateCreated datePublished" datetime="2025-02-17T14:09:27+08:00">2025-02-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-02-20 13:21:06" itemprop="dateModified" datetime="2025-02-20T13:21:06+08:00">2025-02-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在xv6内核中实现copy-on-write fork。按照 Hint 一步步来，需要根据 <code>cowtest</code> 和 <code>usertests</code> 的运行结果不断调试。下面直接给出最终实现。</p>
+<h2 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h2><ol>
+<li>在 <code>riscv.h </code>中定义 COW flag</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PTE_C (1L <span class="string">&lt;&lt; 8) // 1 -&gt;</span> copy-on-write flag</span></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>在<code>kalloc.c</code>中定义物理页引用计数数组，并使用锁保证互斥访问。与引用计数相关的新函数要在<code>defs.h</code>中声明。</li>
+<li><strong>xv6 默认在两个处理器上运行</strong>，代码中要考虑基本的同步互斥。</li>
+</ol>
+<h2 id="kalloc-c"><a href="#kalloc-c" class="headerlink" title="kalloc.c"></a>kalloc.c</h2><ol>
+<li><p>定义引用计数结构体</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NUM_PAGES  ((PHYSTOP - KERNBASE)) / PGSIZE</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// struct to maintain the ref counts</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">spinlock</span> <span class="title">lock</span>;</span></span><br><span class="line">  <span class="type">int</span> count[NUM_PAGES];</span><br><span class="line">&#125; page_refc;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><code>NUM_PAGES</code>计算了可用物理页的页数，物理空间是从<code>0x80000000</code>开始的。</p>
+</li>
+<li><p>数组的大小必须在编译时确定，而 <code>end</code> 是一个运行时确定的地址，因此下面写法是不对的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NUM_PAGES ((PHYSTOP - end) / PGSIZE)</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>完成管理页引用计数的函数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">init_ref_count</span><span class="params">()</span>&#123;</span><br><span class="line">  initlock(&amp;page_refc.lock, <span class="string">&quot;ref_count_lock&quot;</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; NUM_PAGES; i++) &#123;</span><br><span class="line">    page_refc.count[i] = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">increase_ref_count</span><span class="params">(uint64 pa)</span> &#123;</span><br><span class="line">  acquire(&amp;page_refc.lock);</span><br><span class="line">  <span class="type">int</span> index = (pa - KERNBASE) / PGSIZE;</span><br><span class="line">  <span class="keyword">if</span> (index &lt; <span class="number">0</span> || index &gt;= NUM_PAGES) &#123;</span><br><span class="line">    release(&amp;page_refc.lock);</span><br><span class="line">    panic(<span class="string">&quot;invalid ref count index&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  page_refc.count[index]++;</span><br><span class="line">  release(&amp;page_refc.lock);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// only use in kfree()</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">decrease_ref_count</span><span class="params">(uint64 pa)</span> &#123;</span><br><span class="line">  acquire(&amp;page_refc.lock);</span><br><span class="line">  <span class="type">int</span> index = (pa - KERNBASE) / PGSIZE;</span><br><span class="line">  <span class="keyword">if</span> (index &lt; <span class="number">0</span> || index &gt;= NUM_PAGES) &#123;</span><br><span class="line">    release(&amp;page_refc.lock);</span><br><span class="line">    panic(<span class="string">&quot;invalid ref count index&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (page_refc.count[index] == <span class="number">0</span>) &#123;</span><br><span class="line">    release(&amp;page_refc.lock);</span><br><span class="line">    panic(<span class="string">&quot;decrease_ref_count: ref count already 0&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  page_refc.count[index]--;</span><br><span class="line">  release(&amp;page_refc.lock);</span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">get_ref_count</span><span class="params">(uint64 pa)</span> &#123;</span><br><span class="line">  acquire(&amp;page_refc.lock);</span><br><span class="line">  <span class="type">int</span> index = (pa - KERNBASE) / PGSIZE;</span><br><span class="line">  <span class="keyword">if</span> (index &lt; <span class="number">0</span> || index &gt;= NUM_PAGES) &#123;</span><br><span class="line">    release(&amp;page_refc.lock);</span><br><span class="line">    panic(<span class="string">&quot;invalid ref count index&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="type">int</span> ref_count = page_refc.count[index];</span><br><span class="line">  release(&amp;page_refc.lock);</span><br><span class="line">  <span class="keyword">return</span> ref_count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在初始化时，引用计数为0</li>
+<li>注意索引值的计算方式，要减去 <code>0x80000000</code></li>
+<li>在这些函数中要做参数检查，<code>panic</code>时释放锁</li>
+</ul>
+</li>
+<li><p>更改 <code>kinit</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">kinit</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">  init_ref_count();</span><br><span class="line">  initlock(&amp;kmem.lock, <span class="string">&quot;kmem&quot;</span>);</span><br><span class="line">  freerange(end, (<span class="type">void</span>*)PHYSTOP);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">freerange</span><span class="params">(<span class="type">void</span> *pa_start, <span class="type">void</span> *pa_end)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> *p;</span><br><span class="line">  p = (<span class="type">char</span>*)PGROUNDUP((uint64)pa_start);</span><br><span class="line">  <span class="keyword">for</span>(; p + PGSIZE &lt;= (<span class="type">char</span>*)pa_end; p += PGSIZE)&#123;</span><br><span class="line">    increase_ref_count((uint64)p);</span><br><span class="line">    kfree(p);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>freerange</code>中要调用<code>kfree</code>，而<code>kfree</code>中会将页引用计数减 1，这导致页引用计数会变为-1，所以要先将页引用计数加 1，保证初始化后空闲页的引用计数为 0</li>
+</ul>
+</li>
+<li><p>更改 <code>kfree</code>&#x2F;<code>kalloc</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">kfree</span><span class="params">(<span class="type">void</span> *pa)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">run</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(((uint64)pa % PGSIZE) != <span class="number">0</span> || (<span class="type">char</span>*)pa &lt; end || (uint64)pa &gt;= PHYSTOP)</span><br><span class="line">    panic(<span class="string">&quot;kfree&quot;</span>);</span><br><span class="line">  </span><br><span class="line">  decrease_ref_count((uint64)pa);</span><br><span class="line">  <span class="keyword">if</span> (get_ref_count((uint64)pa) &gt; <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Fill with junk to catch dangling refs.</span></span><br><span class="line">  <span class="built_in">memset</span>(pa, <span class="number">1</span>, PGSIZE);</span><br><span class="line"></span><br><span class="line">  r = (<span class="keyword">struct</span> run*)pa;</span><br><span class="line"></span><br><span class="line">  acquire(&amp;kmem.lock);</span><br><span class="line">  r-&gt;next = kmem.freelist;</span><br><span class="line">  kmem.freelist = r;</span><br><span class="line">  release(&amp;kmem.lock);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *</span><br><span class="line"><span class="title function_">kalloc</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">run</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">  acquire(&amp;kmem.lock);</span><br><span class="line">  r = kmem.freelist;</span><br><span class="line">  <span class="keyword">if</span>(r)</span><br><span class="line">    kmem.freelist = r-&gt;next;</span><br><span class="line">  release(&amp;kmem.lock);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(r) &#123;</span><br><span class="line">    <span class="built_in">memset</span>((<span class="type">char</span>*)r, <span class="number">5</span>, PGSIZE); <span class="comment">// fill with junk</span></span><br><span class="line">    increase_ref_count((uint64)r);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> (<span class="type">void</span>*)r;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="uvmcopy"><a href="#uvmcopy" class="headerlink" title="uvmcopy"></a>uvmcopy</h2><p>修改<code>uvmcopy()</code>将父进程的物理页映射到子进程，而不是分配新页。在子进程和父进程的PTE中清除<code>PTE_W</code>标志。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">uvmcopy</span><span class="params">(<span class="type">pagetable_t</span> old, <span class="type">pagetable_t</span> new, uint64 sz)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">pte_t</span> *pte;</span><br><span class="line">  uint64 pa, i;</span><br><span class="line">  uint flags;</span><br><span class="line">  <span class="comment">// char *mem;</span></span><br><span class="line">  <span class="comment">// Page-by-page traversal by logical address (VA)</span></span><br><span class="line">  <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; sz; i += PGSIZE)&#123;</span><br><span class="line">    <span class="keyword">if</span>((pte = walk(old, i, <span class="number">0</span>)) == <span class="number">0</span>)</span><br><span class="line">      panic(<span class="string">&quot;uvmcopy: pte should exist&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span>((*pte &amp; PTE_V) == <span class="number">0</span>)</span><br><span class="line">      panic(<span class="string">&quot;uvmcopy: page not present&quot;</span>);</span><br><span class="line">    <span class="comment">// Read-only pages don&#x27;t need to add the COW flag</span></span><br><span class="line">    <span class="keyword">if</span>(*pte &amp; PTE_W)&#123;</span><br><span class="line">      *pte &amp;= ~PTE_W; <span class="comment">//  Clear PTE_W in the PTEs of parent.</span></span><br><span class="line">      *pte |= PTE_C;  <span class="comment">// set Copy-On-Write flag</span></span><br><span class="line">    &#125;</span><br><span class="line">    pa = PTE2PA(*pte);</span><br><span class="line">    flags = PTE_FLAGS(*pte);</span><br><span class="line">    <span class="comment">// map the parent&#x27;s physical pages into the child, instead of allocating new pages</span></span><br><span class="line">    <span class="keyword">if</span>(mappages(new, i, PGSIZE, pa, flags) != <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="keyword">goto</span> err;</span><br><span class="line">    &#125;</span><br><span class="line">    increase_ref_count(pa);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"> err:</span><br><span class="line">  uvmunmap(new, <span class="number">0</span>, i / PGSIZE, <span class="number">1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>只有原先是可写页的才设置 COW 位；只读页不会触发后续的 COW 机制</li>
+</ul>
+<h2 id="usertrap"><a href="#usertrap" class="headerlink" title="usertrap"></a>usertrap</h2><p>修改<code>usertrap()</code>以识别页面错误。当COW页面出现页面错误时，使用<code>kalloc()</code>分配一个新页面，并将旧页面复制到新页面，然后将新页面添加到PTE中并设置<code>PTE_W</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span></span><br><span class="line"><span class="title function_">usertrap</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span>(r_scause() == <span class="number">13</span> || r_scause() == <span class="number">15</span>)&#123;</span><br><span class="line">        <span class="comment">// page fault triggered by the store directive</span></span><br><span class="line">        <span class="comment">// It could be a parent process or a child process</span></span><br><span class="line">        uint64 va = r_stval();</span><br><span class="line">        va = PGROUNDDOWN(va);</span><br><span class="line">        <span class="keyword">if</span>(va &gt;= MAXVA)&#123;</span><br><span class="line">            p-&gt;killed = <span class="number">1</span>;</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">pte_t</span> *pte = walk(p-&gt;pagetable, va, <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span>(pte == <span class="number">0</span> || (*pte &amp; (PTE_V)) == <span class="number">0</span> || (*pte &amp; PTE_U) == <span class="number">0</span>)&#123;</span><br><span class="line">            p-&gt;killed = <span class="number">1</span>;</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        uint64 pa = PTE2PA(*pte);</span><br><span class="line">        uint64 flags = PTE_FLAGS(*pte);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(*pte &amp; PTE_C)&#123; <span class="comment">// COW</span></span><br><span class="line">            <span class="comment">/* if(get_ref_count(pa) == 1) &#123;</span></span><br><span class="line"><span class="comment">                *pte = (*pte &amp; ~PTE_C) | PTE_W;</span></span><br><span class="line"><span class="comment">              &#125; else &#123; */</span></span><br><span class="line">            <span class="type">char</span> *mem;</span><br><span class="line">            <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>)&#123; </span><br><span class="line">                p-&gt;killed = <span class="number">1</span>; </span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                memmove((<span class="type">void</span> *)mem, (<span class="type">const</span> <span class="type">void</span> *)pa, PGSIZE);</span><br><span class="line">                *pte = PA2PTE((uint64)mem) | (flags &amp; ~PTE_C) | PTE_W;</span><br><span class="line">                kfree((<span class="type">void</span>*)pa);</span><br><span class="line">                <span class="comment">// decrease_ref_count(pa);</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="copyout"><a href="#copyout" class="headerlink" title="copyout"></a>copyout</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">copyout</span><span class="params">(<span class="type">pagetable_t</span> pagetable, uint64 dstva, <span class="type">char</span> *src, uint64 len)</span></span><br><span class="line">&#123;</span><br><span class="line">  uint64 n, va0, pa0, flags;</span><br><span class="line">  <span class="type">pte_t</span> *pte;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span>(len &gt; <span class="number">0</span>)&#123;</span><br><span class="line">    va0 = PGROUNDDOWN(dstva);</span><br><span class="line">    <span class="keyword">if</span>(va0 &gt;= MAXVA)&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    pte = walk(pagetable, va0, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span>(pte == <span class="number">0</span> || (*pte &amp; (PTE_V)) == <span class="number">0</span> || (*pte &amp; PTE_U) == <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>; </span><br><span class="line">    &#125;</span><br><span class="line">    flags = PTE_FLAGS(*pte);</span><br><span class="line">    pa0 = PTE2PA(*pte);</span><br><span class="line">    <span class="keyword">if</span>(*pte &amp; PTE_C)&#123;</span><br><span class="line">        <span class="type">char</span> *mem;</span><br><span class="line">        <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>)&#123; </span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            memmove((<span class="type">void</span> *)mem, (<span class="type">const</span> <span class="type">void</span> *)pa0, PGSIZE);</span><br><span class="line">            *pte = PA2PTE((uint64)mem) | (flags &amp; ~PTE_C) | PTE_W;</span><br><span class="line">            <span class="comment">// decrease_ref_count(pa0);</span></span><br><span class="line">            kfree((<span class="type">void</span>*)pa0);</span><br><span class="line">            pa0 = (uint64)mem;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(pa0 == <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    n = PGSIZE - (dstva - va0);</span><br><span class="line">    <span class="keyword">if</span>(n &gt; len)</span><br><span class="line">      n = len;</span><br><span class="line">    memmove((<span class="type">void</span> *)(pa0 + (dstva - va0)), src, n);</span><br><span class="line"></span><br><span class="line">    len -= n;</span><br><span class="line">    src += n;</span><br><span class="line">    dstva = va0 + PGSIZE;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="usertests-调试"><a href="#usertests-调试" class="headerlink" title="usertests 调试"></a>usertests 调试</h2><ol>
+<li><p><code>MAXVAplus</code> ：需要添加检查 va 的合法性，不能大于规定的最大地址。</p>
+</li>
+<li><p><code>copyout</code>：需要添加检查 pte 的合法性。<a target="_blank" rel="noopener" href="https://www.cnblogs.com/lilpig/p/17339689.html#%E9%80%9A%E8%BF%87cowtest">参考</a></p>
+</li>
+<li><p><code>FAILED -- lost some free pages 31512 (out of 31967)</code>：xv6 默认在两个处理器上运行，访问 <code>page_ref_count</code>数组时需要加锁，互斥访问。 </p>
+</li>
+<li><p>其他 test failed 多与 <code>kalloc.c</code>相关</p>
+</li>
+<li><p>一些错误会给出<code>sepc</code>，到<code>kernel.asm</code>中查看是哪条指令导致的</p>
+</li>
+</ol>
+<h2 id="复盘"><a href="#复盘" class="headerlink" title="复盘"></a>复盘</h2><ol>
+<li><p>特别注意 xv6 默认在两个处理器上运行，还要考虑进程间的同步。一个典型例子，在 usertrap 和 copyout 中有一段相同的逻辑，用于处理 COW。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(*pte &amp; PTE_C)&#123; <span class="comment">// COW</span></span><br><span class="line">    <span class="keyword">if</span>(get_ref_count(pa) == <span class="number">1</span>) &#123;</span><br><span class="line">        *pte = (*pte &amp; ~PTE_C) | PTE_W;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="type">char</span> *mem;</span><br><span class="line">        <span class="keyword">if</span>((mem = kalloc()) == <span class="number">0</span>)&#123; </span><br><span class="line">            p-&gt;killed = <span class="number">1</span>; </span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            memmove((<span class="type">void</span> *)mem, (<span class="type">const</span> <span class="type">void</span> *)pa, PGSIZE);</span><br><span class="line">            *pte = PA2PTE((uint64)mem) | (flags &amp; ~PTE_C) | PTE_W;</span><br><span class="line">            kfree((<span class="type">void</span>*)pa);</span><br><span class="line">            <span class="comment">// decrease_ref_count(pa);</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在判断当前物理页的引用计数为1时，直接改 pte 中的 Flags ，后续直接写入这里。在默认的 xv6 中运行 <code>threetest</code>会出错：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">three: scause <span class="number">0x000000000000000d</span></span><br><span class="line">sepc=<span class="number">0x0000000080000330</span> stval=<span class="number">0x000000000000270f</span></span><br><span class="line">panic: kerneltrap</span><br></pre></td></tr></table></figure>
+
+<p>在限定只使用一个CPU后又能顺利通过。</p>
+</li>
+<li><p><code>usertrap</code>中处理的是来自用户态下的 page fault，而在内核态下触发的 page fault 无法转到<code>usertrap</code>处理，所以需要在发生page fault 的地方就地处理，也就有了<code>copyout </code>的改动。只有这里才会触发。来自用户态和内核态的异常处理方式不同。</p>
+</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/22/6-S081-Lecture-8-Page-Faults/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2025/01/22/6-S081-Lecture-8-Page-Faults/" class="post-title-link" itemprop="url">6.S081-Lecture 8 Page Faults</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-01-22 18:27:21" itemprop="dateCreated datePublished" datetime="2025-01-22T18:27:21+08:00">2025-01-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-02-19 21:50:40" itemprop="dateModified" datetime="2025-02-19T21:50:40+08:00">2025-02-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Page-Fault-Basics"><a href="#Page-Fault-Basics" class="headerlink" title="Page Fault Basics"></a>Page Fault Basics</h2><p>虚拟内存有两个主要的优点：</p>
+<ul>
+<li>隔离性。不同进程间的隔离，每个进程都拥有并使用自己的内存空间。同一进程中内核空间和用户空间的隔离。</li>
+<li>level of indirection，提供了一层抽象。处理器和所有的指令都可以使用虚拟地址，而内核会定义从虚拟地址到物理地址的映射关系。</li>
+</ul>
+<p>到目前为止，内存地址映射相对来说比较静态。不管是 user page table 还是 kernel page table，都是在最开始的时候设置好，之后就不会再做任何变动。<code>page fault</code>可以让地址映射关系变得动态起来。通过 page fault，内核可以更新page table。</p>
+<p>当发生 page fault 时，内核需要什么样的信息才能够响应 page fault：</p>
+<ul>
+<li><p>引起 page fault 的内存地址，即触发 page fault 的源。<code>STVAL</code>寄存器中会保留这个值。注意区分，触发 page fault 的地址与导致 page fault 的指令的地址。</p>
+</li>
+<li><p>引起 page fault 的原因类型。针对不同场景下的 page fault 有不同的响应。可以分为：</p>
+<ul>
+<li>因为 load 指令触发的 page faultr</li>
+<li>因为 store 指令触发的 page fault</li>
+<li>因为 jump 指令触发的 page fault</li>
+</ul>
+<p><code>SCAUSE</code>寄存器中保存了 trap 机制中进入到 supervisor mode 的原因。最高位：0（同步异常）、1（异步中断）。13 表示是因为load引起的page fault；15表示是因为store引起的page fault；12表示是因为指令执行引起的page fault。</p>
+<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/lec08_scause_coding.png"></p>
+</li>
+<li><p>引起 page fault 的 PC 值。作为trap处理代码的一部分，这个地址存放在<code>SEPC</code>寄存器中，并同时会保存在trapframe-&gt;epc中。因为这条指令触发了 page fault，该指令并没有正确执行，需要在处理完缺页异常后重新执行。</p>
+</li>
+</ul>
+<h2 id="Lazy-Page-Allocation"><a href="#Lazy-Page-Allocation" class="headerlink" title="Lazy Page Allocation"></a>Lazy Page Allocation</h2><p><code>sbrk</code>是XV6提供的系统调用，它使得用户应用程序能扩大自己的heap。进程的数据结构中的字段<code>p-&gt;sz</code>用来指示 heap 上使用的空间大小。当调用 <code>sbrk</code>时，它的参数是整数，代表了想要申请的字节数量。当<code>sbrk</code>实际发生或者被调用的时候，内核会分配一些物理内存，并将这些内存映射到用户应用程序的地址空间，然后将内存内容初始化为0。这样，应用程序可以通过多次<code>sbrk</code>系统调用来增加它所需要的内存。</p>
+<p>在XV6中，<code>sbrk</code>的实现默认是 eager allocation。即一旦调用了<code>sbrk</code>，内核会立即分配应用程序所需要的物理内存。但是实际上，对于应用程序来说很难预测自己需要多少内存，所以通常来说，应用程序倾向于申请多于自己所需要的内存。</p>
+<p>另一种思路是 lazy allocation，核心思想非常简单，<code>sbrk</code>系统调用基本上不做任何事情，唯一需要做的事情就是将<code>p-&gt;sz</code>增加n，其中 n 是需要新分配的内存字节数量。但是内核在当下并不会实际分配任何物理内存。之后在某个时间点，应用程序使用到了新申请的那部分内存，这时会触发 page fault，因为我们还没有将新的内存映射到 page table。</p>
+<p>所以，当我们遇到了一个 page fault ，相应的虚拟地址小于当前<em>p-&gt;sz</em>，同时大于 stack，那么我们就知道这是一个来自于 heap 的地址，但是内核还没有分配任何物理内存。所以在 page fault handler 中，通过kalloc函数分配一个内存page；初始化这个 page 内容为0；将这个内存page映射到 user page table 中；最后重新执行指令。</p>
+<p>如何在 xv6 的基础上修改为 lazy allocation：</p>
+<ul>
+<li>修改<code>sys_sbrk</code>函数，<code>sys_sbrk</code>会完成实际增加应用程序的地址空间，分配内存等等一系列相关的操作。现在只让它只对<code>p-&gt;sz</code>加 n，并不执行增加内存的操作。</li>
+<li>接下来的执行因为 lazy allocation 产生两种错误：<ul>
+<li>要写入某个地址时，该空间还没有实际分配，就会触发 page fault。修改<code>trap.c</code>中的<code>usertrap</code>函数，判断类型，<code>kalloc</code>分配物理空间，全零填充，<code>mappages</code>完成地址映射。 不同于其他异常，这里要重新执行发生异常的指令。</li>
+<li>要释放某块空间时，即尝试在释放一个并没有 map 的 page。唯一的原因是<code>sbrk</code>增加了p-&gt;sz，但是应用程序还没有使用那部分内存，那么对应的物理内存还没有分配。</li>
+</ul>
+</li>
+</ul>
+<h2 id="Zero-Fill-On-Demand"><a href="#Zero-Fill-On-Demand" class="headerlink" title="Zero Fill On Demand"></a>Zero Fill On Demand</h2><p>在用户程序的地址空间中，存在不同的<code>segment</code>：.text（程序的指令）、.data（初始化了的全局变量）、.bss（未被初始化或初始化为0的全局变量）等。</p>
+<p>在程序执行 <code>exec</code> 时，操作系统需要为新的地址空间分配虚拟内存，通常包括 <code>.text</code>、<code>.data</code> 和 <code>.bss</code> 段。</p>
+<p><strong><code>.bss</code> 段</strong> 存储未初始化的全局变量。这段区域往往需要初始化为零，但其内容可能会占用大量虚拟地址空间。</p>
+<ul>
+<li><code>.bss</code> 可能涉及许多连续虚拟页，每页都需要全零初始化。</li>
+<li>如果直接为每个 <code>.bss</code> 页分配物理内存并清零，启动时会造成性能损失和内存浪费。</li>
+</ul>
+<p>共享单页全零映射：</p>
+<ul>
+<li>预先分配 <strong>一个全零物理页</strong>（Zero Page），其物理内容完全为 0。</li>
+<li>所有需要全零的 <code>.bss</code> 页（虚拟地址空间）都指向该同一个零页。</li>
+<li>页表中设置这些映射为 <strong>只读</strong> 以避免数据篡改。</li>
+<li>当程序试图向 <code>.bss</code> 段写入数据时，由于全零页是只读的，触发 **页错误 (Page Fault)**。</li>
+<li>操作系统捕获异常，为该虚拟页分配新的物理内存，并将全零内容复制到新页。更新PTE中的映射关系，要设置成可读可写。</li>
+</ul>
+<h2 id="Copy-On-Write-Fork"><a href="#Copy-On-Write-Fork" class="headerlink" title="Copy On Write Fork"></a>Copy On Write Fork</h2><p>当 Shell 处理指令时，它会通过<code>fork</code>创建一个子进程。子进程执行的第一件事情就是调用<code>exec</code>运行一些其他程序，比如运行echo。现在的情况是，<code>fork</code>创建了<code>Shell</code>地址空间的一个完整的拷贝，而<code>exec</code>做的第一件事情就是丢弃这个地址空间，取而代之的是一个包含了<code>echo</code>的地址空间。</p>
+<p> <strong>Copy-on-Write Fork</strong> 的工作原理：</p>
+<ol>
+<li><p>父子进程共享同一物理内存页：</p>
+<ul>
+<li>在 <code>fork()</code> 时，操作系统 <strong>不复制内存</strong>，而是将父子进程的页表项指向相同的物理内存页。</li>
+<li>这些内存页被标记为 <strong>只读</strong>（read-only），这样父子进程共享同一内存数据，避免了不必要的复制。</li>
+</ul>
+</li>
+<li><p>写时触发复制：</p>
+<ul>
+<li>当父进程或子进程尝试写入这些共享的内存页时，由于页表中的内存页是只读的，这会<strong>触发 Page Fault</strong>。</li>
+<li>操作系统捕获到这个 Page Fault 后，<strong>为写操作的进程分配新的物理内存页</strong>，并将原来的内存页的内容复制到新分配的页中。新分配的页的 PTE 权限位为可读写，原来共享的物理内存页的 PTE 权限位页变为可读写。</li>
+<li>写操作的进程使用新的物理内存页，其他进程仍然共享原有的内存页，直到它们也触发写操作。</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p>学生提问：当发生page fault时，我们其实是在向一个只读的地址执行写操作。内核如何能分辨现在是一个copy-on-write fork的场景，而不是应用程序在向一个正常的只读地址写数据。是不是说默认情况下，用户程序的PTE都是可读写的，除非在copy-on-write fork的场景下才可能出现只读的PTE？</p>
+<p>Frans教授：内核必须要能够识别这是一个copy-on-write场景。几乎所有的page table硬件都支持了这一点。对于PTE的标志位，我之前介绍过第0bit到第7bit，但是没有介绍最后两位RSW。这两位保留给supervisor software使用，supervisor softeware指的就是内核。内核可以随意使用这两个bit位。所以可以做的一件事情就是，将bit8标识为当前是一个copy-on-write page。</p>
+</blockquote>
+<p>在 Copy-on-Write Fork 的实现中，父子进程共享物理内存页，带来一个新的问题：当父进程退出时是否要释放全部的物理 page。所以我们需要对于每一个物理内存页的引用进行计数，当我们释放虚拟页时，我们将物理内存页的引用数减1，如果引用数等于0，那么我们就能释放物理内存页。</p>
+<h2 id="Demand-Paging"><a href="#Demand-Paging" class="headerlink" title="Demand Paging"></a>Demand Paging</h2><ul>
+<li>从磁盘读文件到内存中开销大</li>
+<li>内存空间有限</li>
+<li>不是所有调入内存的页都会被访问，造成浪费</li>
+</ul>
+<p>在 <strong>Demand Paging（按需分页）</strong>中，进程启动时，<strong>只有必要的页（如程序入口点所在页）被加载到物理内存</strong>，其余的页仍然存放在磁盘（swap 或文件系统）中，对应的 PTE 中 Valid 为 0。只有当进程真正访问这些未加载的页时，才会触发<strong>缺页异常（Page Fault）</strong>，然后操作系统将所需页面加载到内存中，并更新页表。</p>
+<p>当内存空间耗尽时，会将一些页调出内存，这就涉及到页面替换算法。如 LRU，这就涉及到 PTE 中的另两个标志位：</p>
+<ul>
+<li>Accessed bit，一段时间内该页被读或被写都会置位</li>
+<li>Dirty bit，一段时间内该页被写会置位</li>
+</ul>
+<h2 id="Memory-Mapped-Files"><a href="#Memory-Mapped-Files" class="headerlink" title="Memory Mapped Files"></a>Memory Mapped Files</h2><p><strong>Memory-Mapped Files（MMF，内存映射文件）</strong> 是一种 <strong>将文件内容映射到进程的虚拟内存地址空间</strong> 的技术。这样，应用程序可以像访问普通内存一样访问文件，而不需要传统的 <code>read()</code> 和 <code>write()</code> 系统调用，提高 I&#x2F;O 访问效率。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -330,7 +667,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/09/6-S081-Leature-6-Trap/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/01/09/6-S081-Lecture-6-Trap/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -344,7 +681,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2025/01/09/6-S081-Leature-6-Trap/" class="post-title-link" itemprop="url">6.S081-Leature 6 Trap</a>
+            <a href="/2025/01/09/6-S081-Lecture-6-Trap/" class="post-title-link" itemprop="url">6.S081-Lecture 6 Trap</a>
         </h2>
 
         <div class="post-meta">
@@ -361,7 +698,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-14 17:32:55" itemprop="dateModified" datetime="2025-01-14T17:32:55+08:00">2025-01-14</time>
+                <time title="修改时间：2025-01-22 18:25:38" itemprop="dateModified" datetime="2025-01-22T18:25:38+08:00">2025-01-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -763,7 +1100,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/08/21/6-S081-Lecture-5-Calling-conventions-and-stack-frames/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -777,7 +1114,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/08/21/6-S081-Leature-5-Calling-conventions-and-stack-frames/" class="post-title-link" itemprop="url">6.S081-Leature 5 Calling conventions and stack frames</a>
+            <a href="/2024/08/21/6-S081-Lecture-5-Calling-conventions-and-stack-frames/" class="post-title-link" itemprop="url">6.S081-Lecture 5 Calling conventions and stack frames</a>
         </h2>
 
         <div class="post-meta">
@@ -794,7 +1131,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-15 14:44:38" itemprop="dateModified" datetime="2025-01-15T14:44:38+08:00">2025-01-15</time>
+                <time title="修改时间：2025-01-22 18:26:19" itemprop="dateModified" datetime="2025-01-22T18:26:19+08:00">2025-01-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1021,7 +1358,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/24/6-S081-Leature-4-Page-tables/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/24/6-S081-Lecture-4-Page-tables/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -1035,7 +1372,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2024/07/24/6-S081-Leature-4-Page-tables/" class="post-title-link" itemprop="url">6.S081-Leature 4 Page tables</a>
+            <a href="/2024/07/24/6-S081-Lecture-4-Page-tables/" class="post-title-link" itemprop="url">6.S081-Lecture 4 Page tables</a>
         </h2>
 
         <div class="post-meta">
@@ -1052,7 +1389,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-09 11:08:41" itemprop="dateModified" datetime="2025-01-09T11:08:41+08:00">2025-01-09</time>
+                <time title="修改时间：2025-01-22 18:24:40" itemprop="dateModified" datetime="2025-01-22T18:24:40+08:00">2025-01-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1516,432 +1853,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/20/6-S081-Lecture-3-OS-Organization-and-System-Calls/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/20/6-S081-Lecture-3-OS-Organization-and-System-Calls/" class="post-title-link" itemprop="url">6.S081-Lecture 3 OS Organization and System Calls</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-07-20 23:54:54" itemprop="dateCreated datePublished" datetime="2024-07-20T23:54:54+08:00">2024-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-09 11:08:50" itemprop="dateModified" datetime="2025-01-09T11:08:50+08:00">2025-01-09</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>4.4k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="操作系统隔离性（Isolation）"><a href="#操作系统隔离性（Isolation）" class="headerlink" title="操作系统隔离性（Isolation）"></a>操作系统隔离性（Isolation）</h2><p>一个操作系统必须满足三个要求：多路复用、隔离和交互。</p>
-<p>隔离性的思想：</p>
-<ul>
-<li><p>在不同的应用程序之间应该有强隔离性。当某一个应用程序的代码出现了问题，不应该会影响到其他的应用程序。</p>
-</li>
-<li><p>在应用程序和操作系统之间有强隔离性。操作系统某种程度上为所有的应用程序服务，当一个应用程序出现问题时，操作系统不应该因此崩溃。</p>
-</li>
-<li><p>不同应用程序之间的内存是隔离的，这样一个应用程序就不会覆盖另一个应用程序的内存。</p>
-</li>
-</ul>
-<p>如果没有操作系统会怎样？</p>
-<ul>
-<li><p>如果没有操作系统，应用程序会直接与硬件交互。比如，应用程序可以直接看到CPU的多个核，看到磁盘，内存。现在没有操作系统来帮助切换运行在CPU上的应用程序，这个程序可能永远不会释放CPU，其他程序就永远无法运行。</p>
-</li>
-<li><p>从内存的角度来说，如果应用程序直接运行在硬件资源之上，那么每个应用程序的文本，代码和数据都直接保存在物理内存中。应用程序的内存之间没有边界，这样一个应用程序就可能会覆盖另一个应用程序的内存。</p>
-</li>
-</ul>
-<p>操作系统提供的接口通过抽象硬件资源（将硬件资源抽象为服务），使得强隔离性成为可能。</p>
-<ul>
-<li><p><code>fork</code>创建了进程。进程本身不是CPU，但是它们对应了CPU，它们使得你可以在CPU上运行计算任务。应用程序不能直接与CPU交互，只能与进程交互。操作系统内核会完成不同进程在CPU上的切换。所以，操作系统不是直接将CPU提供给应用程序，而是向应用程序提供“进程”，<strong>进程抽象了CPU</strong>，这样操作系统才能在多个应用程序之间<strong>复用</strong>一个或者多个CPU。</p>
-</li>
-<li><p><strong><code>exec</code>抽象了内存</strong>。<code>exec</code>系统调用用于加载一个新程序到当前进程的地址空间，并开始执行这个新程序。这个调用过程确保了程序只能访问被分配的虚拟地址空间，不能直接访问物理内存。操作系统会提供内存隔离并控制内存，操作系统会在应用程序和硬件资源之间提供一个中间层。</p>
-</li>
-<li><p><strong>files抽象了磁盘</strong>。在Unix和类Unix操作系统中，文件系统（file system）提供了一种抽象，使应用程序不需要直接与底层的硬件（如磁盘）交互。通过文件系统的抽象，操作系统可以实现对存储设备的管理和访问控制。</p>
-<p>在Unix中，与存储系统交互的唯一方式就是通过files。Files提供了非常方便的磁盘抽象，你可以对文件命名，读写文件等等。之后，操作系统会决定如何将文件与磁盘中的块对应，确保一个磁盘块只出现在一个文件中，并且确保用户A不能操作用户B的文件。通过files的抽象，可以实现不同用户之间和同一个用户的不同进程之间的文件强隔离。</p>
-</li>
-</ul>
-<h2 id="操作系统防御性（Defensive）"><a href="#操作系统防御性（Defensive）" class="headerlink" title="操作系统防御性（Defensive）"></a>操作系统防御性（Defensive）</h2><p>操作系统需要确保所有的组件都能工作，所以它需要做好准备抵御来自应用程序的攻击。如果说应用程序无意或者恶意的向系统调用传入一些错误的参数就会导致操作系统崩溃，操作系统因为崩溃了会拒绝为其他所有的应用程序提供服务。</p>
-<p>另外，应用程序不能够打破操作系统对它的隔离。应用程序非常有可能是恶意的，攻击者可能想要打破对应用程序的隔离，进而控制内核。一旦有了对于内核的控制能力，就可以做任何事情，因为内核控制了所有的硬件资源。所以操作系统或者说内核需要具备防御性来避免类似的事情发生。</p>
-<h2 id="硬件对于强隔离的支持"><a href="#硬件对于强隔离的支持" class="headerlink" title="硬件对于强隔离的支持"></a>硬件对于强隔离的支持</h2><p>硬件对于强隔离的支持包括了：用户态&#x2F;内核态、虚拟内存。</p>
-<p>为了支持user&#x2F;kernel mode，处理器会有两种操作模式，第一种是user mode，第二种是kernel mode。当运行在kernel mode时，CPU可以运行特权指令（privileged instructions）；当运行在user mode时，CPU只能运行非特权指令（unprivileged instructions）。</p>
-<p><strong>特权指令</strong>主要是一些直接操纵硬件的指令和设置保护的指令，只允许处于内核态下的程序执行。例如设置page table寄存器、关闭时钟中断。在处理器上有各种各样的状态，操作系统会使用这些状态，但是只能通过特殊权限指令来变更这些状态。</p>
-<p><strong>非特权指令</strong>就是普通权限指令，所有的应用程序都允许执行这些指令。例如将两个寄存器相加的指令ADD、将两个寄存器相减的指令SUB、跳转指令JRC、BRANCH指令等等。</p>
-<p>在处理器里面有一个bit，当它为1的时候是user mode，当它为0时是kernel mode。当处理器在解析指令时，如果指令是特权指令并且该bit被设置为1，处理器会拒绝执行这条指令。设置这个bit位的指令必须是特权指令。</p>
-<p>为了实现进程隔离，RISC-V CPU在硬件上提供3种执行命令的模式：machine mode, supervisor mode, user mode。</p>
-<ul>
-<li><p>机器模式machine mode的权限最高，在机器模式下执行的指令具有完全的权限，一个CPU在机器模式下启动。机器模式主要用于配置计算机。Xv6会在机器模式下执行几条指令，然后转为监督者模式。</p>
-</li>
-<li><p>在监督者模式supervisor mode下，CPU被允许执行特权指令。如果用户模式下的应用程序试图执行一条特权指令，CPU不会执行该指令，而是切换到监督者模式，这样监督者模式的代码就可以终止该应用程序。</p>
-</li>
-<li><p>在用户模式user mode下只能执行非特权指令指令。要想让CPU从用户模式切换到监督者模式，RISC-V提供了一个特殊的<code>ecall</code>指令，要想从监督者模式切换到用户模式，调用<code>sret</code>指令。</p>
-</li>
-</ul>
-<p>对于虚拟内存，处理器包含了页表page table，而页表将虚拟内存地址与物理内存地址做了对应。每一个进程都会有自己独立的页表，每一个进程只能访问出现在自己页表中的物理内存。</p>
-<p>操作系统通过设置进程的页表，使得每一个进程都有不重合的物理内存，这样一个进程就不能访问其他进程的物理内存。一个进程不能随意编造一个内存地址，然后通过这个内存地址来访问其他进程的物理内存。这样就给提供了内存的强隔离性。</p>
-<h2 id="用户态-内核态的切换"><a href="#用户态-内核态的切换" class="headerlink" title="用户态&#x2F;内核态的切换"></a>用户态&#x2F;内核态的切换</h2><p>用户态&#x2F;内核态是分隔用户空间和内核空间的边界，用户空间中运行的程序运行在用户态，内核空间中的程序运行在内核态。操作系统位于内核空间。</p>
-<p>需要有一种方式能够让应用程序可以将控制权转移给内核（Entering Kernel）。在RISC-V中，有一个专门的指令用来实现这个功能，叫做<strong>ECALL</strong>。ECALL接收一个参数，当一个用户程序想要将程序执行的控制权转移到内核，只需要执行ECALL指令，并传入一个数字（系统调用号）。这里的数字参数代表了应用程序想要调用的System Call。</p>
-<p>在内核侧，有一个位于syscall.c的函数syscall，每一个从应用程序发起的系统调用都会调用到这个syscall函数，syscall函数会检查ECALL的参数，通过这个参数内核可以知道需要调用的是哪个系统调用。</p>
-<p>举个例子，用户态下用户程序调用<code>fork()</code>函数（这是封装好的系统调用函数，并不是真正的系统调用），<code>fork()</code>函数中调用<code>ecall sys_fork</code>，系统陷入内核态并执行syscall函数，再由syscall函数实际调用<code>fork</code>系统调用。</p>
-<h2 id="宏内核与微内核"><a href="#宏内核与微内核" class="headerlink" title="宏内核与微内核"></a>宏内核与微内核</h2><p>宏内核：所有基本的操作系统服务（如进程管理、内存管理、文件系统、设备驱动等）都运行在内核空间。xv6是一个宏内核。</p>
-<p>微内核：只包括最基本的操作系统服务，如进程管理、内存管理和进程间通信（IPC）。其他服务（如文件系统、设备驱动、网络协议等）在用户空间运行。</p>
-<p>宏内核的设计适合对性能要求较高的系统，而微内核则适合对安全性和稳定性要求较高的系统。</p>
-<h2 id="代码：xv6-组织"><a href="#代码：xv6-组织" class="headerlink" title="代码：xv6 组织"></a>代码：xv6 组织</h2><p>xv6内核源码在<code>kernel/</code>子目录下。按照模块化的概念，源码被分成了多个文件，模块间的接口在<code>kernel/defs.h</code>中定义。</p>
-<table>
-<thead>
-<tr>
-<th><strong>文件</strong></th>
-<th><strong>描述</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>bio.c</strong></td>
-<td>文件系统的磁盘块缓存</td>
-</tr>
-<tr>
-<td><strong>console.c</strong></td>
-<td>连接到用户的键盘和屏幕</td>
-</tr>
-<tr>
-<td><strong>entry.S</strong></td>
-<td>首次启动指令</td>
-</tr>
-<tr>
-<td><strong>exec.c</strong></td>
-<td><code>exec()</code>系统调用</td>
-</tr>
-<tr>
-<td><strong>file.c</strong></td>
-<td>文件描述符支持</td>
-</tr>
-<tr>
-<td><strong>fs.c</strong></td>
-<td>文件系统</td>
-</tr>
-<tr>
-<td><strong>kalloc.c</strong></td>
-<td>物理页面分配器</td>
-</tr>
-<tr>
-<td><strong>kernelvec.S</strong></td>
-<td>处理来自内核的陷入指令以及计时器中断</td>
-</tr>
-<tr>
-<td><strong>log.c</strong></td>
-<td>文件系统日志记录以及崩溃修复</td>
-</tr>
-<tr>
-<td><strong>main.c</strong></td>
-<td>在启动过程中控制其他模块初始化</td>
-</tr>
-<tr>
-<td><strong>pipe.c</strong></td>
-<td>管道</td>
-</tr>
-<tr>
-<td><strong>plic.c</strong></td>
-<td>RISC-V中断控制器</td>
-</tr>
-<tr>
-<td><strong>printf.c</strong></td>
-<td>格式化输出到控制台</td>
-</tr>
-<tr>
-<td><strong>proc.c</strong></td>
-<td>进程和调度</td>
-</tr>
-<tr>
-<td><strong>sleeplock.c</strong></td>
-<td>Locks that yield the CPU</td>
-</tr>
-<tr>
-<td><strong>spinlock.c</strong></td>
-<td>Locks that don’t yield the CPU.</td>
-</tr>
-<tr>
-<td><strong>start.c</strong></td>
-<td>早期机器模式启动代码</td>
-</tr>
-<tr>
-<td><strong>string.c</strong></td>
-<td>字符串和字节数组库</td>
-</tr>
-<tr>
-<td><strong>swtch.c</strong></td>
-<td>线程切换</td>
-</tr>
-<tr>
-<td><strong>syscall.c</strong></td>
-<td>调度系统调用处理函数</td>
-</tr>
-<tr>
-<td><strong>sysfile.c</strong></td>
-<td>文件相关的系统调用</td>
-</tr>
-<tr>
-<td><strong>sysproc.c</strong></td>
-<td>进程相关的系统调用</td>
-</tr>
-<tr>
-<td><strong>trampoline.S</strong></td>
-<td>用于在用户和内核之间切换的汇编代码</td>
-</tr>
-<tr>
-<td><strong>trap.c</strong></td>
-<td>对陷入指令和中断进行处理并返回的C代码</td>
-</tr>
-<tr>
-<td><strong>uart.c</strong></td>
-<td>串口控制台设备驱动程序</td>
-</tr>
-<tr>
-<td><strong>virtio_disk.c</strong></td>
-<td>磁盘设备驱动程序</td>
-</tr>
-<tr>
-<td><strong>vm.c</strong></td>
-<td>管理页表和地址空间</td>
-</tr>
-</tbody></table>
-<h2 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h2><p>xv6中的隔离单位是一个进程。进程抽象可以防止一个进程破坏或监视另一个进程的内存、CPU、文件描述符等，它还可以防止进程破坏内核。</p>
-<p>为了帮助实施隔离，进程抽象为程序提供了一种错觉。一个进程为程序提供了一个看似私有的内存系统（地址空间）。进程还为程序提供了看似私有的CPU，用来执行程序的指令。</p>
-<p>xv6为每个进程维护一个单独的页表，用于定义该进程的地址空间。如下图所示，进程的用户空间内存的地址空间是从虚拟地址0开始的，依次是指令、全局变量、栈、堆区。RISC-V上的指针是64位宽；硬件在页表中查找虚拟地址时只使用低的39位；xv6只使用39位中的38位。因此，最大地址是2^{38}-1&#x3D; 0x3fffffffff，也就是<code>MAXVA</code>（kernel&#x2F;riscv.h:348）。在地址空间的顶端，xv6保留了一页，用于trampoline和映射进程trapframe的页，以便切换到内核。</p>
-<img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/chapter2_address_space.jpg" style="zoom:50%;" />
-
-<p>xv6内核为每个进程维护了许多状态，记录在<code>proc</code>结构体(kernel&#x2F;proc.h:86)。一个进程最重要的内核状态是它的页表、内核栈和运行状态。</p>
-<ul>
-<li><p><code>p-&gt;state</code>表示进程是创建、就绪、运行、等待I&#x2F;O，还是退出。</p>
-</li>
-<li><p><code>p-&gt;pagetable</code>以RISC-V硬件需要的格式保存进程的页表。进程的页表记录分配给该进程内存的物理页地址。</p>
-</li>
-<li><p><code>p-&gt;kstack</code>通常指的是一个进程结构体中的内核栈指针。在内核态执行系统调用或处理中断时，内核会使用当前进程的内核栈。</p>
-</li>
-</ul>
-<p>每个进程有两个栈：用户栈和内核栈。当进程在执行用户指令时，只有它的用户栈在被使用，而它的内核栈是空的。当进程进入内核时（因为系统调用或中断），内核代码在进程的内核栈上执行；当进程在内核中时，它的用户栈仍然包含保存的数据，但不被主动使用。进程的线程在用户栈和内核栈中交替执行。内核栈是独立的（并且受到保护，不受用户代码的影响），所以即使一个进程用户栈被破坏了，内核也可以执行。</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2024/07/01/xv6-riscv-book-chapter1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2024/07/01/xv6-riscv-book-chapter1/" class="post-title-link" itemprop="url">xv6-riscv-book-chapter1</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2024-07-01 14:25:29" itemprop="dateCreated datePublished" datetime="2024-07-01T14:25:29+08:00">2024-07-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-09 11:09:11" itemprop="dateModified" datetime="2025-01-09T11:09:11+08:00">2025-01-09</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/6-S081/" itemprop="url" rel="index"><span itemprop="name">6.S081</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>5.4k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="第一章：操作系统接口"><a href="#第一章：操作系统接口" class="headerlink" title="第一章：操作系统接口"></a>第一章：操作系统接口</h1><p>内核（kernel）：一个向其他运行中的程序提供服务的特殊程序。进程（process）：每一个正在运行的程序。每个进程的内存空间中存储自己的指令、数据、栈。指令实现程序的运算，数据是用于运算过程的变量，栈则管理程序的过程调用。一台计算机通常有许多进程，但只有一个内核。</p>
-<p><img src="https://blog-image-1325547455.cos.ap-beijing.myqcloud.com/6.S081/1.1kernel%20and%20user%20processes%20.png" alt="内核与用户程序"></p>
-<p>内核使用CPU提供的硬件保护机制来确保在用户空间中执行的每个进程只能访问自己的内存。内核运行时拥有硬件特权，可以访问这些受到保护的资源，而用户程序运行时则没有这些特权。</p>
-<p>当一个进程需要使用内核的服务时，它就会调用系统调用(system call)。系统调用会进入内核，让内核执行服务然后返回，所以进程会在用户空间和内核空间之间交替运行。</p>
-<h2 id="1-1-进程和内存"><a href="#1-1-进程和内存" class="headerlink" title="1.1 进程和内存"></a>1.1 进程和内存</h2><p>在xv6中，每个进程拥有自己的用户空间内存以及内核空间状态。xv6对进程提供分时特性，即xv6可以切换当前cpu上运行的进程。当一个进程暂时不使用cpu时，xv6会保存它的CPU寄存器（代表了进程的状态），在下次运行该进程时恢复它们。对被切换的进程来说好像时自己独占了cpu。内核为每个进程关联一个进程描述符PID(process identifier)，用于唯一标识进程。</p>
-<ul>
-<li><p><code>fork</code>：形式：<code>int fork()</code>。调用<code>fork</code>的进程称为父进程，新创建的进程称为子进程，子进程的内存内容与父进程完全相同。但子进程不是完全拷贝了父进程，它拥有自己的地址空间、寄存器、程序计数器PC等。<code>fork</code>调用一次，返回两次。在父进程中，<code>fork</code>的返回值是子进程的PID；在子进程中，返回值是0。父、子进程时并发运行的独立进程，内核能够以任意方式交替运行。</p>
-</li>
-<li><p><code>exit</code>：形式：<code>int exit(int status)</code>。让调用它的进程停止执行并且将内存等占用的资源全部释放。需要一个整数形式的状态参数status，0代表以正常状态退出，1代表以非正常状态退出。</p>
-</li>
-<li><p><code>wait</code>：形式：<code>int wait(int *status)</code>。调用进程会被挂起，直到<code>wait</code>返回。等待子进程退出，返回子进程PID，将子进程的退出状态存储到<code>int *status</code>这个地址中。如果调用者没有子进程，<code>wait</code>将返回-1。如果父进程不关心子进程的退出状态，可以传递一个0地址给wait。</p>
-</li>
-<li><p><code>exec</code>：形式：<code>int exec(char *file, char *argv[])</code>。从可执行程序中加载代码和静态数据，并重新初始化进程内存空间。然后执行该程序，参数通过<code>argv</code>传递给该进程。因此<code>exec</code>并没有创建新的进程，只是将当前运行的程序替换为不同的程序。如果执行错误返回-1，执行成功则不会返回。文件必须是ELF格式。<code>exec</code>系统调用会保留当前的文件描述符表单。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span>* *argv[<span class="number">3</span>];</span><br><span class="line">argv[<span class="number">0</span>] = <span class="string">&quot;echo&quot;</span>;</span><br><span class="line">argv[<span class="number">1</span>] = <span class="string">&quot;hello&quot;</span>;</span><br><span class="line">argv[<span class="number">2</span>] = <span class="number">0</span>;</span><br><span class="line">exec(<span class="string">&quot;/bin/echo&quot;</span>, argv);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;exec error\n&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<p>上述代码会执行&#x2F;bin&#x2F;echo程序，并将argv数组作为参数。注意参数数组<code>argv</code>的第一个元素是程序名称。由于<code>exec</code>并不会返回，所以printf(“exec error\n”);&#96;并不会执行。</p>
-</li>
-</ul>
-<p>这种分离<code>fork</code>和<code>exec</code>的做法在构建shell时非常有用，在这两个调用之间，shell有机会重定向子进程的I&#x2F;O，而不干扰父进程的I&#x2F;O设置。</p>
-<h2 id="1-2-I-O和文件描述符"><a href="#1-2-I-O和文件描述符" class="headerlink" title="1.2 I&#x2F;O和文件描述符"></a>1.2 I&#x2F;O和文件描述符</h2><p>文件描述符是一个小整数（非负数），代表一个可由进程读取或写入的内核管理对象。文件描述符用于指代被打开的文件，所有执行I&#x2F;O操作的系统调用都通过文件描述符来实现。</p>
-<p>在内部，xv6内核为每一个进程单独维护一个以文件描述符为索引的表（进程级的文件打开表）。按照约定，一个进程从文件描述符0(标准输入)读取数据，向文件描述符1(标准输出)写入输出，向文件描述符2(标准错误)写入错误信息。shell确保自己总是有三个文件描述符打开。</p>
-<ul>
-<li><p><code>read</code>和<code>write</code>：形式<code>int write(int fd, char *buf, int n)</code>和<code>int read(int fd, char *buf, int n)</code>。从（向）文件描述符<code>fd</code>处读（写）n个字节<code>buf</code>的内容，返回值是成功读取（写入）的字节数。每个文件描述符有一个offset，<code>read</code>会从这个offset开始读取内容，读完n个字节之后将这个offset后移n个字节，下一个<code>read</code>将从新的offset开始读取字节。<code>write</code>也有类似的offset。</p>
-</li>
-<li><p><code>close</code>：形式是<code>int close(int fd)</code>，参数是想要关闭文件的文件描述符<code>fd</code>。文件关闭后，该文件描述符可以被重新使用，新分配的文件描述符总是当前进程中最小的未使用描述符。</p>
-<p>文件描述符和fork相互作用，使I&#x2F;O重定向易于实现。<code>fork</code>将父进程的文件描述符表和它的内存一起复制，这样子进程开始时打开的文件和父进程完全一样。<code>exec</code>替换调用进程的内存，但会保留文件描述符表。下面是shell运行<code>cat &lt; input.txt</code>命令的简化版代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">  <span class="type">char</span> *argv[<span class="number">2</span>];</span><br><span class="line">  argv[<span class="number">0</span>] = <span class="string">&quot;cat&quot;</span>;</span><br><span class="line">  argv[<span class="number">1</span>] = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">if</span> (fork() == <span class="number">0</span>)</span><br><span class="line">  &#123;</span><br><span class="line">      close(<span class="number">0</span>);  <span class="comment">// 释放标准输入的文件描述符</span></span><br><span class="line">      open(<span class="string">&quot;input.txt&quot;</span>, O_RDONLY);  <span class="comment">// fd = 0被重新分配，这时input.txt的文件描述符为0</span></span><br><span class="line">      <span class="comment">// 即标准输入为input.txt</span></span><br><span class="line">      exec(<span class="string">&quot;cat&quot;</span>, argv);  <span class="comment">// cat从0读取，并输出到1，见上个代码段</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在子进程关闭文件描述符0后，此时0将是最小的可用文件描述符，新打开的input.txt就使用该文件描述符0。如果 cat 没有给出任何参数，它会从标准输入0读入数据，在上例中cat就从input.txt中读取字符。这不会改变父进程的文件描述符表，它只会修改子进程的描述符表，但是文件中的offset将被共享。</p>
-</li>
-<li><p><code>dup</code>：形式是<code>int dup(int fd)</code>，复制一个现有的文件描述符fd，返回一个新的描述符，它们指向同一个底层I&#x2F;O对象。两个I&#x2F;O对象(文件)的偏移量offset相同。</p>
-<p>如果两个文件描述符是通过一系列的<code>fork</code>和<code>dup</code>调用从同一个原始文件描述符衍生出来的，那么这两个文件描述符共享一个偏移量。否则，文件描述符不共享偏移量。</p>
-</li>
-</ul>
-<h2 id="1-3-管道"><a href="#1-3-管道" class="headerlink" title="1.3 管道"></a>1.3 管道</h2><p>管道（pipes）是一个小的内核缓冲区，作为一对文件描述符提供给进程，一个用于读，一个用于写。将数据写入管道的一端就可以从管道的另一端读取数据。管道在内核空间中实现，为进程提供了一种通信方式。</p>
-<p><code>pipe</code>是一个system call，形式为<code>int pipe(int p[])</code>，参数<code>p[]</code>是一个大小为 2 的整数数组，用于接收创建的文件描述符。<code>p[0]</code>为读取的文件描述符，<code>p[1]</code>为写入的文件描述符。管道中的数据只能被读一次。</p>
-<p>下面的示例代码运行程序wc，标准输入连接到管道的读取端。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> p[<span class="number">2</span>];</span><br><span class="line"><span class="type">char</span> *argv[<span class="number">2</span>];</span><br><span class="line">argv[<span class="number">0</span>] = <span class="string">&quot;wc&quot;</span>;</span><br><span class="line">argv[<span class="number">1</span>] = <span class="number">0</span>;</span><br><span class="line">pipe(p);</span><br><span class="line"><span class="keyword">if</span> (fork() == <span class="number">0</span>)</span><br><span class="line">&#123;</span><br><span class="line">    close(<span class="number">0</span>);  <span class="comment">// 释放子进程中的文件描述符0</span></span><br><span class="line">    dup(p[<span class="number">0</span>]); <span class="comment">// 复制一个p[0](管道读端)，此后文件描述符0（标准输入）也引用管道读端</span></span><br><span class="line">    close(p[<span class="number">0</span>]); <span class="comment">// 关闭子进程中的管道读端</span></span><br><span class="line">    close(p[<span class="number">1</span>]); <span class="comment">// 如果不关闭p[1]写端，管道的读端会一直等待读取，wc就永远也无法等到EOF</span></span><br><span class="line">    exec(<span class="string">&quot;/bin/wc&quot;</span>, argv); <span class="comment">// wc 从标准输入读取数据，并写入到参数中的每// 一个文件</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    close(p[<span class="number">0</span>]);</span><br><span class="line">    write(p[<span class="number">1</span>], <span class="string">&quot;hello world\n&quot;</span>, <span class="number">12</span>);</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>如果没有管道中暂时没有数据可读，管道上的<code>read</code>操作会等待数据被写入，或者等待所有指向写端的文件描述符被关闭；在后一种情况下，读操作将返回0。如果没有数据写入，读操作会无限阻塞，直到新数据不可能到达为止（写端被关闭），这也是子进程在执行上面的wc之前关闭管道的写端很重要的一个原因：如果wc的一个文件描述符仍然引用了管道的写端，那么wc将永远看不到文件的关闭（被自己阻塞）。</p>
-<p>xv6的shell实现了管道，如下，shell的实现类似于上面的代码（user&#x2F;sh.c:100）。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep fork sh.c | wc -l</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// user/sh.c:100</span></span><br><span class="line"><span class="keyword">case</span> PIPE:</span><br><span class="line">  pcmd = (*<span class="keyword">struct</span>* pipecmd*)*cmd*;</span><br><span class="line">  <span class="keyword">if</span>(pipe(p) &lt; <span class="number">0</span>)</span><br><span class="line">   panic(<span class="string">&quot;pipe&quot;</span>);</span><br><span class="line">  <span class="keyword">if</span>(fork1() == <span class="number">0</span>)&#123;</span><br><span class="line">   close(<span class="number">1</span>);</span><br><span class="line">   dup(p[<span class="number">1</span>]);</span><br><span class="line">   close(p[<span class="number">0</span>]);</span><br><span class="line">   close(p[<span class="number">1</span>]);</span><br><span class="line">   runcmd(pcmd-&gt;left);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span>(fork1() == <span class="number">0</span>)&#123;</span><br><span class="line">   close(<span class="number">0</span>);</span><br><span class="line">   dup(p[<span class="number">0</span>]);</span><br><span class="line">   close(p[<span class="number">0</span>]);</span><br><span class="line">   close(p[<span class="number">1</span>]);</span><br><span class="line">   runcmd(pcmd-&gt;right);</span><br><span class="line">  &#125;</span><br><span class="line">  close(p[<span class="number">0</span>]);</span><br><span class="line">  close(p[<span class="number">1</span>]);</span><br><span class="line">  wait(<span class="number">0</span>);</span><br><span class="line">  wait(<span class="number">0</span>);</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
-
-<h1 id="1-4-文件系统"><a href="#1-4-文件系统" class="headerlink" title="1.4 文件系统"></a>1.4 文件系统</h1><p>xv6文件系统包含了文件（byte arrays）和目录（对其他文件和目录的引用）。目录生成了一个树，树从根目录<code>/</code>开始。对于不以<code>/</code>开头的路径，认为是是相对路径。</p>
-<ul>
-<li><code>chdir</code>：形式：<code>int chdir(const char *path)</code>。使得当前进程的工作目录更改为指定路径名 <code>path</code> 所指向的目录。</li>
-<li><code>mkdir</code>：形式：<code>int mkdir(char *dir)</code>。在文件系统中创建新目录。</li>
-</ul>
-<ul>
-<li><code>mknod</code>：形式：<code>int mknod(char *file, int, int)</code>。创建设备文件，一个设备文件有一个主要设备号（major device #）和一个次要设备号（minor device #）用来唯一确定这个设备。当一个进程打开了这个设备文件时，内核会将<code>read</code>和<code>write</code>的system call重新定向到设备上。</li>
-</ul>
-<p>文件控制块（FCB）是用来存放控制文件所需的各种信息的数据结构，FCB的有序集合称为文件目录，一个FCB就是一个文件目录项。<strong>FCB &#x3D; 文件名称 + 索引节点指针</strong>。 索引节点中存放文件的元数据，包括文件类型（文件或目录或设备），文件长度，文件内容在磁盘上的位置，以及文件的链接数量。</p>
-<p>文件名称与文件是不同的；底层文件（非磁盘上的文件）被称为<strong>inode</strong>，一个inode可以有多个名称，称为<strong>链接</strong>。每个链接由目录中的一个项组成；该项包含一个文件名和对inode的引用。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Directory entry</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">dirent</span> &#123;</span></span><br><span class="line">  ushort inum;        <span class="comment">// Inode number</span></span><br><span class="line">  <span class="type">char</span> name[DIRSIZ];  <span class="comment">// file or directory name</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// File metadata information</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">stat</span> &#123;</span></span><br><span class="line">  <span class="type">int</span> dev;     <span class="comment">// File system&#x27;s disk device</span></span><br><span class="line">  uint ino;    <span class="comment">// Inode number</span></span><br><span class="line">  <span class="type">short</span> type;  <span class="comment">// Type of file</span></span><br><span class="line">  <span class="type">short</span> nlink; <span class="comment">// Number of links to file</span></span><br><span class="line">  uint64 size; <span class="comment">// Size of file in bytes</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>stat</code>：形式：<code>int stat(char *path, struct stat *st)</code>。用于指定文件的元数据，并将信息存储在 <code>struct stat</code> 类型的变量 <code>st</code> 中。</li>
-<li><code>fstat</code>：形式：<code>int fstat(int fd, struct stat *st)</code>。用于获取与文件描述符 <code>fd</code> 关联的文件的元数据，并将信息存储在 <code>struct stat</code> 类型的变量 <code>st</code> 中。</li>
-<li><code>link</code>将创建一个指向同一个inode的文件名。<code>unlink</code>则是将一个文件名从文件系统中移除，只有当指向这个inode的文件名的数量为0时这个inode以及其存储的文件内容才会被从硬盘上移除。</li>
-</ul>
-<p>Unix提供了shell可调用的文件操作程序，作为用户级程序，例如<strong>mkdir</strong>、<strong>ln</strong>和<strong>rm</strong>。这种设计允许任何人通过添加新的用户级程序来扩展命令行接口。现在看来，这个设计似乎是显而易见的，但在Unix时期设计的其他系统通常将这类命令内置到shell中（并将shell内置到内核中）。</p>
-<p>有一个例外，那就是cd，它是在shell中实现的 (user&#x2F;sh.c:160)。cd 必须改变 shell 自身的当前工作目录。如果cd作为一个普通命令执行，那么shell就会fork一个子进程，而子进程会运行cd，cd只会改变子进程的当前工作目录。父进程（即shell）的工作目录则保持不变。</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2011,7 +1922,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-count">18</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2060,12 +1971,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">85k</span>
+    <span title="站点总字数">95k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:17</span>
+    <span title="站点阅读时长">1:26</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
