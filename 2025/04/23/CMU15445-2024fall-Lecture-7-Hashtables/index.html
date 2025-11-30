@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="接下来将讨论如何支持 DBMS 的执行引擎从 page 中读写数据。介绍两类结构：Hash Tables(Unordered)、Trees(Ordered)。 Data Structures在数据库系统中，存储结构的类型可以根据用途划分为以下几大类，它们共同组成了数据库系统的“内部世界”：  Internal Meta-Data（内部元数据）：这是数据库系统用于管理自身状态和结构信息的数据。用于记">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445(2024fall)-Lecture#7:Hashtables">
+<meta property="og:url" content="http://example.com/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="接下来将讨论如何支持 DBMS 的执行引擎从 page 中读写数据。介绍两类结构：Hash Tables(Unordered)、Trees(Ordered)。 Data Structures在数据库系统中，存储结构的类型可以根据用途划分为以下几大类，它们共同组成了数据库系统的“内部世界”：  Internal Meta-Data（内部元数据）：这是数据库系统用于管理自身状态和结构信息的数据。用于记">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-04-23T13:08:02.000Z">
+<meta property="article:modified_time" content="2025-04-24T07:57:26.170Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="15445">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CMU15445(2024fall)-Lecture#7:Hashtables | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CMU15445(2024fall)-Lecture#7:Hashtables
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-04-23 21:08:02" itemprop="dateCreated datePublished" datetime="2025-04-23T21:08:02+08:00">2025-04-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-24 15:57:26" itemprop="dateModified" datetime="2025-04-24T15:57:26+08:00">2025-04-24</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>接下来将讨论如何支持 DBMS 的执行引擎从 page 中读写数据。介绍两类结构：Hash Tables(Unordered)、Trees(Ordered)。</p>
+<h2 id="Data-Structures"><a href="#Data-Structures" class="headerlink" title="Data Structures"></a>Data Structures</h2><p>在数据库系统中，<strong>存储结构的类型</strong>可以根据用途划分为以下几大类，它们共同组成了数据库系统的“内部世界”：</p>
+<ul>
+<li>Internal Meta-Data（内部元数据）：这是数据库系统用于<strong>管理自身状态和结构信息</strong>的数据。用于记录数据库对象的布局、位置、映射信息等，如页表、页目录等。</li>
+<li>Core Data Storage（核心数据存储）：这是用来<strong>实际存储表中的数据（Tuples）</strong>的结构。以页为单位将表的数据组织在磁盘中，如NSM&#x2F;DSM&#x2F;PAX、Slotted Page。</li>
+<li>Temporary Data Structures（临时数据结构）：为了提高查询效率，DBMS <strong>在查询运行时构造的临时结构</strong>。如哈希表（用于 hash join 或去重）、排序缓冲区、物化表。这些结构在查询结束后通常会被释放。</li>
+<li>Table Indices（表索引）：数据库系统为了<strong>加速特定查询</strong>而维护的<strong>辅助数据结构</strong>。如 B+ 树索引、哈希索引。索引通常是冗余的，会占用额外空间，但能显著提升性能。</li>
+</ul>
+<p>在实现数据结构时还需要考虑以下两个设计决策：数据结构的布局对性能的影响、并发性。</p>
+<h2 id="Hash-Tables"><a href="#Hash-Tables" class="headerlink" title="Hash Tables"></a>Hash Tables</h2><p>哈希表实现了一种关联数组抽象类型，能将键映射到值。平均运算复杂度 O(1)，最坏为 O(n)；存储复杂度为 O(n)。即使平均运算复杂度为 O(1)，但仍有常数因子，这在现实世界中非常重要。哈希表中没有访问顺序，即无法按任何特定顺序浏览元素。</p>
+<p>哈希表的实现由两部分组成：</p>
+<ul>
+<li>哈希函数： 如何将一个大的键空间映射到一个较小的域。在其中要权衡运算速度和冲突率。</li>
+<li>哈希方案： 如何处理哈希冲突。在其中要权衡分配哈希表的规模和 get&#x2F;put 键值的开销</li>
+</ul>
+<h2 id="Hash-Function"><a href="#Hash-Function" class="headerlink" title="Hash Function"></a>Hash Function</h2><p>哈希函数接受任何长度的输出，输出固定长度的整数(32bits or 64bits)。DBMS 中不需要使用加密类型的哈希函数（如 SHA-256），只关心速度和冲突率。</p>
+<p>现在 state-of-the-art 的哈希函数时Facebook XXHash3。</p>
+<h2 id="Static-Hash-Schemes"><a href="#Static-Hash-Schemes" class="headerlink" title="Static Hash Schemes"></a>Static Hash Schemes</h2><p>Static Hash Schemes 是指哈希表的大小是固定的，并且是已知的。这意味着，如果数据库管理系统的哈希表存储空间用完，就必须从头开始重建一个更大的哈希表，而这是非常昂贵的。通常情况下，新的哈希表是原始哈希表的两倍。</p>
+<h3 id="Linear-Probe-Hashing"><a href="#Linear-Probe-Hashing" class="headerlink" title="Linear Probe Hashing"></a>Linear Probe Hashing</h3><p>对于插入操作，当发生碰撞时，我线性搜索随后的插槽，直到找到开放的插槽为止，必要时会从数组的末尾循环到起始位置。</p>
+<p>对于查找操作，可以检查密钥哈希值所对应的插槽，然后进行线性搜索，直到找到所需的条目。如果找到的是空槽，或者遍历了 hashtable 中的所有槽，则说明表中没有该键。请注意，这意味着我们必须在槽中同时存储键和值，以便检查条目是否为所需条目。</p>
+<p>对于删除操作：</p>
+<ul>
+<li>直接删除会有点问题，如何之前发生过哈希冲突，会有本该映射到此的键值A被映射到了后方，当后续检索A时发现此处为空返回不存在。</li>
+<li>另一种方法是在删除条目后移动相邻数据，以填补现在的空槽。不过当键的数量较多时，这种方法的成本极高。</li>
+<li>最常见的方法是使用 “墓碑”。我们不是删除条目，而是用一个 “墓碑 ”条目取代它，告诉未来的查找继续扫描。</li>
+</ul>
+<p>如何存储键值：</p>
+<ul>
+<li>固定长度：直接存储在哈希表页面中。也可选择将密钥的哈希值与之一起存储，以加快比较速度。</li>
+<li>不定长度：将键&#x2F;值数据插入一个单独的临时表中。然后，哈希表将哈希值作为键存储，将指向临时表中相应条目的记录 ID 作为值存储。</li>
+</ul>
+<p>如何处理键值不唯一：</p>
+<ul>
+<li>独立的链接列表： 不是将值与键一起存储，而是存储一个指向单独存储区的指针，该存储区包含一个包含所有值的链接列表，可能会溢出到多个页面。</li>
+<li>冗余键： 更常见的方法是在表中多次存储相同的键。即使我们这样做，线性探测的所有功能仍然有效。</li>
+</ul>
+<h3 id="Cuckoo-Hashing"><a href="#Cuckoo-Hashing" class="headerlink" title="Cuckoo Hashing"></a>Cuckoo Hashing</h3><p>Cuckoo Hashing 使用 <strong>两个（或多个）哈希函数</strong>，每个 key 可以存放在两个可能的位置之一。如果插入的位置被占用了，就“驱逐”（evict）原来的 key，并将其移动到它的另一个位置，可能会引发 <strong>连锁搬移</strong>。</p>
+<p>Cuckoo Hashing  花费 O(1) 的代价查找和删除，但是插入操作可能高代价。</p>
+<h2 id="Dynamic-Hash-Schemes"><a href="#Dynamic-Hash-Schemes" class="headerlink" title="Dynamic Hash Schemes"></a>Dynamic Hash Schemes</h2><p>Dynamic Hashing Schemes（动态哈希方案） 是一类支持数据动态增长（或缩减）的哈希方法，主要为了解决传统静态哈希（Static Hashing）在面对数据量增长时可能导致大量冲突或重建开销大的问题。目标是<strong>自动扩容</strong>（或收缩）哈希桶、保证查询性能（接近 O(1)）、减少全局重哈希（rehashing）的代价。</p>
+<h3 id="Chained-Hashing"><a href="#Chained-Hashing" class="headerlink" title="Chained Hashing"></a>Chained Hashing</h3><p>这是最常见的动态散列方案。DBMS 为哈希表的每个槽维护一个桶的链表。哈希到同一槽的键被简单地插入到该槽的链表中。要查找一个元素，我们先散列到它的桶，然后在链表中扫描查找。</p>
+<h3 id="Extendible-Hashing"><a href="#Extendible-Hashing" class="headerlink" title="Extendible Hashing"></a>Extendible Hashing</h3><p>Extendible Hashing 通过引入 <strong>目录（Directory）+ 局部桶（Bucket）</strong> 的结构来实现 局部扩容、动态调整、按需增长。</p>
+<p>目录：</p>
+<ul>
+<li>是一个数组，保存指向 Bucket 的指针；</li>
+<li>它的大小为 <code>2^global_depth</code>，即目录的大小由全局深度决定；</li>
+<li>每个目录项通过哈希函数得到的一部分<strong>前缀位</strong>定位。</li>
+</ul>
+<p>局部桶：</p>
+<ul>
+<li>存储实际的数据项；</li>
+<li>每个桶有自己的<strong>局部深度（local depth）</strong>；</li>
+<li>表示该桶共享的前缀位数。</li>
+</ul>
+<p><strong>插入流程：</strong></p>
+<ol>
+<li>对 key 使用哈希函数，得到一个 hash 值；</li>
+<li>根据 <code>global_depth</code> 取前缀位，定位到目录项；</li>
+<li>找到对应的 Bucket，尝试插入数据：<ul>
+<li>若 Bucket 未满，直接插入；</li>
+<li>若 Bucket 满：<ul>
+<li>检查 <code>local_depth == global_depth</code>：<ul>
+<li>是：<strong>扩展目录</strong>（global_depth+1，目录大小 ×2）；</li>
+<li>否：只<strong>分裂桶</strong>（Bucket Split）；</li>
+</ul>
+</li>
+<li>然后重新分配数据。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>缺点：</p>
+<ul>
+<li>空间浪费，部分目录项可能指向同一个桶，造成冗余</li>
+<li>删除复杂，删除后可能需要合并桶（bucket merge）和收缩目录</li>
+<li>实现复杂相比线性哈希实现难度更高，需要维护 local&#x2F;global depth 和共享桶关系</li>
+</ul>
+<h3 id="Linear-Hashing"><a href="#Linear-Hashing" class="headerlink" title="Linear Hashing"></a>Linear Hashing</h3><p>不用一次性重建整个哈希表，而是在数据插入时逐步扩展桶（Bucket），线性地重分布数据，实现渐进扩容。</p>
+<p>Linear Hashing 的设计基于：</p>
+<ul>
+<li><strong>两个哈希函数</strong>：<code>h_i(key) = key mod 2^i</code> 和 <code>h_&#123;i+1&#125;(key) = key mod 2^&#123;i+1&#125;</code></li>
+<li>一个递增的分裂指针 <code>n</code>：表示当前需要分裂扩容的桶编号</li>
+<li>一组 <strong>桶 Bucket[]</strong></li>
+</ul>
+<p>插入过程：</p>
+<ol>
+<li>设当前使用哈希函数 <code>h_i</code>；</li>
+<li>插入 key 时计算 <code>h_i(key)</code>：<ul>
+<li>若结果 &lt; <code>n</code>，说明这个桶已经被分裂过，改用 <code>h_&#123;i+1&#125;(key)</code></li>
+</ul>
+</li>
+<li>把数据插入对应桶中；</li>
+<li>若桶满，则进行<strong>分裂操作</strong>：<ul>
+<li>分裂编号为 <code>n</code> 的桶；</li>
+<li>将桶中数据按 <code>h_&#123;i+1&#125;</code> 重分布；</li>
+<li>分裂指针 <code>n++</code></li>
+<li>若 <code>n == 2^i</code>，则：<ul>
+<li><code>i++</code>，进入下一轮哈希；</li>
+<li><code>n</code> 归零，继续分裂新一轮的桶。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>删除可能导致桶删除和分裂指针回移。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/15445/" rel="tag"># 15445</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/" rel="prev" title="CMU15445(2024fall)-Lecture#5:Storage Models and Compression">
+      <i class="fa fa-chevron-left"></i> CMU15445(2024fall)-Lecture#5:Storage Models and Compression
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/05/09/CMU15445-2024fall-project-2-%E8%AE%B0%E5%BD%95/" rel="next" title="CMU15445(2024fall)-project#2 记录">
+      CMU15445(2024fall)-project#2 记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Data-Structures"><span class="nav-number">1.</span> <span class="nav-text">Data Structures</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hash-Tables"><span class="nav-number">2.</span> <span class="nav-text">Hash Tables</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hash-Function"><span class="nav-number">3.</span> <span class="nav-text">Hash Function</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Static-Hash-Schemes"><span class="nav-number">4.</span> <span class="nav-text">Static Hash Schemes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Linear-Probe-Hashing"><span class="nav-number">4.1.</span> <span class="nav-text">Linear Probe Hashing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Cuckoo-Hashing"><span class="nav-number">4.2.</span> <span class="nav-text">Cuckoo Hashing</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Dynamic-Hash-Schemes"><span class="nav-number">5.</span> <span class="nav-text">Dynamic Hash Schemes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Chained-Hashing"><span class="nav-number">5.1.</span> <span class="nav-text">Chained Hashing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Extendible-Hashing"><span class="nav-number">5.2.</span> <span class="nav-text">Extendible Hashing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Linear-Hashing"><span class="nav-number">5.3.</span> <span class="nav-text">Linear Hashing</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

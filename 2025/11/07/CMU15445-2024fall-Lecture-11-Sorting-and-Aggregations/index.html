@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Query Plan 从 SQL 到查询计划：数据库系统接收到 SQL 语句后，并不会直接执行，而是先通过查询优化器将其编译成一个查询计划。这个计划就像一份详细的“执行说明书”。  操作符树：查询计划是一个树形结构（操作符树）。每个节点代表一个基本操作（称为操作符或代数运算符），例如：  叶子节点：Table Scan（全表扫描）、Index Scan（索引扫描），负责从磁盘中读取数据。 内部节点">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445(2024fall)-Lecture#11:Sorting and Aggregations">
+<meta property="og:url" content="http://example.com/2025/11/07/CMU15445-2024fall-Lecture-11-Sorting-and-Aggregations/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="Query Plan 从 SQL 到查询计划：数据库系统接收到 SQL 语句后，并不会直接执行，而是先通过查询优化器将其编译成一个查询计划。这个计划就像一份详细的“执行说明书”。  操作符树：查询计划是一个树形结构（操作符树）。每个节点代表一个基本操作（称为操作符或代数运算符），例如：  叶子节点：Table Scan（全表扫描）、Index Scan（索引扫描），负责从磁盘中读取数据。 内部节点">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-11-07T02:47:52.000Z">
+<meta property="article:modified_time" content="2025-11-14T01:34:02.249Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="15445">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/11/07/CMU15445-2024fall-Lecture-11-Sorting-and-Aggregations/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CMU15445(2024fall)-Lecture#11:Sorting and Aggregations | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/11/07/CMU15445-2024fall-Lecture-11-Sorting-and-Aggregations/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CMU15445(2024fall)-Lecture#11:Sorting and Aggregations
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-11-07 10:47:52" itemprop="dateCreated datePublished" datetime="2025-11-07T10:47:52+08:00">2025-11-07</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-14 09:34:02" itemprop="dateModified" datetime="2025-11-14T09:34:02+08:00">2025-11-14</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="Query-Plan"><a href="#Query-Plan" class="headerlink" title="Query Plan"></a>Query Plan</h2><ol>
+<li><p><strong>从 SQL 到查询计划</strong>：数据库系统接收到 SQL 语句后，并不会直接执行，而是先通过<strong>查询优化器</strong>将其编译成一个<strong>查询计划</strong>。这个计划就像一份详细的“执行说明书”。</p>
+</li>
+<li><p><strong>操作符树</strong>：查询计划是一个树形结构（操作符树）。每个节点代表一个基本操作（称为<strong>操作符</strong>或<strong>代数运算符</strong>），例如：</p>
+<ul>
+<li><strong>叶子节点</strong>：<code>Table Scan</code>（全表扫描）、<code>Index Scan</code>（索引扫描），负责从磁盘中读取数据。</li>
+<li><strong>内部节点</strong>：<code>Filter</code>（选择，即 WHERE 子句）、<code>Project</code>（投影，即 SELECT 字段）、<code>Join</code>（连接）、<code>Sort</code>（排序）、<code>Aggregate</code>（聚合，如 GROUP BY）。</li>
+<li>数据从叶子节点流向根节点，在每个节点进行相应的处理，最终在根节点得到查询结果。</li>
+</ul>
+</li>
+<li><p><strong>磁盘导向与缓冲池</strong>：因为数据量远大于内存，数据库必须聪明地管理数据在内存和磁盘之间的移动。<strong>缓冲池</strong>就是核心组件，它充当了磁盘数据在内存中的“缓存”。</p>
+<ul>
+<li>当操作符需要处理数据时，它向缓冲池请求特定的<strong>页</strong>。如果页已在缓冲池中（缓存命中），则直接使用，这是最快的访问方式。</li>
+<li>如果页不在缓冲池中（缓存未命中），则需要从磁盘读取，这会带来昂贵的 <strong>I&#x2F;O 成本</strong>。</li>
+<li>缓冲池需要决定将哪个旧页替换出去（例如使用 LRU 算法）。</li>
+</ul>
+</li>
+<li><p><strong>核心目标：最小化 I&#x2F;O</strong>：由于磁盘 I&#x2F;O 比内存操作慢几个数量级，<strong>查询执行算法的设计核心就是尽可能减少磁盘 I&#x2F;O 次数</strong>。这体现在：</p>
+<ul>
+<li><strong>访问方法</strong>：使用索引（如 B+Tree）来避免全表扫描。</li>
+<li><strong>连接算法</strong>：使用更高效的算法（如基于哈希的连接、排序-合并连接）来减少中间结果的读写。</li>
+<li><strong>利用缓冲池</strong>：良好的缓存命中率能极大提升性能。</li>
+</ul>
+</li>
+</ol>
+<p>为了“最小化 I&#x2F;O”，数据库为不同的操作符设计了特定的算法：</p>
+<ol>
+<li><p><strong>连接操作</strong>：</p>
+<ul>
+<li><strong>嵌套循环连接</strong>：简单但 I&#x2F;O 成本可能很高（O(M*N)）。</li>
+<li><strong>排序-合并连接</strong>：先对两个表按连接键排序，然后进行归并。如果数据能装入内存，效率很高；否则需要外部排序，会产生中间文件的 I&#x2F;O。</li>
+<li><strong>哈希连接</strong>：通常效率最高。为其中一个表构建内存哈希表，然后探测另一个表。如果表太大，会采用<strong>Grace Hash Join</strong>等方法进行分区并溢出到磁盘。</li>
+</ul>
+</li>
+<li><p><strong>排序操作</strong>：</p>
+<ul>
+<li><strong>外部排序</strong>：当待排序数据远超内存大小时使用。算法（如外部归并排序）将数据分块排序后写入磁盘，再将有序块归并起来。其 I&#x2F;O 成本是衡量性能的关键。</li>
+</ul>
+</li>
+<li><p><strong>聚合操作</strong>：通常使用排序或哈希在分组时进行，同样需要考虑数据是否能放入内存。</p>
+</li>
+</ol>
+<p>数据库查询执行的核心路径：</p>
+<p><strong>SQL 查询 -&gt; 查询编译&#x2F;优化 -&gt; 查询计划（操作符树）-&gt; 由执行引擎调用操作符的具体算法执行 -&gt; 算法依赖缓冲池在内存和磁盘间交换数据 -&gt; 所有设计的首要目标是最小化慢速的磁盘 I&#x2F;O。</strong></p>
+<h2 id="Sorting"><a href="#Sorting" class="headerlink" title="Sorting"></a>Sorting</h2><p>关系模型中的表是无序的集合。为了满足 <code>ORDER BY</code>、<code>GROUP BY</code>、<code>JOIN</code>（如排序-合并连接）、<code>DISTINCT</code>等操作对数据有序性的要求，排序是必不可少的。</p>
+<p>当数据可以完全放入内存时，可以使用内部排序算法，如快速排序。当数据太大无法放入内存时，需要使用外部排序，例如外部归并排序，它能够将数据溢出到磁盘，并优先使用顺序I&#x2F;O而不是随机I&#x2F;O。</p>
+<h3 id="Top-N-堆排序"><a href="#Top-N-堆排序" class="headerlink" title="Top-N 堆排序"></a>Top-N 堆排序</h3><p>它是对 <code>ORDER BY ... LIMIT N</code>查询的极致优化。</p>
+<ul>
+<li><strong>场景</strong>：查询只需要结果集中的前 N 条（或后 N 条）记录。</li>
+<li><strong>数据结构</strong>：使用一个<strong>堆</strong>（优先队列）。<ul>
+<li>求前 N 个最小值：使用<strong>最大堆</strong>。堆顶是堆中最大的元素。新元素如果比堆顶小，则替换堆顶并调整堆。</li>
+<li>求前 N 个最大值：使用<strong>最小堆</strong>。堆顶是堆中最小的元素。新元素如果比堆顶大，则替换堆顶并调整堆。</li>
+</ul>
+</li>
+<li><strong>过程</strong>：只需<strong>单次扫描</strong>数据。对于每条记录，与堆顶元素比较，决定是否替换并调整堆。扫描结束后，堆中剩下的就是 Top-N 结果。</li>
+<li><strong>优势</strong>：<strong>极低的内存占用</strong>：只需维护一个大小为 N 的堆，无论总数据量有多大。<strong>单次扫描，线性复杂度</strong>：算法复杂度为 O(M log N)，其中 M 是总记录数，N 是 LIMIT 值。这比先全排序（O(M log M)）再取前 N 条要高效得多。</li>
+</ul>
+<h3 id="外部归并排序-通用大数据集排序"><a href="#外部归并排序-通用大数据集排序" class="headerlink" title="外部归并排序 - 通用大数据集排序"></a>外部归并排序 - 通用大数据集排序</h3><p>这是处理海量数据排序的标准算法，其核心思想是 <strong>“分而治之”</strong>，分为两个主要阶段：</p>
+<p><strong>阶段一：排序阶段</strong></p>
+<ul>
+<li><strong>步骤</strong>：将大数据集分割成多个小块（称为 <strong>Runs</strong>），每个小块的大小恰好能放入内存的<strong>缓冲池</strong>中。</li>
+<li><strong>操作</strong>：逐个将每个 Run 读入内存，使用高效的内部排序算法（如快速排序）对其进行排序。</li>
+<li><strong>输出</strong>：将每个在内存中排好序的 Run 作为临时文件<strong>顺序地</strong>写回磁盘。</li>
+<li><strong>I&#x2F;O 优势</strong>：无论是读原始数据还是写临时 Run，都追求<strong>顺序 I&#x2F;O</strong>，这比随机 I&#x2F;O 快几个数量级。</li>
+</ul>
+<p><strong>阶段二：归并阶段</strong></p>
+<ul>
+<li><strong>步骤</strong>：将多个已排序的 Run 归并成一个更大的有序文件。由于内存有限，通常采用 <strong>K-路归并</strong>。</li>
+<li><strong>操作</strong>：同时打开 K 个已排序的 Run 文件（K 受限于内存缓冲区数量）。为每个文件在内存中维护一个缓冲区，每次从 K 个 Run 的当前值中选出最小（或最大）的一个输出到最终结果，并补充该 Run 的下一个值。</li>
+<li><strong>迭代</strong>：如果一次 K-路归并后仍然有超过一个 Run，则重复此过程，直到所有数据归并到一个完整的有序文件中。</li>
+</ul>
+<h3 id="两路外部归并"><a href="#两路外部归并" class="headerlink" title="两路外部归并"></a>两路外部归并</h3><p><strong>核心特点：</strong></p>
+<ul>
+<li>每次只归并2个有序段</li>
+<li>需要3个缓冲页：2个用于输入，1个用于输出</li>
+<li>简单但效率相对较低</li>
+</ul>
+<p><strong>过程分解：</strong></p>
+<p>排序阶段：读取每个页面 → 内存排序 → 写回有序段<br>归并阶段：反复两两归并，直到完全有序</p>
+<p><strong>I&#x2F;O成本分析：</strong></p>
+<ul>
+<li>趟数（Passes）：<code>1 + ⌈log₂N⌉</code></li>
+<li>总I&#x2F;O操作：<code>2N × (1 + ⌈log₂N⌉)</code></li>
+<li>示例：N&#x3D;1000页时，需要1+10&#x3D;11趟，22,000次I&#x2F;O操作</li>
+</ul>
+<h3 id="通用K路归并排序"><a href="#通用K路归并排序" class="headerlink" title="通用K路归并排序"></a>通用K路归并排序</h3><p><strong>N</strong>: 文件占用的总页数 (total number of pages in the file)。</p>
+<p><strong>B</strong>: 内存中可用的缓冲区页数 (number of buffer pages in memory)。</p>
+<p><strong>核心优化思想：</strong></p>
+<ul>
+<li>利用更多缓冲页：一次性归并K个有序段（而不仅仅是2个）</li>
+<li>减少归并趟数：K越大，需要的归并趟数越少</li>
+<li>最大化顺序I&#x2F;O：仍然是批量读写，避免随机访问</li>
+</ul>
+<p><strong>策略：</strong></p>
+<p>可用缓冲页总数：B ；1个页面用于输出缓冲区 ；剩余B-1个页面用于输入缓冲区（每个归并段占用1个）；∴ 最大归并路数K &#x3D; B-1</p>
+<p><strong>排序阶段：</strong></p>
+<p>由于总共有 <strong>N</strong> 页数据，每次处理 <strong>B</strong> 页，所以总共需要 <code>N / B</code> 次这样的操作。因为最后一次可能不足 B 页，所以严格来说，会生成： <strong><code>⌈N / B⌉</code></strong> 个初始有序顺串，每个顺串的大小（除了最后一个）为 <strong>B</strong> 页。</p>
+<p><strong>归并阶段：</strong></p>
+<p>现在有 <code>⌈N / B⌉</code> 个有序的顺串在磁盘上。下一步是把它们合并成一个单独的、完全有序的文件。利用缓冲区来同时合并多个顺串。</p>
+<ul>
+<li><strong>操作</strong>: 在 <strong>B</strong> 个可用的缓冲区中，必须<strong>留出 1 页</strong>作为**输出缓冲区 (Output Buffer)**，用来存放归并的结果。</li>
+<li><strong>处理</strong>: 剩下的 <strong>B-1</strong> 页缓冲区，则作为**输入缓冲区 (Input Buffers)**，每一页对应一个要被合并的顺串。</li>
+<li><strong>归并</strong>: 这意味着每一轮归并，最多可以合并 <strong>B-1</strong> 个顺串。这就是所谓的 <strong>(B-1)-way merge</strong>。</li>
+<li><strong>循环</strong>:<ul>
+<li><strong>Pass #1</strong>: 将 <code>⌈N / B⌉</code> 个顺串，每次 <code>B-1</code> 个进行合并。这一轮结束后，<strong>顺串的数量会减少为 <code>⌈ (⌈N / B⌉) / (B-1) ⌉</code> 个</strong>，但每个顺串的长度变得更长。</li>
+<li><strong>Pass #2</strong>: 对 Pass #1 产生的新顺串，再次进行 (B-1)-way merge。</li>
+<li><strong>…</strong>: 持续这个过程，直到最后只剩下 1 个顺串，即整个文件完全有序。</li>
+</ul>
+</li>
+</ul>
+<p>总趟数 &#x3D; 初始排序的趟数 () + 归并的趟数。</p>
+<ul>
+<li><strong>排序趟数</strong>: 占了 <strong>1</strong> 趟。</li>
+<li><strong>归并趟数</strong>: 需要计算，从 <code>⌈N / B⌉</code> 个初始顺串开始，需要多少轮 (B-1)-way merge 才能合并为 1 个顺串。<ul>
+<li>这是一个对数问题：$\log_{B-1}(初始顺串数量)$ </li>
+<li>代入初始顺串数量，归并趟数即为 $\log_{B-1} ⌈N&#x2F;B⌉$。</li>
+</ul>
+</li>
+</ul>
+<p><strong>推导结果</strong>: 将两者相加，总趟数 (Total number of passes) 即为：1 + $\ ⌈log_{B-1} ⌈N&#x2F;B⌉⌉$ </p>
+<p><strong>总 I&#x2F;O 成本:</strong> 计算总共发生了多少次磁盘页的读或写。</p>
+<ul>
+<li><strong>关键假设</strong>: 在每一趟归并躺中，<strong>文件中的每一页 (N) 都必须被从磁盘读取一次，然后被写回磁盘一次</strong>。<strong>每趟成本</strong>: <code>N (读) + N (写) = 2N</code> 次 I&#x2F;O。</li>
+</ul>
+<p><strong>推导结果</strong>: 总 I&#x2F;O 成本 &#x3D; (每一趟的 I&#x2F;O 成本) × (总趟数) <strong><code>Total I/O Cost = 2N ∙ (# of passes)</code></strong></p>
+<p>将上面推导的趟数公式代入，总成本的完整表达式为： 2N * (1 + $\ ⌈log_{B-1} ⌈N&#x2F;B⌉⌉$ )</p>
+<h3 id="双缓冲优化"><a href="#双缓冲优化" class="headerlink" title="双缓冲优化"></a>双缓冲优化</h3><p>双缓冲优化通过预取（prefetching）下一个数据块（run）来减少I&#x2F;O等待时间。具体来说，当系统正在处理当前数据块时，使用另一个线程在后台预取下一个数据块，并将其存储在第二个缓冲区中。这样，当当前数据块处理完成后，可以立即开始处理下一个数据块，而不必等待I&#x2F;O。</p>
+<p>实现方式：</p>
+<ul>
+<li>使用两个缓冲区：一个用于当前处理，一个用于预取下一个数据块。</li>
+<li>需要多线程：一个线程处理当前数据块，另一个线程在后台预取下一个数据块。</li>
+</ul>
+<h3 id="对比优化"><a href="#对比优化" class="headerlink" title="对比优化"></a>对比优化</h3><h4 id="代码特化（Code-Specialization）"><a href="#代码特化（Code-Specialization）" class="headerlink" title="代码特化（Code Specialization）"></a>代码特化（Code Specialization）</h4><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 通用版本 - 通过函数指针比较</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">sort</span><span class="params">(<span class="type">void</span>* data, <span class="type">int</span> (*comparator)(<span class="type">const</span> <span class="type">void</span>*, <span class="type">const</span> <span class="type">void</span>*))</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 特化版本 - 编译器可内联优化</span></span><br><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">sort_specialized</span><span class="params">(T* data)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 编译器直接生成针对T的比较代码</span></span><br><span class="line">    <span class="keyword">if</span> (data[i] &lt; data[j]) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消除函数调用开销；启用内联优化；更好的指令缓存局部性。</p>
+<h4 id="后缀截断（Suffix-Truncation）"><a href="#后缀截断（Suffix-Truncation）" class="headerlink" title="后缀截断（Suffix Truncation）"></a>后缀截断（Suffix Truncation）</h4><p><strong>特别适用于</strong>：</p>
+<ul>
+<li>长字符串键（VARCHAR、TEXT）</li>
+<li>前缀区分度高的数据（如UUID、哈希值）</li>
+</ul>
+<p>对于字符串类型的比较，如果键很长，比较操作可能很昂贵。后缀截断优化是：首先比较长字符串的二进制前缀（例如，前几个字节），如果前缀不同，就可以快速得出比较结果；如果前缀相同，再调用完整的字符串比较。这类似于在数据库索引中使用的前缀压缩。</p>
+<h3 id="B-树排序"><a href="#B-树排序" class="headerlink" title="B+树排序"></a>B+树排序</h3><p>如果需要排序的表已在排序属性上创建了B+树索引，则可利用该索引加速排序过程。</p>
+<h4 id="聚簇索引"><a href="#聚簇索引" class="headerlink" title="聚簇索引"></a>聚簇索引</h4><p>定义和特点</p>
+<ul>
+<li><strong>数据即索引</strong>：叶子节点直接包含完整的表数据行</li>
+<li>物理有序：数据行按照索引键的顺序物理存储在磁盘上</li>
+<li>唯一性：每个表只能有一个聚簇索引</li>
+</ul>
+<p>劣势</p>
+<ul>
+<li>插入性能：需要维持物理顺序，可能引起页分裂</li>
+<li>更新代价：更新索引键可能导致数据移动</li>
+<li>灵活性差：每表只能有一个聚簇索引</li>
+</ul>
+<h4 id="非聚簇索引"><a href="#非聚簇索引" class="headerlink" title="非聚簇索引"></a>非聚簇索引</h4><p>定义和特点</p>
+<ul>
+<li><strong>索引与数据分离</strong>：叶子节点包含索引键和指向数据行的指针（如聚簇索引主键或物理行指针）</li>
+<li><strong>物理无序</strong>：数据行物理存储顺序与索引键顺序无关</li>
+<li>多索引支持：每个表可以有多个非聚簇索引</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 使用非聚簇索引查询</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> students <span class="keyword">WHERE</span> name <span class="operator">=</span> <span class="string">&#x27;Alice&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 执行过程：</span></span><br><span class="line"><span class="comment">-- 1. 在idx_students_name中查找&#x27;Alice&#x27;</span></span><br><span class="line"><span class="comment">-- 2. 获取对应的数据行指针（如主键值或行ID）</span></span><br><span class="line"><span class="comment">-- 3. 用指针到聚簇索引中查找完整数据行 ← 回表操作</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="核心概念对比"><a href="#核心概念对比" class="headerlink" title="核心概念对比"></a>核心概念对比</h4><table>
+<thead>
+<tr>
+<th align="center">特性</th>
+<th align="center">CLUSTERED B+TREE</th>
+<th align="center">UNCLUSTERED B+TREE</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>数据存储</strong></td>
+<td align="center">索引即数据，叶子节点包含实际数据行</td>
+<td align="center">索引与数据分离，叶子节点包含数据指针</td>
+</tr>
+<tr>
+<td align="center"><strong>表数量</strong></td>
+<td align="center">每表只能有1个</td>
+<td align="center">每表可以有多个</td>
+</tr>
+<tr>
+<td align="center"><strong>物理顺序</strong></td>
+<td align="center">数据按索引键顺序物理存储</td>
+<td align="center">数据物理存储顺序与索引无关</td>
+</tr>
+<tr>
+<td align="center"><strong>查询性能</strong></td>
+<td align="center">范围查询和排序高效</td>
+<td align="center">点查询高效，范围查询需要<strong>回表</strong></td>
+</tr>
+</tbody></table>
+<h2 id="Aggregations"><a href="#Aggregations" class="headerlink" title="Aggregations"></a>Aggregations</h2><p><strong>聚合操作</strong> 的本质是将一组行（元组）根据某个或某几个键（GROUP BY key）分类，然后对每一类计算一个汇总值（标量值），例如 COUNT、SUM、AVG 等。</p>
+<p><strong>两种实现路径</strong>：数据库管理系统（DBMS）主要通过两种物理操作来实现这个逻辑概念：<strong>排序聚合</strong> 和 <strong>哈希聚合</strong>。查询优化器会根据数据量、内存大小、是否需要有序输出等因素选择最佳路径。</p>
+<h3 id="排序聚合"><a href="#排序聚合" class="headerlink" title="排序聚合"></a>排序聚合</h3><h4 id="原理解释"><a href="#原理解释" class="headerlink" title="原理解释"></a>原理解释</h4><p>这种方法非常直观，分为两步：</p>
+<ol>
+<li><strong>排序</strong>：首先，将所有数据按照 <code>GROUP BY</code>的键进行排序。这就像把一堆杂乱无章的卡片先按花色和点数排好序。<strong>内存排序</strong>：如果数据量小，可以直接在内存中用快速排序等算法完成。<strong>外存排序</strong>：如果数据量超过内存（缓冲区）容量，则使用<strong>外部归并排序</strong>算法，这是一种分批排序再归并的算法，能够处理海量数据。</li>
+<li><strong>扫描计算</strong>：排序后，所有相同键的元组会紧挨在一起。此时，DBMS 只需顺序扫描数据，每当遇到一个新的键，就知道前一个键的所有数据已经处理完毕，可以输出聚合结果了。</li>
+</ol>
+<h4 id="特点与优化"><a href="#特点与优化" class="headerlink" title="特点与优化"></a>特点与优化</h4><ul>
+<li><strong>输出有序</strong>：最大的优点是聚合结果的输出自然就是按照分组键排序的。如果查询后面有 <code>ORDER BY</code>子句，并且排序键和分组键一致，那么这个排序成本就省掉了。</li>
+<li><strong>优化策略</strong>：<strong>“筛选下推”</strong>。这是非常重要的优化原则。在执行聚合排序前，应尽早使用 <code>WHERE</code>条件过滤掉不相关的数据行。这样可以显著减少需要排序的数据量，降低 I&#x2F;O 和 CPU 开销。</li>
+</ul>
+<h4 id="拓展：适用场景"><a href="#拓展：适用场景" class="headerlink" title="拓展：适用场景"></a>拓展：适用场景</h4><ul>
+<li>当查询最终需要<strong>有序输出</strong>时（例如后面有 <code>ORDER BY ...</code>）。</li>
+<li>当数据<strong>本身已经接近有序</strong>或有合适的索引时（例如，在分组键上有索引，数据库可能直接使用索引来避免排序）。</li>
+<li>当需要产生<strong>支持排序的中间结果</strong>，以供后续查询操作（如 Merge Join）使用时。</li>
+</ul>
+<h3 id="哈希聚合"><a href="#哈希聚合" class="headerlink" title="哈希聚合"></a>哈希聚合</h3><h4 id="原理解释-1"><a href="#原理解释-1" class="headerlink" title="原理解释"></a>原理解释</h4><p>哈希聚合不进行排序，而是利用哈希表的高效查找特性（平均 O(1) 时间复杂度）来实时计算聚合值。</p>
+<ul>
+<li><strong>基本思想</strong>：DBMS 一边扫描数据，一边维护一个<strong>临时哈希表</strong>。这个哈希表的键是 <code>GROUP BY</code>的键，值是一个<strong>运行值</strong>，用于记录当前的聚合状态。</li>
+<li><strong>处理过程</strong>：对于每一行数据，计算其分组键的哈希值，然后在哈希表中查找：<strong>命中</strong>：如果找到相同的分组键，则直接更新该键对应的“运行值”（例如，<code>COUNT</code>加 1，<code>SUM</code>加上新值）。<strong>未命中</strong>：如果没找到，则在哈希表中插入一个新的条目（分组键 -&gt; 初始运行值）。</li>
+</ul>
+<h4 id="处理大数据集的分阶段（混合哈希）策略"><a href="#处理大数据集的分阶段（混合哈希）策略" class="headerlink" title="处理大数据集的分阶段（混合哈希）策略"></a>处理大数据集的分阶段（混合哈希）策略</h4><p>当数据量巨大，哈希表无法完全放入内存时，DBMS 采用一种“分而治之”的策略，通常包含两个阶段：</p>
+<p><strong>阶段一：分区</strong></p>
+<ul>
+<li><strong>目标</strong>：将大数据集分解成多个能放入内存的小分区。</li>
+<li><strong>方法</strong>：使用一个哈希函数 <strong>h1</strong> 将元组分散到不同的磁盘分区中。关键点在于：<strong>相同分组键的元组一定会被散列到同一个分区</strong>。</li>
+<li><strong>内存管理</strong>：假设有 B 个内存页（缓冲区），DBMS 会拿出 1 页来读取输入数据，剩下的 B-1 页分别作为 B-1 个分区的输出缓冲区。当某个缓冲区分区页满了，就将其写入磁盘。最终，原始数据被分割成 B-1 个磁盘文件（分区）。</li>
+</ul>
+<p><strong>阶段二：再哈希</strong></p>
+<ul>
+<li><strong>目标</strong>：逐个对分区进行聚合计算。</li>
+<li><strong>方法</strong>：依次将每个分区从磁盘读入内存。对于分区内的数据，使用<strong>另一个不同的哈希函数 h2</strong> 在内存中构建一个新的哈希表。然后按照基本的哈希聚合流程处理这个分区内的所有数据。</li>
+<li><strong>关键假设</strong>：这个策略假设<strong>每个分区的大小都能装入内存</strong>。由于阶段一确保了同一个分组的所有数据都在同一个分区，因此阶段二可以独立、正确地完成每个分区的聚合计算。</li>
+</ul>
+<p> <strong>拓展：“运行值”的智慧</strong></p>
+<ul>
+<li>哈希表存储的不是最终结果，而是<strong>中间状态</strong>。这对于不同的聚合函数是不同的：<code>COUNT</code>：运行值就是一个整数，每遇到一个匹配项就加 1。<code>SUM</code>：运行值也是一个数，不断累加。<code>AVG</code>：<strong>不能</strong>只存一个平均值。运行值通常是一个二元组 <code>(Count, Sum)</code>，最后再计算 <code>Sum / Count</code>。这是一种典型的用空间换准确性的设计。<code>MIN</code>&#x2F;<code>MAX</code>：运行值就是当前遇到的最小值或最大值。</li>
+</ul>
+<h3 id="总结对比与选择策略"><a href="#总结对比与选择策略" class="headerlink" title="总结对比与选择策略"></a>总结对比与选择策略</h3><table>
+<thead>
+<tr>
+<th align="center">特性</th>
+<th align="center">排序聚合</th>
+<th align="center">哈希聚合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>核心步骤</strong></td>
+<td align="center">先排序，后扫描</td>
+<td align="center">建哈希表，实时更新</td>
+</tr>
+<tr>
+<td align="center"><strong>输出顺序</strong></td>
+<td align="center"><strong>有序</strong>（按分组键）</td>
+<td align="center"><strong>无序</strong></td>
+</tr>
+<tr>
+<td align="center"><strong>内存不足时</strong></td>
+<td align="center">使用外部归并排序</td>
+<td align="center">使用混合哈希（分区+再哈希）</td>
+</tr>
+<tr>
+<td align="center"><strong>计算复杂度</strong></td>
+<td align="center">O(n log n)</td>
+<td align="center">**平均接近 O(n)**，更高效</td>
+</tr>
+<tr>
+<td align="center"><strong>适用场景</strong></td>
+<td align="center">1. 需要有序输出 2. 数据已预排序</td>
+<td align="center"><strong>默认首选</strong>，除非需要排序或数据已有序</td>
+</tr>
+</tbody></table>
+<p><strong>对于聚合操作，哈希法几乎总是比排序法更高效的，除非数据已经预先排好序，或者查询明确要求有序输出。</strong> 因为哈希的平均时间复杂度是线性的，而排序是线性对数的。现代数据库的查询优化器在大多数情况下都会优先选择哈希聚合。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/15445/" rel="tag"># 15445</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/08/19/CMU15445-2024fall-Lecture-10-Index-Concurrency-Control/" rel="prev" title="CMU15445(2024fall)-Lecture#10:Index Concurrency Control">
+      <i class="fa fa-chevron-left"></i> CMU15445(2024fall)-Lecture#10:Index Concurrency Control
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Query-Plan"><span class="nav-number">1.</span> <span class="nav-text">Query Plan</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Sorting"><span class="nav-number">2.</span> <span class="nav-text">Sorting</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Top-N-%E5%A0%86%E6%8E%92%E5%BA%8F"><span class="nav-number">2.1.</span> <span class="nav-text">Top-N 堆排序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%96%E9%83%A8%E5%BD%92%E5%B9%B6%E6%8E%92%E5%BA%8F-%E9%80%9A%E7%94%A8%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E6%8E%92%E5%BA%8F"><span class="nav-number">2.2.</span> <span class="nav-text">外部归并排序 - 通用大数据集排序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E8%B7%AF%E5%A4%96%E9%83%A8%E5%BD%92%E5%B9%B6"><span class="nav-number">2.3.</span> <span class="nav-text">两路外部归并</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8K%E8%B7%AF%E5%BD%92%E5%B9%B6%E6%8E%92%E5%BA%8F"><span class="nav-number">2.4.</span> <span class="nav-text">通用K路归并排序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8C%E7%BC%93%E5%86%B2%E4%BC%98%E5%8C%96"><span class="nav-number">2.5.</span> <span class="nav-text">双缓冲优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E6%AF%94%E4%BC%98%E5%8C%96"><span class="nav-number">2.6.</span> <span class="nav-text">对比优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%89%B9%E5%8C%96%EF%BC%88Code-Specialization%EF%BC%89"><span class="nav-number">2.6.1.</span> <span class="nav-text">代码特化（Code Specialization）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%90%8E%E7%BC%80%E6%88%AA%E6%96%AD%EF%BC%88Suffix-Truncation%EF%BC%89"><span class="nav-number">2.6.2.</span> <span class="nav-text">后缀截断（Suffix Truncation）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#B-%E6%A0%91%E6%8E%92%E5%BA%8F"><span class="nav-number">2.7.</span> <span class="nav-text">B+树排序</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95"><span class="nav-number">2.7.1.</span> <span class="nav-text">聚簇索引</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9D%9E%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95"><span class="nav-number">2.7.2.</span> <span class="nav-text">非聚簇索引</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E5%AF%B9%E6%AF%94"><span class="nav-number">2.7.3.</span> <span class="nav-text">核心概念对比</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Aggregations"><span class="nav-number">3.</span> <span class="nav-text">Aggregations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%92%E5%BA%8F%E8%81%9A%E5%90%88"><span class="nav-number">3.1.</span> <span class="nav-text">排序聚合</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E8%A7%A3%E9%87%8A"><span class="nav-number">3.1.1.</span> <span class="nav-text">原理解释</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="nav-number">3.1.2.</span> <span class="nav-text">特点与优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8B%93%E5%B1%95%EF%BC%9A%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">3.1.3.</span> <span class="nav-text">拓展：适用场景</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E8%81%9A%E5%90%88"><span class="nav-number">3.2.</span> <span class="nav-text">哈希聚合</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E8%A7%A3%E9%87%8A-1"><span class="nav-number">3.2.1.</span> <span class="nav-text">原理解释</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%84%E7%90%86%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%9A%84%E5%88%86%E9%98%B6%E6%AE%B5%EF%BC%88%E6%B7%B7%E5%90%88%E5%93%88%E5%B8%8C%EF%BC%89%E7%AD%96%E7%95%A5"><span class="nav-number">3.2.2.</span> <span class="nav-text">处理大数据集的分阶段（混合哈希）策略</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E5%AF%B9%E6%AF%94%E4%B8%8E%E9%80%89%E6%8B%A9%E7%AD%96%E7%95%A5"><span class="nav-number">3.3.</span> <span class="nav-text">总结对比与选择策略</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="布隆过滤器布隆过滤器是一种空间效率极高的概率型数据结构，用于判断一个元素是否在集合中。  可能存在假阳性（false positive）：报告元素存在但实际不存在 绝无假阴性（false negative）：如果报告不存在则一定不存在  工作原理 数据结构  位数组：长度为 m 的二进制数组（初始全为 0） 哈希函数：k 个独立的哈希函数（h₁, h₂, …, hₖ）   添加元素 1234def">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445(2024fall)-Lecture#9:Indexs &amp; Filters">
+<meta property="og:url" content="http://example.com/2025/08/18/CMU15445-2024fall-Lecture-9-Indexs-Filters/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="布隆过滤器布隆过滤器是一种空间效率极高的概率型数据结构，用于判断一个元素是否在集合中。  可能存在假阳性（false positive）：报告元素存在但实际不存在 绝无假阴性（false negative）：如果报告不存在则一定不存在  工作原理 数据结构  位数组：长度为 m 的二进制数组（初始全为 0） 哈希函数：k 个独立的哈希函数（h₁, h₂, …, hₖ）   添加元素 1234def">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-08-18T08:30:42.000Z">
+<meta property="article:modified_time" content="2025-10-23T03:31:25.234Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="15445">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/08/18/CMU15445-2024fall-Lecture-9-Indexs-Filters/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CMU15445(2024fall)-Lecture#9:Indexs & Filters | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/08/18/CMU15445-2024fall-Lecture-9-Indexs-Filters/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CMU15445(2024fall)-Lecture#9:Indexs & Filters
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-08-18 16:30:42" itemprop="dateCreated datePublished" datetime="2025-08-18T16:30:42+08:00">2025-08-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-10-23 11:31:25" itemprop="dateModified" datetime="2025-10-23T11:31:25+08:00">2025-10-23</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="布隆过滤器"><a href="#布隆过滤器" class="headerlink" title="布隆过滤器"></a>布隆过滤器</h2><p>布隆过滤器是一种空间效率极高的<strong>概率型数据结构</strong>，用于判断一个元素是否在集合中。</p>
+<ul>
+<li>可能存在<strong>假阳性</strong>（false positive）：报告元素存在但实际不存在</li>
+<li><strong>绝无假阴性</strong>（false negative）：如果报告不存在则一定不存在</li>
+</ul>
+<h3 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h3><ol>
+<li><p>数据结构</p>
+<ul>
+<li><strong>位数组</strong>：长度为 m 的二进制数组（初始全为 0）</li>
+<li><strong>哈希函数</strong>：k 个独立的哈希函数（h₁, h₂, …, hₖ）</li>
+</ul>
+</li>
+<li><p>添加元素</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">element</span>):</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(k):</span><br><span class="line">        position = hash_i(element) % m</span><br><span class="line">        set_bit(position)  <span class="comment"># 将对应位置设为 1</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>查询元素</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">contains</span>(<span class="params">element</span>):</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(k):</span><br><span class="line">        position = hash_i(element) % m</span><br><span class="line">        <span class="keyword">if</span> bit_array[position] == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span>  <span class="comment"># 一定不存在</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">True</span>  <span class="comment"># 可能存在（有概率误判）</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>删除元素</p>
+<p>原始的布隆过滤器不支持删除操作，后续的变种改进可以支持。</p>
+</li>
+</ol>
+<h3 id="变体与改进"><a href="#变体与改进" class="headerlink" title="变体与改进"></a>变体与改进</h3><h4 id="计数布隆过滤器"><a href="#计数布隆过滤器" class="headerlink" title="计数布隆过滤器"></a>计数布隆过滤器</h4><ul>
+<li>使用计数器数组替代位数组，空间开销会随之增加</li>
+<li>添加时计数器+1，删除时-1</li>
+<li>支持删除操作</li>
+</ul>
+<h4 id="布谷鸟过滤器"><a href="#布谷鸟过滤器" class="headerlink" title="布谷鸟过滤器"></a>布谷鸟过滤器</h4><p>工作原理：</p>
+<ol>
+<li><p>数据结构</p>
+<ul>
+<li>桶数组​​：由多个桶组成的数组</li>
+<li>指纹存储：每个桶存储固定数量的指纹（fingerprint）</li>
+<li>两个哈希函数：h₁ 和 h₂</li>
+</ul>
+</li>
+<li><p>指纹生成</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fingerprint = <span class="built_in">hash</span>(item) <span class="comment"># 短位串（通常4-12位）</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>位置计算</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">bucket1 = hash1(item) % size</span><br><span class="line">bucket2 = (bucket1 ⊕ <span class="built_in">hash</span>(fingerprint)) % size</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>插入算法</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">insert</span>(<span class="params">item</span>):</span><br><span class="line">    fp = fingerprint(item)</span><br><span class="line">    i1 = hash1(item) % size</span><br><span class="line">    i2 = (i1 ⊕ <span class="built_in">hash</span>(fp)) % size</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> bucket[i1] has space: </span><br><span class="line">        add fp to bucket[i1]</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">if</span> bucket[i2] has space:</span><br><span class="line">        add fp to bucket[i2]</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        </span><br><span class="line">    <span class="comment"># 踢出操作</span></span><br><span class="line">    randomly choose i1 <span class="keyword">or</span> i2</span><br><span class="line">    evict existing fp<span class="string">&#x27; from bucket</span></span><br><span class="line"><span class="string">    insert fp into bucket</span></span><br><span class="line"><span class="string">    reinsert evicted fp&#x27;</span> to its alternative bucket</span><br></pre></td></tr></table></figure>
+
+<p> 踢出机制（Cuckoo Kick）:</p>
+<ul>
+<li>当两个候选桶都满时，随机选择一个桶踢出现有指纹</li>
+<li>被踢出的指纹会被重新插入到它的另一个候选位置</li>
+<li>最大踢出次数限制（通常500次），超过则视为插入失败</li>
+</ul>
+</li>
+<li><p>查询算法</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">contains</span>(<span class="params">item</span>):</span><br><span class="line">    fp = fingerprint(item)</span><br><span class="line">    i1 = hash1(item) % size</span><br><span class="line">    i2 = (i1 ⊕ <span class="built_in">hash</span>(fp)) % size</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> (fp <span class="keyword">in</span> bucket[i1]) <span class="keyword">or</span> (fp <span class="keyword">in</span> bucket[i2])</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>删除算法</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">item</span>):</span><br><span class="line">    fp = fingerprint(item)</span><br><span class="line">    i1 = hash1(item) % size</span><br><span class="line">    i2 = (i1 ⊕ <span class="built_in">hash</span>(fp)) % size</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> fp <span class="keyword">in</span> bucket[i1]:</span><br><span class="line">        remove fp <span class="keyword">from</span> bucket[i1]</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">elif</span> fp <span class="keyword">in</span> bucket[i2]:</span><br><span class="line">        remove fp <span class="keyword">from</span> bucket[i2]</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="跳表"><a href="#跳表" class="headerlink" title="跳表"></a>跳表</h2><p>底层为完整有序链表（存储所有数据），上层为稀疏索引层，每层节点以概率性方式（如抛硬币）决定是否提升到更高层。</p>
+<p>概率上：</p>
+<ul>
+<li>第一层：存储所有节点</li>
+<li>第二层：存储1&#x2F;2的节点</li>
+<li>第三层：存储1&#x2F;4的节点</li>
+<li>… …</li>
+</ul>
+<p>从最高层索引开始，通过比较节点值快速缩小范围，逐层下降直至底层，实现近似二分查找的效率<code>O(log n)</code> 。</p>
+<h3 id="查找"><a href="#查找" class="headerlink" title="查找"></a>查找</h3><ol>
+<li>从最高层开始：从最高层的头节点开始，沿着水平指针向右移动，直到遇到大于目标值的节点或到达该层的末尾。</li>
+<li>向下移动：如果当前层没有找到目标值，则沿着垂直指针向下移动到下一层，重复上述步骤。</li>
+<li>继续查找：在每一层中重复这个过程，直到在最底层找到目标值或确定目标值不存在。</li>
+</ol>
+<h3 id="插入"><a href="#插入" class="headerlink" title="插入"></a>插入</h3><ol>
+<li>查找插入位置：首先按照查找过程找到应该插入的位置。</li>
+<li>随机决定层数：使用随机算法决定新节点的层数。例如，可以以50%的概率决定是否将新节点添加到上一层。</li>
+<li>创建新节点并更新指针：在每一层中创建新节点、更新指针，确保新节点被正确地链接到链表中。需缓存查找过程中每层的最后一个前驱节点。</li>
+</ol>
+<h3 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h3><ol>
+<li>查找要删除的节点；逐层删除；调整层数</li>
+<li>可以分为逻辑删除和物理删除<ul>
+<li>设置一个位来表明当前索引是否有效</li>
+<li>当确定没有其他线程在使用，就可以物理删除</li>
+</ul>
+</li>
+</ol>
+<h3 id="优劣"><a href="#优劣" class="headerlink" title="优劣"></a>优劣</h3><ul>
+<li>优点：比传统的B+树节省空间（不需要预留空间）、插入删除不需要重平衡</li>
+<li>缺点：磁盘I&#x2F;O不友好（跳表的节点随机分布）</li>
+</ul>
+<h2 id="前缀索引"><a href="#前缀索引" class="headerlink" title="前缀索引"></a>前缀索引</h2><h2 id="倒排索引"><a href="#倒排索引" class="headerlink" title="倒排索引"></a>倒排索引</h2><h2 id="向量索引"><a href="#向量索引" class="headerlink" title="向量索引"></a>向量索引</h2>
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/15445/" rel="tag"># 15445</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/05/09/CMU15445-2024fall-project-2-%E8%AE%B0%E5%BD%95/" rel="prev" title="CMU15445(2024fall)-project#2 记录">
+      <i class="fa fa-chevron-left"></i> CMU15445(2024fall)-project#2 记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/08/19/CMU15445-2024fall-Lecture-10-Index-Concurrency-Control/" rel="next" title="CMU15445(2024fall)-Lecture#10:Index Concurrency Control">
+      CMU15445(2024fall)-Lecture#10:Index Concurrency Control <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">布隆过滤器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">工作原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E4%BD%93%E4%B8%8E%E6%94%B9%E8%BF%9B"><span class="nav-number">1.2.</span> <span class="nav-text">变体与改进</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%A1%E6%95%B0%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">1.2.1.</span> <span class="nav-text">计数布隆过滤器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%83%E8%B0%B7%E9%B8%9F%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">1.2.2.</span> <span class="nav-text">布谷鸟过滤器</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%B3%E8%A1%A8"><span class="nav-number">2.</span> <span class="nav-text">跳表</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE"><span class="nav-number">2.1.</span> <span class="nav-text">查找</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E5%85%A5"><span class="nav-number">2.2.</span> <span class="nav-text">插入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4"><span class="nav-number">2.3.</span> <span class="nav-text">删除</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E5%8A%A3"><span class="nav-number">2.4.</span> <span class="nav-text">优劣</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E7%BC%80%E7%B4%A2%E5%BC%95"><span class="nav-number">3.</span> <span class="nav-text">前缀索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%80%92%E6%8E%92%E7%B4%A2%E5%BC%95"><span class="nav-number">4.</span> <span class="nav-text">倒排索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%91%E9%87%8F%E7%B4%A2%E5%BC%95"><span class="nav-number">5.</span> <span class="nav-text">向量索引</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

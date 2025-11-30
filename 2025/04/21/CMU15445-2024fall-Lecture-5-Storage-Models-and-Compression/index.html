@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Problem #1: How the DBMS represents the database in files on disk. Database Workload OLTP: Online Transaction Processing （联机事务处理）。特点：高频小型读写操作，事务量大、单次延迟低、更新频繁。场景：网购中用户可以在购物车中添加物品并进行购买，但这些操作只会影响他们的账户。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445(2024fall)-Lecture#5:Storage Models and Compression">
+<meta property="og:url" content="http://example.com/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="Problem #1: How the DBMS represents the database in files on disk. Database Workload OLTP: Online Transaction Processing （联机事务处理）。特点：高频小型读写操作，事务量大、单次延迟低、更新频繁。场景：网购中用户可以在购物车中添加物品并进行购买，但这些操作只会影响他们的账户。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-04-21T12:32:03.000Z">
+<meta property="article:modified_time" content="2025-04-23T03:12:21.859Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="15445">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CMU15445(2024fall)-Lecture#5:Storage Models and Compression | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CMU15445(2024fall)-Lecture#5:Storage Models and Compression
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-04-21 20:32:03" itemprop="dateCreated datePublished" datetime="2025-04-21T20:32:03+08:00">2025-04-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-23 11:12:21" itemprop="dateModified" datetime="2025-04-23T11:12:21+08:00">2025-04-23</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Problem #1: How the DBMS represents the database in files on disk.</p>
+<h2 id="Database-Workload"><a href="#Database-Workload" class="headerlink" title="Database Workload"></a>Database Workload</h2><ul>
+<li><p>OLTP: Online Transaction Processing （联机事务处理）。特点：高频小型读写操作，事务量大、单次延迟低、更新频繁。场景：网购中用户可以在购物车中添加物品并进行购买，但这些操作只会影响他们的账户。</p>
+</li>
+<li><p>OLAP: Online Analytical Processing （联机分析处理）。特点：大规模复杂查询，主要以读为主，聚合分析、多表联结、批处理操作。场景：网购平台分析从用户购物车和购物历史中收集的所有数据，然后为不同用户推荐不同的广告。</p>
+</li>
+<li><p>HTAP: Hybrid Transaction + Analytical Processing （混合事务分析处理）</p>
+</li>
+</ul>
+<h2 id="Storage-Models"><a href="#Storage-Models" class="headerlink" title="Storage Models"></a>Storage Models</h2><p>DBMS 的存储模型指定它如何在磁盘和内存中物理组织元组。对于不同的存储模型在不同的数据库工作负载中有不同的性能表现。</p>
+<h3 id="N-ary-Storage-Model-NSM"><a href="#N-ary-Storage-Model-NSM" class="headerlink" title="N-ary Storage Model(NSM)"></a>N-ary Storage Model(NSM)</h3><p><strong>N-Ary Storage Model</strong>，又叫<strong>行存储模型（Row Store）</strong>，是数据库表的传统存储方式。在 NSM 中，每一行（tuple &#x2F; record）作为一个整体被连续存储在磁盘或内存中，行内包含表的所有列数据。<strong>每一行是一个完整的存储单元，所有列的数据被打包存放</strong>。</p>
+<p>这种方法非常适合 <strong>OLTP</strong> ，因为在这种情况下请求的写入量很大，访问的大多是单个实体。它之所以理想，是因为只需一次获取就能获得单个元组的所有属性。NSM 页面通常是 4KB 硬件页面的某个恒定倍数。</p>
+<p>优点：</p>
+<ul>
+<li>快速插入、更新和删除</li>
+<li>可使用面向索引的物理存储进行集群</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>不利于扫描表的大部分和&#x2F;或属性子集。</li>
+<li>访问模式的内存位置性很差。</li>
+<li>由于单个页面中存在多个值域，因此不适合进行压缩。</li>
+</ul>
+<h3 id="Decomposition-Storage-Model（DSM）"><a href="#Decomposition-Storage-Model（DSM）" class="headerlink" title="Decomposition Storage Model（DSM）"></a>Decomposition Storage Model（DSM）</h3><p>DSM一般被称为：<strong>列存储模型（Column Store）</strong>。它的核心思想是：<strong>把表中的每一列分别独立存储</strong>，而不是像 NSM 那样按“行”连续存储。<strong>适合OLAP</strong>。</p>
+<p>优点：</p>
+<ul>
+<li>减少每次查询浪费的 I&#x2F;O 量，因为 DBMS 只读取查询所需的数据。</li>
+<li>由于增加了局部性和缓存数据的重复使用，因此查询处理效果更好（更快）。</li>
+<li>更好的数据压缩。</li>
+</ul>
+<p>缺点： </p>
+<ul>
+<li>由于元组分割&#x2F;缝合，元组查询、插入、更新和删除速度较慢。</li>
+</ul>
+<p>快速检索或重新拼接元组的方法：</p>
+<ul>
+<li><p>固定长度偏移。在这种情况下，给定列中的值将与处于相同偏移量的另一列中的值属于同一个元组。因此，列中的每个列中的每个值都必须具有相同的长度。</p>
+</li>
+<li><p>嵌入式元组 id（不推荐）。为列中的每个属性存储一个元组 ID（例如：主键）。然后，系统还会存储一个映射，告诉它如何跳转到具有该 id 的每个属性。请注意，这种方法的存储开销很大，因为它需要为每个属性条目存储一个元组 ID。</p>
+</li>
+</ul>
+<h3 id="Partition-Attributes-Across-PAX"><a href="#Partition-Attributes-Across-PAX" class="headerlink" title="Partition Attributes Across (PAX)"></a>Partition Attributes Across (PAX)</h3><p><strong>Partition Attributes Across</strong>跨属性划分存储，是一种<strong>页内列式存储、页间行式存储</strong>的模型。</p>
+<p>优点：</p>
+<ul>
+<li>在传统NSM中，读一列的所有值会带上很多不需要的字段，浪费缓存。而 PAX 的页内列式划分，能够大幅提高 CPU cache 的利用效率。</li>
+<li>每页内相同列的数据集中存储，压缩算法（如RLE）效果更好。</li>
+</ul>
+<h2 id="Compression"><a href="#Compression" class="headerlink" title="Compression"></a>Compression</h2><p>压缩设计原则：</p>
+<ul>
+<li>必须产生固定长度的值。快速通过偏移量定位数据，优化CPU缓存访问，兼容字对齐。</li>
+<li>支持延迟解压。在查询执行计划中，只有真正需要用到数据（如返回给用户或计算聚合）时，才进行解压。 Late Materialization（延迟物化）</li>
+<li>必须是无损压缩。数据完整性保障，不能在存储层丢失精度，任何有损压缩应留给应用层处理。</li>
+</ul>
+<p>压缩粒度：</p>
+<table>
+<thead>
+<tr>
+<th align="center">粒度等级</th>
+<th align="center">说明</th>
+<th align="center">特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>Tuple-level（元组级）</strong></td>
+<td align="center">每一行单独压缩</td>
+<td align="center">灵活，但压缩率低</td>
+</tr>
+<tr>
+<td align="center"><strong>Page-level（页级）</strong></td>
+<td align="center">每页（通常4KB-8KB）作为压缩单位</td>
+<td align="center">常见于行存储，压缩率较高，解压局部性好</td>
+</tr>
+<tr>
+<td align="center"><strong>Block-level（块级）</strong></td>
+<td align="center">多页或特定大小的数据块（如 Parquet 的 RowGroup）</td>
+<td align="center">压缩率高，但解压成本较大</td>
+</tr>
+<tr>
+<td align="center"><strong>Column-level（列级）</strong></td>
+<td align="center">某一列的一段连续数据压缩</td>
+<td align="center">非常适合列存储，压缩率最高</td>
+</tr>
+</tbody></table>
+<h2 id="Columnar-Compression"><a href="#Columnar-Compression" class="headerlink" title="Columnar Compression"></a>Columnar Compression</h2><table>
+<thead>
+<tr>
+<th align="center">压缩方式</th>
+<th align="center">说明</th>
+<th align="center">适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>Run-Length Encoding (RLE)</strong></td>
+<td align="center">连续相同的值用 (Value, Count) 表示</td>
+<td align="center">有大量重复值的列（如性别、状态码）</td>
+</tr>
+<tr>
+<td align="center"><strong>Dictionary Encoding</strong></td>
+<td align="center">用一个索引表将字符串替换成短编号，存储编号</td>
+<td align="center">字符串或离散值较多的列</td>
+</tr>
+<tr>
+<td align="center"><strong>Delta Encoding</strong></td>
+<td align="center">只存储数值变化的“差值”</td>
+<td align="center">连续递增&#x2F;时间戳&#x2F;ID字段</td>
+</tr>
+<tr>
+<td align="center"><strong>Bit-Packing</strong></td>
+<td align="center">用尽可能少的二进制位来存储数值，节省空间</td>
+<td align="center">数值范围已知、稀疏分布的数据</td>
+</tr>
+<tr>
+<td align="center"><strong>Bitmap Encoding</strong></td>
+<td align="center">为每个不同取值创建一个 bit vector用于表示特定值</td>
+<td align="center">取值低基数</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Bit-Packing ：可以有少量值远大于要压缩成的范围时，使用特殊标识表明要去另一个表中检索。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/15445/" rel="tag"># 15445</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/03/27/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Ashared-mutex/" rel="prev" title="C++标准库-并发：shared_mutex">
+      <i class="fa fa-chevron-left"></i> C++标准库-并发：shared_mutex
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/" rel="next" title="CMU15445(2024fall)-Lecture#7:Hashtables">
+      CMU15445(2024fall)-Lecture#7:Hashtables <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Database-Workload"><span class="nav-number">1.</span> <span class="nav-text">Database Workload</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Storage-Models"><span class="nav-number">2.</span> <span class="nav-text">Storage Models</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#N-ary-Storage-Model-NSM"><span class="nav-number">2.1.</span> <span class="nav-text">N-ary Storage Model(NSM)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Decomposition-Storage-Model%EF%BC%88DSM%EF%BC%89"><span class="nav-number">2.2.</span> <span class="nav-text">Decomposition Storage Model（DSM）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Partition-Attributes-Across-PAX"><span class="nav-number">2.3.</span> <span class="nav-text">Partition Attributes Across (PAX)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Compression"><span class="nav-number">3.</span> <span class="nav-text">Compression</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Columnar-Compression"><span class="nav-number">4.</span> <span class="nav-text">Columnar Compression</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

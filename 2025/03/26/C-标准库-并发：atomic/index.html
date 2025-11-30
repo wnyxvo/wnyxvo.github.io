@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="可见性在多线程编程中，可见性（Visibility） 指一个线程对共享数据的修改能够被其他线程及时感知的特性。本质来源于现代计算机的多级缓存架构和编译器的指令重排序优化： 1. 硬件层面：CPU 缓存不一致性 多核 CPU 的缓存结构：每个 CPU 核心有独立缓存（L1&#x2F;L2），共享 L3 缓存和主内存。 写缓冲区（Store Buffer）：CPU 不会直接写入主存，而是先写入缓冲区，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++标准库-并发：atomic">
+<meta property="og:url" content="http://example.com/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="可见性在多线程编程中，可见性（Visibility） 指一个线程对共享数据的修改能够被其他线程及时感知的特性。本质来源于现代计算机的多级缓存架构和编译器的指令重排序优化： 1. 硬件层面：CPU 缓存不一致性 多核 CPU 的缓存结构：每个 CPU 核心有独立缓存（L1&#x2F;L2），共享 L3 缓存和主内存。 写缓冲区（Store Buffer）：CPU 不会直接写入主存，而是先写入缓冲区，">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-26T13:08:29.000Z">
+<meta property="article:modified_time" content="2025-03-27T08:14:33.466Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>C++标准库-并发：atomic | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          C++标准库-并发：atomic
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-03-26 21:08:29" itemprop="dateCreated datePublished" datetime="2025-03-26T21:08:29+08:00">2025-03-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-03-27 16:14:33" itemprop="dateModified" datetime="2025-03-27T16:14:33+08:00">2025-03-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h2><p>在多线程编程中，<strong>可见性（Visibility）</strong> 指一个线程对共享数据的修改能够被其他线程及时感知的特性。本质来源于现代计算机的<strong>多级缓存架构</strong>和编译器的<strong>指令重排序优化</strong>：</p>
+<h4 id="1-硬件层面：CPU-缓存不一致性"><a href="#1-硬件层面：CPU-缓存不一致性" class="headerlink" title="1. 硬件层面：CPU 缓存不一致性"></a>1. <strong>硬件层面：CPU 缓存不一致性</strong></h4><ul>
+<li><strong>多核 CPU 的缓存结构</strong>：每个 CPU 核心有独立缓存（L1&#x2F;L2），共享 L3 缓存和主内存。</li>
+<li><strong>写缓冲区（Store Buffer）</strong>：CPU 不会直接写入主存，而是先写入缓冲区，异步刷回内存。</li>
+<li><strong>导致问题</strong>：线程 A 修改数据后，可能仅更新了本地缓存，未同步到主存，线程 B 读取旧值。</li>
+</ul>
+<h4 id="2-编译器-运行时层面：指令重排序"><a href="#2-编译器-运行时层面：指令重排序" class="headerlink" title="2. 编译器&#x2F;运行时层面：指令重排序"></a>2. <strong>编译器&#x2F;运行时层面：指令重排序</strong></h4><ul>
+<li><strong>优化重排序</strong>：编译器或 CPU 为了提高性能，可能调整指令顺序（如先读后写）。</li>
+<li><strong>导致问题</strong>：代码书写顺序 ≠ 实际执行顺序，其他线程观测到不一致状态。</li>
+</ul>
+<p>可见性关注的是数据更新的传播，而原子性关注的是操作的不可分割性。</p>
+<p><strong>强制可见性的解决方案</strong>：</p>
+<ul>
+<li>使用原子操作（<code>std::atomic</code>）：原子变量会插入<strong>内存屏障（Memory Barrier）</strong>，阻止重排序并强制缓存同步。</li>
+<li>使用原子操作（<code>std::atomic</code>）：锁的加&#x2F;解锁操作隐含内存屏障。</li>
+<li>使用 <code>volatile</code>（有限场景）：阻止编译器优化，但<strong>不解决 CPU 缓存一致性问题</strong>。<code>volatile</code> <strong>不能替代原子变量或锁</strong>，无法保证多线程安全。</li>
+</ul>
+<h2 id="std-atomic"><a href="#std-atomic" class="headerlink" title="std::atomic"></a>std::atomic</h2><p><code>std::atomic</code> 是 C++11 引入的用于实现<strong>原子操作（Atomic Operation）</strong>的模板类，主要用于并发编程。 它能够在无锁（lock-free）或最小锁的情况下，保证线程安全地读写变量，避免数据竞争（Data Race）。</p>
+<p>关键特性：</p>
+<ul>
+<li><strong>线程安全</strong>：多个线程同时访问不会导致未定义行为。</li>
+<li><strong>无锁（Lock-Free）</strong>：如果底层硬件支持，<code>std::atomic</code> 会使用 CPU 指令实现无锁操作。</li>
+<li><strong>内存顺序</strong>：支持不同的<strong>内存顺序模型（Memory Order Models）</strong>。</li>
+</ul>
+<p><strong>无锁：</strong>是一种并发编程的设计模式，旨在避免使用传统的锁（lock）（如 <code>std::mutex</code>），从而减少线程阻塞、上下文切换，提升程序的并发性能。</p>
+<p><strong>常见操作:</strong></p>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>函数</strong></th>
+<th align="center"><strong>描述</strong></th>
+<th align="center"><strong>示例</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><code>load()</code></td>
+<td align="center">原子读取当前值</td>
+<td align="center"><code>int x = a.load();</code></td>
+</tr>
+<tr>
+<td align="center"><code>store()</code></td>
+<td align="center">原子存储新值</td>
+<td align="center"><code>a.store(42);</code></td>
+</tr>
+<tr>
+<td align="center"><code>exchange()</code></td>
+<td align="center">原子交换值，返回旧值</td>
+<td align="center"><code>int old = a.exchange(100);</code></td>
+</tr>
+<tr>
+<td align="center"><code>compare_exchange_weak()</code></td>
+<td align="center">弱式 CAS，可能会意外失败</td>
+<td align="center"><code>a.compare_exchange_weak(expected, 10)</code></td>
+</tr>
+<tr>
+<td align="center"><code>compare_exchange_strong()</code></td>
+<td align="center">强式 CAS，持续尝试直到成功</td>
+<td align="center"><code>a.compare_exchange_strong(expected, 10)</code></td>
+</tr>
+<tr>
+<td align="center"><code>fetch_add()</code></td>
+<td align="center">原子加法，返回旧值</td>
+<td align="center"><code>a.fetch_add(1);</code></td>
+</tr>
+<tr>
+<td align="center"><code>fetch_sub()</code></td>
+<td align="center">原子减法，返回旧值</td>
+<td align="center"><code>a.fetch_sub(1);</code></td>
+</tr>
+<tr>
+<td align="center"><code>fetch_or()</code></td>
+<td align="center">原子或</td>
+<td align="center"><code>a.fetch_or(0x01);</code></td>
+</tr>
+<tr>
+<td align="center"><code>fetch_and()</code></td>
+<td align="center">原子与</td>
+<td align="center"><code>a.fetch_and(0x01);</code></td>
+</tr>
+</tbody></table>
+<p>**内存顺序模型: **在并发编程中，内存顺序模型（Memory Order Model）定义了多个线程在读写共享内存时的可见性规则和指令重排行为。</p>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>内存顺序</strong></th>
+<th align="center"><strong>关键词</strong></th>
+<th align="center"><strong>描述</strong></th>
+<th align="center"><strong>适用场景</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><code>memory_order_relaxed</code></td>
+<td align="center"><strong>无序模型</strong></td>
+<td align="center">不提供顺序保证，只保证原子性</td>
+<td align="center">性能优先，对顺序无要求的场景</td>
+</tr>
+<tr>
+<td align="center"><code>memory_order_consume</code></td>
+<td align="center"><strong>消费模型</strong></td>
+<td align="center">只保证数据依赖顺序，编译器不常用</td>
+<td align="center">读取依赖少，现代编译器几乎不实现</td>
+</tr>
+<tr>
+<td align="center"><code>memory_order_acquire</code></td>
+<td align="center"><strong>获取模型</strong></td>
+<td align="center">保证之前的读写顺序，但之后的操作可重排</td>
+<td align="center">线程读取同步，适用于“获取”数据场景</td>
+</tr>
+<tr>
+<td align="center"><code>memory_order_release</code></td>
+<td align="center"><strong>释放模型</strong></td>
+<td align="center">保证之后的读写顺序，但之前的操作可重排</td>
+<td align="center">线程写入同步，适用于“发布”数据场景</td>
+</tr>
+<tr>
+<td align="center"><code>memory_order_acq_rel</code></td>
+<td align="center"><strong>获取-释放模型</strong></td>
+<td align="center">结合 Acquire 和 Release，双向屏障</td>
+<td align="center">线程同步，适用于读写混合场景</td>
+</tr>
+<tr>
+<td align="center"><code>memory_order_seq_cst</code></td>
+<td align="center"><strong>严格顺序一致模型</strong></td>
+<td align="center">全局严格顺序，所有线程看到相同的顺序</td>
+<td align="center">最安全但最慢，适用于高可靠性场景</td>
+</tr>
+</tbody></table>
+<ul>
+<li><code>memory_order_acquire</code>（获取语义）: 在原子操作之后的所有内存读写操作（非原子操作）<strong>不会被重排序到该原子操作之前</strong>。确保当前线程能看到其他线程通过 <code>release</code> 操作之前的所有修改。</li>
+<li><code>memory_order_release</code>（释放语义）: 在原子操作之前的所有内存读写操作（非原子操作）<strong>不会被重排序到该原子操作之后</strong>。确保当前线程的修改对其他线程的 <code>acquire</code> 操作可见。</li>
+</ul>
+<p>同步原理：<code>release</code> 操作会在原子写之前插入<strong>释放屏障</strong>（防止之前的操作被重排到写之后）。<code>acquire</code> 操作会在原子读之后插入<strong>获取屏障</strong>（防止之后的操作被重排到读之前）。这种配对形成了一个「同步点」，确保共享数据的可见性。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> data = <span class="number">0</span>;</span><br><span class="line"><span class="function">std::atomic&lt;<span class="type">bool</span>&gt; <span class="title">flag</span><span class="params">(<span class="literal">false</span>)</span></span>;  <span class="comment">// 原子标志位</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_A</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    data = <span class="number">42</span>;                          <span class="comment">// 1. 写入非原子数据</span></span><br><span class="line">    flag.<span class="built_in">store</span>(<span class="literal">true</span>, std::memory_order_release);  <span class="comment">// 2. 发布标志位（release）</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_B</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (!flag.<span class="built_in">load</span>(std::memory_order_acquire)) &#123;&#125; <span class="comment">// 3. 等待标志位（acquire）</span></span><br><span class="line">    <span class="built_in">assert</span>(data == <span class="number">42</span>);                  <span class="comment">// 4. 断言成立：data 的值一定为 42</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">(thread_A)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">t2</span><span class="params">(thread_B)</span></span>;</span><br><span class="line">    t1.<span class="built_in">join</span>();</span><br><span class="line">    t2.<span class="built_in">join</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="CAS（Compare-And-Swap，比较并交换）"><a href="#CAS（Compare-And-Swap，比较并交换）" class="headerlink" title="CAS（Compare-And-Swap，比较并交换）"></a>CAS（Compare-And-Swap，比较并交换）</h2><p><strong>CAS（Compare-And-Swap）</strong> 是一种用于<strong>实现原子操作</strong>的并发原语，广泛应用于无锁（lock-free）数据结构中。它通过硬件指令原子地完成三个操作：</p>
+<ol>
+<li><strong>比较（Compare）</strong>：检查内存中当前的值是否等于期望值（<code>expected</code>）。</li>
+<li><strong>交换（Swap）</strong>：如果相等，则将内存中的值替换为新值（<code>desired</code>）。</li>
+<li><strong>返回结果</strong>：返回是否成功交换。</li>
+</ol>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">compare_exchange_strong</span><span class="params">(T&amp; expected, T desired, memory_order success, memory_order failure)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将当前值与<code>expected</code>期望值按位对比，相等就将当前值换为<code>desired</code>值，不相等就将<code>expected</code>值变为当前值。</p>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>属性</strong></th>
+<th align="center"><strong>compare_exchange_strong</strong></th>
+<th align="center"><strong>compare_exchange_weak</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>伪失败（spurious failure）</strong></td>
+<td align="center"><strong>不会</strong>产生伪失败（除非硬件故障）</td>
+<td align="center"><strong>可能</strong>产生伪失败，即使值相同也可能返回 <code>false</code></td>
+</tr>
+<tr>
+<td align="center"><strong>是否必须用于循环重试</strong></td>
+<td align="center"><strong>不需要</strong>，失败表示值真的不同</td>
+<td align="center"><strong>需要</strong>，因为可能由于伪失败需要多次重试</td>
+</tr>
+<tr>
+<td align="center"><strong>性能</strong></td>
+<td align="center"><strong>略低</strong>，因为需要避免伪失败</td>
+<td align="center"><strong>略高</strong>，更适合用于循环中</td>
+</tr>
+<tr>
+<td align="center"><strong>适用场景</strong></td>
+<td align="center"><strong>单次交换</strong>，例如某些一次性操作</td>
+<td align="center"><strong>循环重试</strong>，例如无锁（lock-free）数据结构</td>
+</tr>
+</tbody></table>
+<p><strong>为什么会有伪失败？</strong></p>
+<ul>
+<li><strong>伪失败（spurious failure）</strong> 是<strong>硬件层面</strong>或<strong>编译器优化</strong>造成的现象。</li>
+<li>在一些 CPU 架构（如 ARM）上，<strong>weak</strong> 版本的 CAS 指令为了优化性能，可能在没有实际数据竞争的情况下也返回失败。</li>
+<li>解决方法：在无锁（lock-free）结构中，使用循环重试。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>场景</strong></th>
+<th align="center"><strong>推荐使用</strong></th>
+<th align="center"><strong>原因</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>一次性交换，性能不敏感</strong></td>
+<td align="center"><code>compare_exchange_strong</code></td>
+<td align="center">不会有伪失败，简单明了</td>
+</tr>
+<tr>
+<td align="center"><strong>高频率交换，需高性能</strong></td>
+<td align="center"><code>compare_exchange_weak</code></td>
+<td align="center">可能有伪失败，但整体性能更高</td>
+</tr>
+<tr>
+<td align="center"><strong>无锁（lock-free）数据结构</strong></td>
+<td align="center"><code>compare_exchange_weak</code> + 循环</td>
+<td align="center">在循环中重试，优化高并发场景</td>
+</tr>
+</tbody></table>
+<p><strong>ABA 问题</strong>是 CAS 的常见陷阱:</p>
+<p>场景：</p>
+<ul>
+<li>线程 <strong>T1</strong> 读取了共享变量的值 <strong>A</strong>。</li>
+<li>在 <strong>T1</strong> 进行 CAS 操作之前，另一个线程 <strong>T2</strong> 将该值从 <strong>A → B → A</strong>。</li>
+<li>当 <strong>T1</strong> 再次比较时，发现值依然是 <strong>A</strong>，以为它从未改变，于是继续执行<strong>错误逻辑</strong>。</li>
+</ul>
+<p>解决：</p>
+<ul>
+<li>版本号（Version Tagging）：每次修改共享值时，增加一个版本号，确保每次 CAS 比较时同时检查版本号和值。</li>
+<li>用指针或高位地址（Tagged Pointer）：在 64 位系统中，指针通常低位对齐，可用高位或额外空间存储版本信息。</li>
+</ul>
+<h2 id="无锁栈示例"><a href="#无锁栈示例" class="headerlink" title="无锁栈示例"></a>无锁栈示例</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Node</span> &#123;</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">    Node* next;</span><br><span class="line">    <span class="built_in">Node</span>(<span class="type">int</span> d) : <span class="built_in">data</span>(d), <span class="built_in">next</span>(<span class="literal">nullptr</span>) &#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">std::atomic&lt;Node*&gt; <span class="title">head</span><span class="params">(<span class="literal">nullptr</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(<span class="type">int</span> value)</span> </span>&#123;</span><br><span class="line">    Node* new_node = <span class="keyword">new</span> <span class="built_in">Node</span>(value);</span><br><span class="line">    new_node-&gt;next = head.<span class="built_in">load</span>(); </span><br><span class="line">    <span class="comment">// 使用 CAS 原子操作</span></span><br><span class="line">    <span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(new_node-&gt;next, new_node)) &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">pop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Node* old_head = head.<span class="built_in">load</span>();</span><br><span class="line">    <span class="keyword">while</span> (old_head &amp;&amp; !head.<span class="built_in">compare_exchange_weak</span>(old_head, old_head-&gt;next)) &#123;&#125;</span><br><span class="line">    <span class="type">int</span> value = old_head ? old_head-&gt;data : <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">delete</span> old_head;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C++</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/" rel="prev" title="CMU15445(2024fall)-project#1 记录">
+      <i class="fa fa-chevron-left"></i> CMU15445(2024fall)-project#1 记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/03/27/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Ashared-mutex/" rel="next" title="C++标准库-并发：shared_mutex">
+      C++标准库-并发：shared_mutex <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E8%A7%81%E6%80%A7"><span class="nav-number">1.</span> <span class="nav-text">可见性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%A1%AC%E4%BB%B6%E5%B1%82%E9%9D%A2%EF%BC%9ACPU-%E7%BC%93%E5%AD%98%E4%B8%8D%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">1.0.1.</span> <span class="nav-text">1. 硬件层面：CPU 缓存不一致性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E7%BC%96%E8%AF%91%E5%99%A8-%E8%BF%90%E8%A1%8C%E6%97%B6%E5%B1%82%E9%9D%A2%EF%BC%9A%E6%8C%87%E4%BB%A4%E9%87%8D%E6%8E%92%E5%BA%8F"><span class="nav-number">1.0.2.</span> <span class="nav-text">2. 编译器&#x2F;运行时层面：指令重排序</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#std-atomic"><span class="nav-number">2.</span> <span class="nav-text">std::atomic</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CAS%EF%BC%88Compare-And-Swap%EF%BC%8C%E6%AF%94%E8%BE%83%E5%B9%B6%E4%BA%A4%E6%8D%A2%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">CAS（Compare-And-Swap，比较并交换）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A0%E9%94%81%E6%A0%88%E7%A4%BA%E4%BE%8B"><span class="nav-number">4.</span> <span class="nav-text">无锁栈示例</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

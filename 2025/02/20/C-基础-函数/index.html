@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。和 于仕琪 快速学习 C 和 C++  函数基础局部对象在C++中，名字有作用域，对象有生命周期。  名字的作用域是程序文本的一部分，名字在其中可见。 对象的生命周期是程序执行过程中">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++基础-函数">
+<meta property="og:url" content="http://example.com/2025/02/20/C-%E5%9F%BA%E7%A1%80-%E5%87%BD%E6%95%B0/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。和 于仕琪 快速学习 C 和 C++  函数基础局部对象在C++中，名字有作用域，对象有生命周期。  名字的作用域是程序文本的一部分，名字在其中可见。 对象的生命周期是程序执行过程中">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-20T09:04:01.000Z">
+<meta property="article:modified_time" content="2025-05-09T13:28:49.963Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/02/20/C-%E5%9F%BA%E7%A1%80-%E5%87%BD%E6%95%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>C++基础-函数 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/02/20/C-%E5%9F%BA%E7%A1%80-%E5%87%BD%E6%95%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          C++基础-函数
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-02-20 17:04:01" itemprop="dateCreated datePublished" datetime="2025-02-20T17:04:01+08:00">2025-02-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-05-09 21:28:49" itemprop="dateModified" datetime="2025-05-09T21:28:49+08:00">2025-05-09</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本章内容来自《C++ Primer》、<a target="_blank" rel="noopener" href="https://github.com/applenob/Cpp_Primer_Practice">GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。</a>和 <a target="_blank" rel="noopener" href="https://github.com/ShiqiYu/CPP">于仕琪 快速学习 C 和 C++</a></p>
+</blockquote>
+<h2 id="函数基础"><a href="#函数基础" class="headerlink" title="函数基础"></a>函数基础</h2><h3 id="局部对象"><a href="#局部对象" class="headerlink" title="局部对象"></a>局部对象</h3><p>在C++中，名字有作用域，对象有生命周期。</p>
+<ul>
+<li>名字的作用域是程序文本的一部分，名字在其中可见。</li>
+<li>对象的生命周期是程序执行过程中该对象存在的一段时间。</li>
+</ul>
+<p><strong>局部变量</strong>（local variable）：形参和函数体内部定义的变量统称为局部变量。它对函数而言是局部的，对函数外部而言是不可见的。局部变量的生命周期取决于定义方式。</p>
+<p><strong>自动对象</strong>：只存在于块执行期间的对象。当块的执行结束后，它的值就变成未定义的了。函数的形参就是一种自动对象，一旦函数终止，形参就会被销毁。</p>
+<p><strong>局部静态对象</strong>： <code>static</code>类型的局部变量，生命周期贯穿函数调用前后，在函数外仍然是不可见的。局部静态对象只在执行路径第一次经过对象定义语句时初始化，可以用来统计一个函数被调用的次数。</p>
+<h3 id="函数声明"><a href="#函数声明" class="headerlink" title="函数声明"></a>函数声明</h3><p>函数在使用前必须声明，可以多次声明。一个典型的文件结构：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// example.h</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> _EXAMPLE_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _EXAMPLE_H</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">example</span><span class="params">(<span class="type">int</span> x1, <span class="type">int</span> x2)</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// example.cpp</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;example.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">example</span><span class="params">(<span class="type">int</span> x1, <span class="type">int</span> x2)</span>&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main.cpp</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;example.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    example(<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>头文件中的预处理指令是为了防止重复声明。</p>
+<p>为了方便维护，项目中一般要使用<strong>分离式编译</strong>，多个文件各自编译，再链接。如果我们改动了一个源文件，那么只要重新编译改动的文件。在使用编译器时使用 <code>-C</code>，只编译不链接，生成<code>.obj/.o</code>文件。</p>
+<h3 id="参数传递"><a href="#参数传递" class="headerlink" title="参数传递"></a>参数传递</h3><p>两种传参方式：值传递（passed by value）、<strong>引用传递</strong>（passed by reference）。建议使用引用传递代替指针形参。</p>
+<p>使用引用避免拷贝。如果函数无须改变形参的值，最好将其声明为常量引用。被常量引用（<code>const &amp;</code>）引用的参数在引用的作用域内不能被修改，但如果它本身是一个可变的变量，它仍然可以在其他作用域被修改。</p>
+<p>当函数返回值较大或想要多个返回值时，可以使用引用形参返回，这样可以避免拷贝。</p>
+<p>不能将普通引用绑定到 const 对象：所以要<strong>尽量使用常量引用</strong>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">reset</span><span class="params">(<span class="type">int</span> &amp;i)</span>&#123;</span><br><span class="line">	i++;</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line"><span class="type">const</span> <span class="type">int</span> ci = i;</span><br><span class="line">reset(ci);	<span class="comment">// error</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="数组形参"><a href="#数组形参" class="headerlink" title="数组形参"></a>数组形参</h4><p>数组不允许拷贝和赋值，所以为函数传递一个数组时，实际上传递的是指向数组首元素的指针。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">print</span><span class="params">(<span class="type">const</span> <span class="type">int</span>*)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">print</span><span class="params">(<span class="type">const</span> <span class="type">int</span>[])</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">print</span><span class="params">(<span class="type">const</span> <span class="type">int</span>[<span class="number">10</span>])</span>; 	<span class="comment">// 这里的维度表示期望数组含有多少元素</span></span><br></pre></td></tr></table></figure>
+
+<p>数组是以指针的形式传递给函数，函数一开始并不知道数组的尺寸。管理指针形参有三种常用技术：</p>
+<ul>
+<li>使用标记指定数组长度。要求数组本身包含一个介绍标记，如 C 风格字符串。</li>
+<li>使用标准库规范。传递指向数组首元素和尾后元素的指针。</li>
+<li>显示传递一个表示数组大小的形参。</li>
+</ul>
+<h4 id="可变形参"><a href="#可变形参" class="headerlink" title="可变形参"></a>可变形参</h4><ul>
+<li><code>initializer_list</code></li>
+<li>省略形参符： <code>...</code>，便于<code>C++</code>访问某些C代码，这些C代码使用了 <code>varargs</code>的C标准功能。</li>
+</ul>
+<h3 id="返回类型和-return-语句"><a href="#返回类型和-return-语句" class="headerlink" title="返回类型和 return 语句"></a>返回类型和 return 语句</h3><ul>
+<li>值的返回：返回的值用于初始化调用点的一个<strong>临时量</strong>，该临时量就是函数调用的结果。</li>
+</ul>
+<ul>
+<li><strong>引用返回左值</strong>：函数的返回类型决定函数调用是否是左值。调用一个返回引用的函数得到左值；其他返回类型得到右值。</li>
+<li><strong>列表初始化返回值</strong>：函数可以返回花括号包围的值的列表。（<code>C++11</code>）</li>
+</ul>
+<h4 id="返回数组指针"><a href="#返回数组指针" class="headerlink" title="返回数组指针"></a>返回数组指针</h4><ul>
+<li><p>声明一个返回数组指针的函数，函数的形参列表跟在函数名称后面且形参列表应该先于数组的维度</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Type (*function(parameter_list))[dimension]</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>尾置返回类型</strong>： 在形参列表后面以一个<code>-&gt;</code>开始：<code>auto func(int i) -&gt; int(*)[10]</code>（<code>C++11</code>）</p>
+</li>
+</ul>
+<ul>
+<li>使用 <code>decltype</code>： <code>decltype(odd) *arrPtr(int i) &#123;...&#125;</code>。这个要知道函数返回哪个数组。</li>
+</ul>
+<h3 id="内联函数"><a href="#内联函数" class="headerlink" title="内联函数"></a>内联函数</h3><p><code>inline</code>只是建议编译器优化，加或不加编译器都有可能优化或不优化。</p>
+<p><strong>内联函数与宏的区别：宏不安全</strong></p>
+<ul>
+<li>宏是预处理指令，由预处理器完成文本替换。</li>
+<li>类型安全： 内联函数具有类型检查，宏则没有。内联函数会在编译时进行类型检查，而宏只是简单的文本替换，不关心类型。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_MACRO(a, b) (a)&gt;(b) ? (a) : (b)</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> num1 = <span class="number">20</span>;</span><br><span class="line"><span class="type">int</span> num2 = <span class="number">30</span>;</span><br><span class="line"><span class="type">int</span> maxv = MAX_MACRO(num1++, num2++);	<span class="comment">// (num1++)&gt;(num2++) ? (num1++) : (num2++)</span></span><br><span class="line"><span class="built_in">cout</span> &lt;&lt; maxv &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line"><span class="built_in">cout</span> &lt;&lt; <span class="string">&quot;num1=&quot;</span> &lt;&lt; num1 &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line"><span class="built_in">cout</span> &lt;&lt; <span class="string">&quot;num2=&quot;</span> &lt;&lt; num2 &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line"><span class="comment">// 产生的后果不符合预期，较大的值会被加两次</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_MACRO(a, b) a&gt;b ? a : b</span></span><br><span class="line">num1 = <span class="number">0xAB09</span>;</span><br><span class="line">num2 = <span class="number">0xEF08</span>;</span><br><span class="line">maxv = MAX_MACRO(num1&amp;<span class="number">0xFF</span>, num2&amp;<span class="number">0xFF</span>);	<span class="comment">// 0xAB09&amp;0xFF&gt;0xEF08&amp;0xFF ? 0xAB09&amp;0xFF : 0xEF08&amp;0xFF</span></span><br><span class="line"><span class="built_in">cout</span> &lt;&lt; maxv &lt;&lt; <span class="built_in">endl</span>;				    <span class="comment">// &gt;的优先级跟高，0xAB09&amp;(0xFF&gt;0xEF08)&amp;0xFF</span></span><br></pre></td></tr></table></figure>
+
+<p>内联函数的适用场景：短小的、频繁调用的函数</p>
+<h3 id="函数重载"><a href="#函数重载" class="headerlink" title="函数重载"></a>函数重载</h3><p><strong>重载</strong>：如果同一作用域内几个<strong>函数名字相同但形参列表不同</strong>，我们称之为重载（overload）函数。注意返回值不计入，当两个函数的名称和参数列表完全相同而返回值不同时，编译器会报错认为这是重复定义。</p>
+<p><code>main</code>函数不能重载。</p>
+<p>重载和const形参：</p>
+<ul>
+<li><p>一个有顶层const的形参和没有它的函数无法区分。 <code>Record lookup(Phone* const)</code>和 <code>Record lookup(Phone*)</code>无法区分。</p>
+</li>
+<li><p>相反，是否有某个底层const形参可以区分。 <code>Record lookup(Account*)</code>和 <code>Record lookup(const Account*)</code>可以区分。</p>
+</li>
+<li><p>顶层const：表示指针本身是个常量；底层const：表示指针所指的对象是一个常量</p>
+</li>
+<li><p>重载和作用域：若在内层作用域中声明名字，它将隐藏外层作用域中声明的同名实体，在不同的作用域中无法重载函数名。</p>
+</li>
+</ul>
+<p>函数二义性：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> x, <span class="type">int</span> y)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">float</span> <span class="title function_">sum</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//which function will be called?</span></span><br><span class="line"><span class="built_in">cout</span> &lt;&lt; <span class="string">&quot;sum = &quot;</span> &lt;&lt; sum(<span class="number">1</span>, <span class="number">2.2</span>) &lt;&lt; <span class="built_in">endl</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="函数模板"><a href="#函数模板" class="headerlink" title="函数模板"></a>函数模板</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">template &lt;typename T&gt;</span><br><span class="line">ReturnType <span class="title function_">functionName</span><span class="params">(T arg1, T arg2)</span> &#123;</span><br><span class="line">    <span class="comment">// Function body</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="实例化"><a href="#实例化" class="headerlink" title="实例化"></a>实例化</h4><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">T <span class="title">sum</span><span class="params">(T x, T y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;The input type is &quot;</span> &lt;&lt; <span class="built_in">typeid</span>(T).<span class="built_in">name</span>() &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Explicitly instantiate</span></span><br><span class="line"><span class="keyword">template</span> <span class="type">int</span> <span class="built_in">sum</span>&lt;<span class="type">int</span>&gt;(<span class="type">int</span>, <span class="type">int</span>);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> val = <span class="built_in">sum</span>(<span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line">    cout &lt;&lt; val &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">T <span class="title">sum</span><span class="params">(T x, T y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;The input type is &quot;</span> &lt;&lt; <span class="built_in">typeid</span>(T).<span class="built_in">name</span>() &lt;&lt; endl;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// Implicitly instantiates sum&lt;int&gt;(int, int)</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;sum = &quot;</span> &lt;&lt; <span class="built_in">sum</span>&lt;<span class="type">int</span>&gt;(<span class="number">2.2f</span>, <span class="number">3.0f</span>) &lt;&lt; endl;</span><br><span class="line">    <span class="comment">// Implicitly instantiates sum&lt;float&gt;(float, float)</span></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;sum = &quot;</span> &lt;&lt; <span class="built_in">sum</span>(<span class="number">2.2f</span>, <span class="number">3.0f</span>) &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当你调用一个模板函数时，编译器会根据传入的实际参数类型自动实例化模板。但编译器没法推导返回值的类型。</p>
+<p>当在<code>&lt;&gt;</code>中指定类型时，实参会被强制类型转换。</p>
+<h4 id="特例化"><a href="#特例化" class="headerlink" title="特例化"></a>特例化</h4><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">print</span><span class="params">(T val)</span> </span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;General template: &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;&gt;</span><br><span class="line"><span class="type">void</span> <span class="built_in">print</span>&lt;<span class="type">int</span>&gt;(<span class="type">int</span> val) &#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Specialized template for int: &quot;</span> &lt;&lt; val &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="number">10</span>);  	<span class="comment">// 调用 int 特化版本</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="number">3.14</span>);    <span class="comment">// 调用通用模板</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>特例化在显式声明时，要加<code>&lt;&gt;</code>。</p>
+<h3 id="函数指针和引用"><a href="#函数指针和引用" class="headerlink" title="函数指针和引用"></a>函数指针和引用</h3><p>函数的类型由它的返回类型和形参类型共同决定。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">float</span> <span class="title">norm_l1</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y)</span></span>; <span class="comment">// 该函数的类型是`float (float, float)`</span></span><br><span class="line"><span class="built_in">float</span> (*norm_ptr)(<span class="type">float</span> x, <span class="type">float</span> y); <span class="comment">// 未初始化</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 方式1</span></span><br><span class="line">norm_ptr = norm_l1;</span><br><span class="line"><span class="built_in">norm_ptr</span>(<span class="number">-3.0f</span>, <span class="number">4.0f</span>);</span><br><span class="line"><span class="comment">// 方式2</span></span><br><span class="line">norm_ptr = &amp;norm_l1;</span><br><span class="line">(*norm_ptr)(<span class="number">-3.0f</span>, <span class="number">4.0f</span>);</span><br></pre></td></tr></table></figure>
+
+<p>还可以将函数指针作为形参使用。不能直接返回函数，可以返回指向函数的指针。</p>
+<p><code>*norm_ptr</code>两边的<strong>括号不可少</strong>。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">float</span> <span class="title">norm_l1</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y)</span></span>; </span><br><span class="line"><span class="built_in">float</span> (&amp;norm_ptr)(<span class="type">float</span> x, <span class="type">float</span> y) = norm_l1; <span class="comment">// 引用，必须初始化</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="特殊用途语言特性"><a href="#特殊用途语言特性" class="headerlink" title="特殊用途语言特性"></a>特殊用途语言特性</h2><h4 id="默认参数-Default-arguments"><a href="#默认参数-Default-arguments" class="headerlink" title="默认参数 Default arguments"></a>默认参数 Default arguments</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span> <span class="title function_">add</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y = <span class="number">0</span>)</span></span><br><span class="line"><span class="comment">// y is parameter; 0 is argument</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>默认参数只能存在在参数列表的尾部。</li>
+</ul>
+<ul>
+<li><p>一旦某个形参被赋予了默认值，那么它之后的形参都必须要有默认值。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y, <span class="type">float</span> z)</span>;</span><br><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y, <span class="type">float</span> z = <span class="number">0</span>)</span>;</span><br><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y = <span class="number">0</span>, <span class="type">float</span> z)</span>;	<span class="comment">// 合法，编译器已经知道了z的默认实参</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y, <span class="type">float</span> z)</span>;</span><br><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y = <span class="number">0</span>, <span class="type">float</span> z)</span>;	<span class="comment">// 非法</span></span><br><span class="line"><span class="type">float</span> <span class="title function_">norm</span><span class="params">(<span class="type">float</span> x, <span class="type">float</span> y, <span class="type">float</span> z = <span class="number">0</span>)</span>;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<ul>
+<li>形参只能被给定一次默认实参</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C++</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/02/17/6-S081-Lab5-COW-Fork-for-xv6/" rel="prev" title="6.S081-Lab5-COW Fork for xv6">
+      <i class="fa fa-chevron-left"></i> 6.S081-Lab5-COW Fork for xv6
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/02/24/C-%E5%9F%BA%E7%A1%80-%E7%B1%BB/" rel="next" title="C++基础-类">
+      C++基础-类 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%9F%BA%E7%A1%80"><span class="nav-number">1.</span> <span class="nav-text">函数基础</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%80%E9%83%A8%E5%AF%B9%E8%B1%A1"><span class="nav-number">1.1.</span> <span class="nav-text">局部对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%A3%B0%E6%98%8E"><span class="nav-number">1.2.</span> <span class="nav-text">函数声明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92"><span class="nav-number">1.3.</span> <span class="nav-text">参数传递</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E7%BB%84%E5%BD%A2%E5%8F%82"><span class="nav-number">1.3.1.</span> <span class="nav-text">数组形参</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%AF%E5%8F%98%E5%BD%A2%E5%8F%82"><span class="nav-number">1.3.2.</span> <span class="nav-text">可变形参</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E7%B1%BB%E5%9E%8B%E5%92%8C-return-%E8%AF%AD%E5%8F%A5"><span class="nav-number">1.4.</span> <span class="nav-text">返回类型和 return 语句</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E6%95%B0%E7%BB%84%E6%8C%87%E9%92%88"><span class="nav-number">1.4.1.</span> <span class="nav-text">返回数组指针</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E8%81%94%E5%87%BD%E6%95%B0"><span class="nav-number">1.5.</span> <span class="nav-text">内联函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E9%87%8D%E8%BD%BD"><span class="nav-number">1.6.</span> <span class="nav-text">函数重载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%A8%A1%E6%9D%BF"><span class="nav-number">1.7.</span> <span class="nav-text">函数模板</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96"><span class="nav-number">1.7.1.</span> <span class="nav-text">实例化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E4%BE%8B%E5%8C%96"><span class="nav-number">1.7.2.</span> <span class="nav-text">特例化</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88%E5%92%8C%E5%BC%95%E7%94%A8"><span class="nav-number">1.8.</span> <span class="nav-text">函数指针和引用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E7%94%A8%E9%80%94%E8%AF%AD%E8%A8%80%E7%89%B9%E6%80%A7"><span class="nav-number">2.</span> <span class="nav-text">特殊用途语言特性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4%E5%8F%82%E6%95%B0-Default-arguments"><span class="nav-number">2.0.1.</span> <span class="nav-text">默认参数 Default arguments</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

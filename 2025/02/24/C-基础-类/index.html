@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。和 于仕琪 快速学习 C 和 C++  类相关的命名规范以下命名规范来自谷歌开源项目风格指南： 类名：大写字母开始, 每个单词首字母均大写, 不包含下划线。避免缩写，除非是众所周知的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++基础-类">
+<meta property="og:url" content="http://example.com/2025/02/24/C-%E5%9F%BA%E7%A1%80-%E7%B1%BB/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。和 于仕琪 快速学习 C 和 C++  类相关的命名规范以下命名规范来自谷歌开源项目风格指南： 类名：大写字母开始, 每个单词首字母均大写, 不包含下划线。避免缩写，除非是众所周知的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-24T02:40:34.000Z">
+<meta property="article:modified_time" content="2025-11-28T09:06:50.353Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/02/24/C-%E5%9F%BA%E7%A1%80-%E7%B1%BB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>C++基础-类 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/02/24/C-%E5%9F%BA%E7%A1%80-%E7%B1%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          C++基础-类
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-02-24 10:40:34" itemprop="dateCreated datePublished" datetime="2025-02-24T10:40:34+08:00">2025-02-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-28 17:06:50" itemprop="dateModified" datetime="2025-11-28T17:06:50+08:00">2025-11-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本章内容来自《C++ Primer》、<a target="_blank" rel="noopener" href="https://github.com/applenob/Cpp_Primer_Practice">GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。</a>和 <a target="_blank" rel="noopener" href="https://github.com/ShiqiYu/CPP">于仕琪 快速学习 C 和 C++</a></p>
+</blockquote>
+<h2 id="类相关的命名规范"><a href="#类相关的命名规范" class="headerlink" title="类相关的命名规范"></a>类相关的命名规范</h2><p>以下命名规范来自<a target="_blank" rel="noopener" href="https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/contents.html">谷歌开源项目风格指南：</a></p>
+<p>类名：大写字母开始, 每个单词首字母均大写, 不包含下划线。避免缩写，除非是众所周知的术语。</p>
+<p>类数据成员：一律小写, 单词之间用下划线连接，以下划线结尾</p>
+<p>类常量： <code>k</code> 前缀 + <code>PascalCase</code>风格，如 kDaysInAWeek</p>
+<p>类成员函数：<code>PascalCase</code>风格。其中的Getter 直接使用变量名的 PascalCase 形式、Setter 以 <code>Set</code> + PascalCase 形式命名。</p>
+<h2 id="定义抽象数据类型"><a href="#定义抽象数据类型" class="headerlink" title="定义抽象数据类型"></a>定义抽象数据类型</h2><p>类背后的基本思想：<strong>数据抽象</strong>（data abstraction）和<strong>封装</strong>（encapsulation）。数据抽象是一种依赖于<strong>接口</strong>（interface）和<strong>实现</strong>（implementation）分离的编程技术。</p>
+<ul>
+<li><strong>封装（Encapsulation）</strong>：将数据和操作数据的代码绑定在一起，保护数据不被外界直接访问。</li>
+<li><strong>抽象（Abstraction）</strong>：通过类定义抽象出具有共同特性的对象，提高代码的可重用性和可维护性。</li>
+<li><strong>继承（Inheritance）和多态（Polymorphism）</strong>：实现代码的复用与动态绑定。</li>
+</ul>
+<h3 id="this"><a href="#this" class="headerlink" title="this"></a>this</h3><p>成员函数在内存中只有一份副本，函数需要知道是那个对象在调用。成员函数通过一个名为<code>this</code>的额外的隐式参数来访问调用它的那个对象。</p>
+<ol>
+<li><p><strong>类型与常量性</strong>：<code>this</code>指针的本质类型是 <code>ClassName *const this</code>，意味着这个指针本身是常量（你不能改变 <code>this</code>指向别的地址），但它所指向的对象的数据可以被修改。在声明为 <code>const</code>的成员函数（常函数）中，<code>this</code>指针的类型变为 <code>const ClassName *const this</code>，这意味着你不能通过 <code>this</code>修改对象的数据成员。常量成员函数的形参列表后面的<code>const</code>，改变了隐含的<code>this</code>形参的类型。</p>
+</li>
+<li><p><strong>静态成员函数没有 <code>this</code>指针</strong>：因为静态成员函数属于类本身，而不属于任何一个特定的对象实例，所以它没有 <code>this</code>指针</p>
+<p>。这也意味着静态成员函数不能直接访问类的非静态成员。</p>
+</li>
+<li><p><strong><code>this</code>指针的生命周期</strong>：<code>this</code>指针是作为成员函数的一个隐含参数存在的。</p>
+</li>
+</ol>
+<p>什么时候需要使用<code>this</code>：</p>
+<ul>
+<li>参数名和成员变量同名时</li>
+<li>返回对象自身（支持链式调用）</li>
+<li>在构造函数中调用类的其他成员函数</li>
+</ul>
+<p>成员函数中的<code>return *this;</code> 解引用 this 以获取执行当前函数的对象。一个常量成员函数如果<code>return *this</code>，返回类型为常量引用。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">MyClass</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> value;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function">MyClass&amp; <span class="title">setValue</span><span class="params">(<span class="type">int</span> value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;value = value; <span class="comment">// 使用 this 区分同名的成员变量和参数</span></span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>; <span class="comment">// 返回对象本身的引用，支持链式调用</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function">MyClass&amp; <span class="title">add</span><span class="params">(<span class="type">int</span> num)</span> </span>&#123;</span><br><span class="line">        value += num;</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用链式调用</span></span><br><span class="line">MyClass obj;</span><br><span class="line">obj.<span class="built_in">setValue</span>(<span class="number">10</span>).<span class="built_in">add</span>(<span class="number">5</span>); <span class="comment">// 连续调用，清晰简洁</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="常量成员"><a href="#常量成员" class="headerlink" title="常量成员"></a>常量成员</h3><p>一旦初始化就无法改变；必须在类的构造函数中通过 <strong>初始化列表</strong> 进行初始化。初始化发生在构造函数体执行之前，通常通过初始化列表来进行。而发生在构造函数体内的是赋值。</p>
+<p>静态常量成员：通常用于表示类的常量，而与某个特定对象无关，它们在整个类的范围内共享。初始化方式与静态成员一致。</p>
+<h3 id="静态成员"><a href="#静态成员" class="headerlink" title="静态成员"></a>静态成员</h3><p><strong>静态成员</strong>是属于类本身，而不是类的某个特定对象。它们的生命周期贯穿整个程序的执行周期，可以在没有创建对象的情况下访问。</p>
+<p>静态成员变量的初始化通常在类外部进行。C++17 引入的 <code>inline</code> 关键字可以用来在类中定义静态成员变量。</p>
+<p>静态成员函数不能访问非静态成员函数或非静态成员变量，因为它们没有类的实例来指向 <code>this</code>。可以基于<code>const</code>重载成员函数。</p>
+<h3 id="构造函数与析构函数"><a href="#构造函数与析构函数" class="headerlink" title="构造函数与析构函数"></a>构造函数与析构函数</h3><p>构造函数（Constructor）是 C++ 中一个特殊的成员函数，用于初始化类的对象。它在每次创建对象时被自动调用，用来为对象的成员变量分配初值。构造函数没有返回类型，且与类同名。构造函数在对象创建时执行，负责为对象分配内存和初始化数据。</p>
+<p><strong>构造函数的特点</strong>：</p>
+<ol>
+<li>名称与类名相同。</li>
+<li>没有返回类型。</li>
+<li>可以有参数，也可以没有参数（即默认构造函数）。</li>
+<li><strong>可以重载</strong>，即同一个类可以有多个构造函数，只要它们的参数列表不同（构造函数重载）。</li>
+</ol>
+<p><strong>默认构造函数（default constructor）</strong>：</p>
+<blockquote>
+<p>是指 <strong>可以在不提供实参的情况下被调用的构造函数</strong>。</p>
+</blockquote>
+<ul>
+<li>无形参构造函数（无参构造）（无明显形参，因为this的存在）</li>
+<li><strong>所有</strong>参数都有默认值的构造函数</li>
+</ul>
+<p>编译器创建的构造函数又被称为<strong>合成的默认构造函数</strong>。合成的默认构造函数中初始化类的数据成员的规则：</p>
+<ul>
+<li>如果存在类内初始值，就用它来初始化从成员</li>
+<li>否则，默认初始化（内置类型：未定义状态可能是任何值；类类型：调用默认构造函数）</li>
+</ul>
+<p><strong>如果程序中有使用默认构造的需求，而类没有用户声明的任何构造函数，则编译器会自动合成默认构造函数。</strong></p>
+<p><strong>初始化列表</strong>（initializer list）是构造函数的一部分，用于初始化类的成员变量。对于需要构造的成员（如常量成员、引用成员、以及复杂类型的成员），初始化列表能够在对象创建时直接初始化这些成员，而不是先调用默认构造函数然后再赋值。</p>
+<ul>
+<li>初始化列表中的成员初始化顺序与它们在类中声明的顺序一致。</li>
+<li>初始化列表可以使用默认参数来简化代码。</li>
+</ul>
+<p><strong>析构函数</strong>（Destructor）是类的一种特殊成员函数，它在对象生命周期结束时自动调用，用于释放对象占用的资源。如果类使用动态内存分配或其他资源，应该在析构函数中释放它们，以避免资源泄漏。</p>
+<p>**<code>= default</code>与 <code>= delete</code>**：显式要求编译器生成默认函数（<code>= default</code>），或禁止某些函数（<code>= delete</code>，如禁止拷贝）。</p>
+<h2 id="访问控制与封装"><a href="#访问控制与封装" class="headerlink" title="访问控制与封装"></a>访问控制与封装</h2><p>访问说明符（access specifiers）：</p>
+<ul>
+<li><code>private</code>：定义在 <code>private</code>后面的成员可以被类的成员函数访问，但不能被使用该类的代码访问； <code>private</code>隐藏了类的实现细节。</li>
+<li><code>public</code>：定义在 <code>public</code>后面的成员在整个程序内可以被访问； <code>public</code>成员定义类的接口。</li>
+<li><code>protected</code>：在继承中使用，允许派生类访问，但对其他外部代码隐藏。</li>
+</ul>
+<p><strong><code>class</code>与<code>struct</code>的默认区别</strong>：使用 <code>class</code>关键字定义类时，其成员的默认访问权限是 <code>private</code>；而使用 <code>struct</code>时，默认访问权限是 <code>public</code></p>
+<p>封装的两个优点：</p>
+<ul>
+<li>确保用户代码不会无意间破坏封装对象的状态</li>
+<li>被封装的类的具体实现细节可以随时改变，而无须调整用户级别的代码</li>
+</ul>
+<h3 id="友元"><a href="#友元" class="headerlink" title="友元"></a>友元</h3><p>友元机制是C++提供的一种<strong>有选择地打破封装</strong>的方法。它允许特定的外部函数或类访问当前类的所有私有（<code>private</code>）和保护（<code>protected</code>）成员</p>
+<p>友元的三种形式：</p>
+<ul>
+<li><strong>友元函数</strong>：授予一个非成员函数访问权限。</li>
+<li><strong>友元类</strong>：授予另一个类的<strong>所有成员函数</strong>访问权限</li>
+<li><strong>友元成员函数</strong>：只授予另一个类的<strong>某个特定成员函数</strong>访问权限，权限控制更精细</li>
+</ul>
+<p>友元函数不是成员函数，因此不能使用 <code>this</code> 指针。声明在类中，在类外实现时不要使用 <code>::</code> 来指定友元函数所属的类。</p>
+<p>由于友元函数不是类成员，在类的用户使用前要声明友元函数（类外）。这个声明不是通用意义上的函数声明，仅仅指明了访问的权限。</p>
+<p>友元的核心特性与使用要点：</p>
+<ul>
+<li>单向性：如果类A是类B的友元，并不意味着类B自动是类A的友元。友元关系不具有对称性</li>
+<li>不传递性：如果类A是类B的友元，类B是类C的友元，并不能推出类A是类C的友元</li>
+<li>不继承性：派生类不能继承基类的友元关系。如果类Base授予了友元关系，派生类Derived并不能因此访问Base的私有成员，除非Base显式将Derived也声明为友元</li>
+<li>声明与定义：友元声明不是函数或类的正式声明。通常在类内部进行友元声明后，还需要在外部提供该函数或类的正式声明，以确保其在当前作用域可见</li>
+</ul>
+<p>友元函数常用于<strong>运算符重载</strong>，特别是当左侧操作数不是类的对象时，必须使用友元函数进行重载。</p>
+<h2 id="类的其他特性"><a href="#类的其他特性" class="headerlink" title="类的其他特性"></a>类的其他特性</h2><p>可以在类中用<code>typedef</code>和<code>using</code>定义类型成员，用来隐藏一些实现细节，必须先定义再使用。</p>
+<p>成员函数作为内联函数：</p>
+<ul>
+<li>在类的内部，常有一些规模较小的函数适合于被声明成内联函数。</li>
+<li><strong>定义</strong>在类内部的函数是<strong>自动内联</strong>的。</li>
+<li>在类外部定义的成员函数，也可以在声明时显式地加上 <code>inline</code>。</li>
+</ul>
+<p>可变数据成员（mutable data member）：<code>mutable</code> 关键字用于修饰类的<strong>非静态成员变量</strong>，使其可以在 <code>const</code> 成员函数内部被修改。这在需要在 <code>const</code> 语境中改变某些成员变量（如缓存、日志、统计信息等）时非常有用。不能用于 <code>static</code> 变量。</p>
+<p><code>mutable</code> 与 <code>const_cast</code> 的区别：</p>
+<table>
+<thead>
+<tr>
+<th align="center">特性</th>
+<th align="center"><code>mutable</code></th>
+<th align="center"><code>const_cast</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">作用范围</td>
+<td align="center">仅适用于类的非静态成员变量</td>
+<td align="center">可以移除任何 <code>const</code> 限制</td>
+</tr>
+<tr>
+<td align="center">适用场景</td>
+<td align="center">允许在 <code>const</code> 成员函数中修改变量（如缓存、日志）</td>
+<td align="center">允许对 <code>const</code> 对象执行修改（通常用于兼容旧代码）</td>
+</tr>
+<tr>
+<td align="center">安全性</td>
+<td align="center">安全，仅影响标记为 <code>mutable</code> 的变量</td>
+<td align="center">风险较高，可能导致未定义行为</td>
+</tr>
+</tbody></table>
+<h2 id="类的作用域"><a href="#类的作用域" class="headerlink" title="类的作用域"></a>类的作用域</h2><h2 id="析构函数再探"><a href="#析构函数再探" class="headerlink" title="析构函数再探"></a>析构函数再探</h2><p>如果没有在析构函数的初始化列表中显示地初始化成员，则该成员会在构造函数体之外执行默认初始化。在析构函数体内执行的都是赋值操作。</p>
+<p>有些成员必须在初始化列表中完成初始化，如 const 、引用类型和某种未提供默认构造函数的类类型。</p>
+<p>构造函数初始值的顺序应该和成员声明的顺序保持一致。</p>
+<p>如果一个构造函数为所有参数都提供了默认参数，那么它实际上也定义了默认的构造函数。</p>
+<h3 id="委托构造函数"><a href="#委托构造函数" class="headerlink" title="委托构造函数"></a>委托构造函数</h3><p>Delegating Constructor 是一种允许在<strong>构造函数的初始化列表</strong>中调用<strong>同一类的另一个构造函数</strong>。</p>
+<p>委托构造函数只能初始化列表中调用，委托构造函数不能出现在函数体内部。</p>
+<p>如果委托构造函数形成循环，会导致无限递归，造成栈溢出（Stack Overflow）。</p>
+<h3 id="隐式的类类型转换"><a href="#隐式的类类型转换" class="headerlink" title="隐式的类类型转换"></a>隐式的类类型转换</h3><p>隐式的类类型转换：当 C++ 需要一个对象而你提供了不同类型的值时，编译器会尝试自动进行类型转换。这时会隐式调用类的构造函数，会出现几个问题： 意外的构造函数调用、不知道该调用哪个构造函数。</p>
+<p>使用 <strong><code>explicit</code></strong> 关键字，用于防止隐式转换，主要用于单参数构造函数和类型转换运算符。</p>
+<ul>
+<li>只对一个实参的构造函数有效</li>
+<li>只能用于直接初始化</li>
+</ul>
+<h3 id="聚合类"><a href="#聚合类" class="headerlink" title="聚合类"></a>聚合类</h3><h3 id="字面值常量类"><a href="#字面值常量类" class="headerlink" title="字面值常量类"></a>字面值常量类</h3><p>字面值类型（Literal Type）可以作为<strong>编译时常量</strong>，用于 <code>constexpr</code> 表达式。主要用于编译期计算，可以存储在只读数据段，减少运行时开销。</p>
+<p>C++11 规定，如果一个类满足以下条件，它就是字面值常量类（Literal Class）：</p>
+<ol>
+<li>至少有一个 <code>constexpr</code> 构造函数。</li>
+<li>所有数据成员必须是字面值类型。</li>
+<li>没有虚函数。</li>
+<li>必须使用默认的析构函数（不能自己定义）。</li>
+</ol>
+<p>如果变量在编译阶段就可以计算，就用 <code>constexpr</code>；如果变量在运行时才知道值，但仍然不希望它改变，就用 <code>const</code>。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C++</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/02/20/C-%E5%9F%BA%E7%A1%80-%E5%87%BD%E6%95%B0/" rel="prev" title="C++基础-函数">
+      <i class="fa fa-chevron-left"></i> C++基础-函数
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/02/26/C-%E6%A0%87%E5%87%86%E5%BA%93-IO%E5%BA%93/" rel="next" title="C++标准库-IO库">
+      C++标准库-IO库 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B1%BB%E7%9B%B8%E5%85%B3%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83"><span class="nav-number">1.</span> <span class="nav-text">类相关的命名规范</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E6%8A%BD%E8%B1%A1%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.</span> <span class="nav-text">定义抽象数据类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#this"><span class="nav-number">2.1.</span> <span class="nav-text">this</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E9%87%8F%E6%88%90%E5%91%98"><span class="nav-number">2.2.</span> <span class="nav-text">常量成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E6%88%90%E5%91%98"><span class="nav-number">2.3.</span> <span class="nav-text">静态成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E4%B8%8E%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0"><span class="nav-number">2.4.</span> <span class="nav-text">构造函数与析构函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6%E4%B8%8E%E5%B0%81%E8%A3%85"><span class="nav-number">3.</span> <span class="nav-text">访问控制与封装</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8B%E5%85%83"><span class="nav-number">3.1.</span> <span class="nav-text">友元</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B1%BB%E7%9A%84%E5%85%B6%E4%BB%96%E7%89%B9%E6%80%A7"><span class="nav-number">4.</span> <span class="nav-text">类的其他特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B1%BB%E7%9A%84%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="nav-number">5.</span> <span class="nav-text">类的作用域</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0%E5%86%8D%E6%8E%A2"><span class="nav-number">6.</span> <span class="nav-text">析构函数再探</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A7%94%E6%89%98%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="nav-number">6.1.</span> <span class="nav-text">委托构造函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%90%E5%BC%8F%E7%9A%84%E7%B1%BB%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2"><span class="nav-number">6.2.</span> <span class="nav-text">隐式的类类型转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%81%9A%E5%90%88%E7%B1%BB"><span class="nav-number">6.3.</span> <span class="nav-text">聚合类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E9%9D%A2%E5%80%BC%E5%B8%B8%E9%87%8F%E7%B1%BB"><span class="nav-number">6.4.</span> <span class="nav-text">字面值常量类</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

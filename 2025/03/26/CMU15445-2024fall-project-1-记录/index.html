@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Task #1- LRU-K Replacement Policy实现一个组件来负责跟踪缓冲池中的页面使用情况，用以确定在缓冲池满时该驱逐哪些帧。 LRU-K 算法会淘汰所有帧中后向 k 距离最大的帧。后向 k 距离backward k-distance的计算方式是当前时间戳与前 k 次访问时间戳之间的时间差。历史访问次数少于 k 次的帧的后向 k 距离被赋值为 +inf。如果多个帧的后向 k 距">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CMU15445(2024fall)-project#1 记录">
+<meta property="og:url" content="http://example.com/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="Task #1- LRU-K Replacement Policy实现一个组件来负责跟踪缓冲池中的页面使用情况，用以确定在缓冲池满时该驱逐哪些帧。 LRU-K 算法会淘汰所有帧中后向 k 距离最大的帧。后向 k 距离backward k-distance的计算方式是当前时间戳与前 k 次访问时间戳之间的时间差。历史访问次数少于 k 次的帧的后向 k 距离被赋值为 +inf。如果多个帧的后向 k 距">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-26T08:51:59.000Z">
+<meta property="article:modified_time" content="2025-05-08T14:29:49.350Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="15445">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CMU15445(2024fall)-project#1 记录 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CMU15445(2024fall)-project#1 记录
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-03-26 16:51:59" itemprop="dateCreated datePublished" datetime="2025-03-26T16:51:59+08:00">2025-03-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-05-08 22:29:49" itemprop="dateModified" datetime="2025-05-08T22:29:49+08:00">2025-05-08</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="Task-1-LRU-K-Replacement-Policy"><a href="#Task-1-LRU-K-Replacement-Policy" class="headerlink" title="Task #1- LRU-K Replacement Policy"></a>Task #1- LRU-K Replacement Policy</h2><p>实现一个组件来负责跟踪缓冲池中的页面使用情况，用以确定在缓冲池满时该驱逐哪些帧。</p>
+<p><strong>LRU-K 算法</strong>会淘汰所有帧中<strong>后向 k 距离</strong>最大的帧。后向 k 距离<code>backward k-distance</code>的计算方式是当前时间戳与前 k 次访问时间戳之间的时间差。历史访问次数少于 k 次的帧的后向 k 距离被赋值为 +inf。如果多个帧的后向 k 距离均为 +inf，则替换器会淘汰 帧（不会在意到底访问了几次）。</p>
+<p>当 k &#x3D; 1时就是一般的 LRU 替换算法了。可以使用第前 k 次访问的时间<code>kth_prev_timestamp_</code>戳来替代后向 k 距离，效果是一样的。</p>
+<p>优化：添加<code>AccessTpye</code>标签。</p>
+<table>
+<thead>
+<tr>
+<th>AccessType</th>
+<th align="center">操作示例</th>
+<th align="center">特征</th>
+<th align="center">缓存策略建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Unknown</td>
+<td align="center">无法识别访问</td>
+<td align="center">不明确</td>
+<td align="center">默认处理</td>
+</tr>
+<tr>
+<td>Lookup</td>
+<td align="center">主键查找</td>
+<td align="center">高频访问，命中率高</td>
+<td align="center">保留时间长</td>
+</tr>
+<tr>
+<td>Scan</td>
+<td align="center">全表扫描</td>
+<td align="center">一次性读取，大批量</td>
+<td align="center">快速淘汰</td>
+</tr>
+<tr>
+<td>Index</td>
+<td align="center">索引导航</td>
+<td align="center">高命中率，结构关键</td>
+<td align="center">优先保留</td>
+</tr>
+</tbody></table>
+<h2 id="Task-2-Disk-Scheduler"><a href="#Task-2-Disk-Scheduler" class="headerlink" title="Task #2 - Disk Scheduler"></a>Task #2 - Disk Scheduler</h2><h2 id="Task-3-Buffer-Pool-Manager"><a href="#Task-3-Buffer-Pool-Manager" class="headerlink" title="Task #3 - Buffer Pool Manager"></a>Task #3 - Buffer Pool Manager</h2><h3 id="有关锁的策略"><a href="#有关锁的策略" class="headerlink" title="有关锁的策略"></a>有关锁的策略</h3><p>1. </p>
+<h3 id="test"><a href="#test" class="headerlink" title="test"></a>test</h3><ol>
+<li><p><code>local:page_guard_test</code> ：line 109，问题描述：向磁盘<code>flush()</code>时有时成功时失败 。线程间的同步问题，<code>disk_scheduler_</code>中会另起一个线程来调度磁盘，如果<code>frame</code>中的<code>data_</code>先被覆盖的话，会使得<code>disk_scheduler_-&gt;Schedule()</code>中的参数事实上无效。</p>
+</li>
+<li><p><code>Gradescope:PageGuardTest.DropTest</code> 问题描述：通过最新的<code>BusTub</code>提交 <code>3e93325</code> 和 <code>a47baef</code> 实现了磁盘自动扩容，但 Gradescope 未部署这些改动。<a target="_blank" rel="noopener" href="https://discord.com/channels/724929902075445281/1337834722948153379">参考</a></p>
+</li>
+<li><p><code>local:EvictableTest</code> ：line 397 锁管理问题。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/home/w/15445/test/buffer/buffer_pool_manager_test.cpp:397: Failure</span><br><span class="line">Value of: bpm-&gt;CheckedReadPage(loser_pid).has_value()</span><br><span class="line">  Actual: true</span><br><span class="line">Expected: false</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">./test/buffer_pool_manager_test 2&gt;&amp;1 | grep -c <span class="string">&#x27;buffer_pool_manager_test.cpp:397&#x27;</span></span></span><br><span class="line">123</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">./test/buffer_pool_manager_test 2&gt;&amp;1 | grep -c <span class="string">&#x27;buffer_pool_manager_test.cpp:397&#x27;</span></span></span><br><span class="line">86</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>Gracescope:BufferPoolManagerTest.ConcurrentReaderWriterTest</code> 锁管理问题。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">   /autograder/source/bustub/test/buffer/grading_buffer_pool_manager_test.cpp:1051: Failure</span><br><span class="line">   19: Expected equality of these values:</span><br><span class="line">19:   page_ids[i]</span><br><span class="line">   19:     Which is: 59</span><br><span class="line">   19:   data-&gt;page_id_</span><br><span class="line">   19:     Which is: 57</span><br><span class="line">   19: </span><br><span class="line">   19: /autograder/source/bustub/test/buffer/grading_buffer_pool_manager_test.cpp:1051: Failure</span><br><span class="line">   19: Expected equality of these values:</span><br><span class="line">   19:   page_ids[i]</span><br><span class="line">   19:     Which is: 62</span><br><span class="line">   19:   data-&gt;page_id_</span><br><span class="line">   19:     Which is: 58</span><br><span class="line">   19: ...</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="读代码"><a href="#读代码" class="headerlink" title="读代码"></a>读代码</h2><h3 id="disk-manager-新版本"><a href="#disk-manager-新版本" class="headerlink" title="disk_manager(新版本)"></a>disk_manager(新版本)</h3><p>DiskManager的主要职责是管理数据库文件的页面分配和释放，包括读写页面、删除页面以及日志处理。它使用了懒分配策略，只在页面首次访问时分配空间。数据库文件的管理基于操作系统提供的文件系统。</p>
+<p>关键成员变量：</p>
+<ul>
+<li><code>pages_</code> ： <code>unordered_map&lt;page_id_t, size_t&gt;</code>，记录页面 ID 到文件偏移的映射。</li>
+<li><code>free_slots_</code> ： <code>vector&lt;size_t&gt;</code>，存储被删除页面的偏移，供后续分配复用</li>
+<li><code>page_capacity_</code> ：数据库文件的当前容量（以页数为单位），初始值为 <code>DEFAULT_DB_IO_SIZE</code></li>
+</ul>
+<p>主要成员函数：</p>
+<ul>
+<li><code>WritePage</code>&#x2F;<code>ReadPage</code>：首先检查请求页是否被分配（遍历<code>pages_</code> ，懒分配策略），不存在就先分配页。<code>pages_</code> 是在此处更新，而不是在<code>Allocate</code>。</li>
+<li><code>Allocate</code>：返回被分配页相对文件开头的偏移量。分配的基本单位是页。优先尝试使用<code>free_slots</code>中空闲页。若当前的文件空间不足，翻倍扩容。</li>
+<li><code>DeletePage</code>：将其偏移加入 <code>free_slots_</code>，并从 <code>pages_</code> 中移除映射。</li>
+</ul>
+<h3 id="pageguard"><a href="#pageguard" class="headerlink" title="pageguard"></a>pageguard</h3><ol>
+<li><p>在 <code>ReadPageGuard</code>类中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ReadPageGuard</span>(<span class="type">const</span> ReadPageGuard &amp;) = <span class="keyword">delete</span>;</span><br><span class="line"><span class="keyword">auto</span> <span class="keyword">operator</span>=(<span class="type">const</span> ReadPageGuard &amp;) -&gt; ReadPageGuard &amp; = <span class="keyword">delete</span>;</span><br><span class="line"><span class="built_in">ReadPageGuard</span>(ReadPageGuard &amp;&amp;that) <span class="keyword">noexcept</span>;</span><br><span class="line"><span class="keyword">auto</span> <span class="keyword">operator</span>=(ReadPageGuard &amp;&amp;that) <span class="keyword">noexcept</span> -&gt; ReadPageGuard &amp;;</span><br></pre></td></tr></table></figure>
+
+<p>删除 <code>ReadPageGuard</code> 类的拷贝构造函数和拷贝赋值运算符，目的是为了防止对象被拷贝。默认的拷贝构造函数和拷贝赋值运算符执行的都是浅拷贝，会导致双重释放。允许移动构造和移动赋值，表示资源所有权可以在对象之间转移，但不能复制。</p>
+<p><strong>五法则</strong>：要求显式管理资源相关的所有特殊成员函数。如果类需要管理资源（如动态内存、文件句柄等），必须显式定义或删除以下五个函数：析构函数、拷贝构造函数、拷贝赋值运算符、移动构造函数、移动赋值运算符，其核心是避免依赖编译器默认生成的函数可能导致的资源管理错误。</p>
+</li>
+<li><p>在 <code>ReadPageGuard</code>类中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">T</span>&gt;</span><br><span class="line">    <span class="function"><span class="keyword">auto</span> <span class="title">As</span><span class="params">()</span> <span class="type">const</span> -&gt; <span class="type">const</span> T * </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">reinterpret_cast</span>&lt;<span class="type">const</span> T *&gt;(<span class="built_in">GetData</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> <code>**reinterpret_cast</code> 是最「底层」且最危险的类型转换操作符，它允许在任意指针类型、整数类型和引用类型之间进行<strong>二进制级别的重新解释</strong>。这里强制将 <code>char*</code> 指针转换为指定类型 <code>T *</code>。</p>
+</li>
+<li><p>在 <code>ReadPageGuard</code>类中为什么需要<code>is_valid_</code>?</p>
+</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/15445/" rel="tag"># 15445</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/" rel="prev" title="C++类设计者的工具-面对对象程序设计">
+      <i class="fa fa-chevron-left"></i> C++类设计者的工具-面对对象程序设计
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/" rel="next" title="C++标准库-并发：atomic">
+      C++标准库-并发：atomic <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Task-1-LRU-K-Replacement-Policy"><span class="nav-number">1.</span> <span class="nav-text">Task #1- LRU-K Replacement Policy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Task-2-Disk-Scheduler"><span class="nav-number">2.</span> <span class="nav-text">Task #2 - Disk Scheduler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Task-3-Buffer-Pool-Manager"><span class="nav-number">3.</span> <span class="nav-text">Task #3 - Buffer Pool Manager</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%89%E5%85%B3%E9%94%81%E7%9A%84%E7%AD%96%E7%95%A5"><span class="nav-number">3.1.</span> <span class="nav-text">有关锁的策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#test"><span class="nav-number">3.2.</span> <span class="nav-text">test</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%BB%E4%BB%A3%E7%A0%81"><span class="nav-number">4.</span> <span class="nav-text">读代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#disk-manager-%E6%96%B0%E7%89%88%E6%9C%AC"><span class="nav-number">4.1.</span> <span class="nav-text">disk_manager(新版本)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pageguard"><span class="nav-number">4.2.</span> <span class="nav-text">pageguard</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

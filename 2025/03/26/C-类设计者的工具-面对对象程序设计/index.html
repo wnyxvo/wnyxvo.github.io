@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。 概述 面向对象程序设计（object-oriented programming）的核心思想是数据抽象、继承和动态绑定。  继承 （inheritance）：  通过继承联系在一起的类">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++类设计者的工具-面对对象程序设计">
+<meta property="og:url" content="http://example.com/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="本章内容来自《C++ Primer》、GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。 概述 面向对象程序设计（object-oriented programming）的核心思想是数据抽象、继承和动态绑定。  继承 （inheritance）：  通过继承联系在一起的类">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-26T06:48:12.000Z">
+<meta property="article:modified_time" content="2025-11-30T08:39:24.409Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>C++类设计者的工具-面对对象程序设计 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          C++类设计者的工具-面对对象程序设计
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-03-26 14:48:12" itemprop="dateCreated datePublished" datetime="2025-03-26T14:48:12+08:00">2025-03-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-30 16:39:24" itemprop="dateModified" datetime="2025-11-30T16:39:24+08:00">2025-11-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本章内容来自《C++ Primer》、<a target="_blank" rel="noopener" href="https://github.com/applenob/Cpp_Primer_Practice">GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。</a></p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><ul>
+<li><p>面向对象程序设计（object-oriented programming）的核心思想是数据抽象、继承和动态绑定。</p>
+</li>
+<li><p>继承</p>
+<p>（inheritance）：</p>
+<ul>
+<li>通过继承联系在一起的类构成一种层次关系。</li>
+<li>通常在层次关系的根部有一个<strong>基类</strong>（base class）。</li>
+<li>其他类直接或者简介从基类继承而来，这些继承得到的类成为<strong>派生类</strong>（derived class）。</li>
+<li>基类负责定义在层次关系中所有类共同拥有的成员，而每个派生类定义各自特有的成员。</li>
+<li>对于某些函数，基类希望它的派生类个自定义适合自己的版本，此时基类就将这些函数声明成<strong>虚函数</strong>（virtual function）。</li>
+<li>派生类必须通过使用<strong>类派生列表</strong>（class derivation list）明确指出它是从哪个基类继承而来。形式：一个冒号，后面紧跟以逗号分隔的基类列表，每个基类前都可以有访问说明符。<code>class Bulk_quote : public Quote&#123;&#125;;</code></li>
+<li>派生类必须在其内部对所有重新定义的虚函数进行声明。可以在函数之前加上<code>virtual</code>关键字，也可以不加。C++11新标准允许派生类显式地注明它将使用哪个成员函数改写基类的虚函数，即在函数的形参列表之后加一个<code>override</code>关键字。</li>
+</ul>
+</li>
+<li><p>动态绑定</p>
+<p>（dynamic binding，又称运行时绑定）：</p>
+<ul>
+<li>使用同一段代码可以分别处理基类和派生类的对象。</li>
+<li>函数的运行版本由实参决定，即在运行时选择函数的版本。</li>
+</ul>
+</li>
+</ul>
+<h2 id="定义基类和派生类"><a href="#定义基类和派生类" class="headerlink" title="定义基类和派生类"></a>定义基类和派生类</h2><h3 id="定义基类"><a href="#定义基类" class="headerlink" title="定义基类"></a>定义基类</h3><p>基类通常都应该定义一个虚析构函数，即使该函数不执行任何实际操作也是如此。</p>
+<p>基类通过在其成员函数的声明语句前加上关键字<code>virtual</code>使得该函数执行<strong>动态绑定</strong>。成员函数没有被声明为虚函数，其解析过程发生在编译器。反之发生在运行时。</p>
+<p><strong>除了构造函数和静态成员函数之外，普通的非静态成员函数（包含析构函数）都可以声明为虚函数。</strong></p>
+<ul>
+<li>析构函数当然可以 <code>virtual</code>，但它的作用是特殊的（用于实现多态删除）</li>
+<li>因为虚函数依赖对象的 vptr，而静态函数不属于对象。</li>
+<li>以下不能是虚函数：构造函数、友元函数（不是成员函数）、模板函数实例化时不能改变其“是否虚”属性</li>
+</ul>
+<p>如果基类把一个函数声明为虚函数，则该函数在派生类中隐式地也是虚函数</p>
+<p>访问控制：</p>
+<ul>
+<li><code>protected</code> ： 基类和其派生类还有友元可以访问。</li>
+<li><code>private</code> ： 只有基类本身和友元可以访问。</li>
+</ul>
+<h3 id="定义派生类"><a href="#定义派生类" class="headerlink" title="定义派生类"></a>定义派生类</h3><p>派生类必须通过类派生列表（class derivation list）明确指出它是从哪个基类继承而来。形式：冒号，后面紧跟以逗号分隔的基类列表，每个基类前面可以有一下三种访问说明符的一个：<code>public</code>、<code>protected</code>、<code>private</code>。</p>
+<table>
+<thead>
+<tr>
+<th align="center">继承方式</th>
+<th align="center">基类 <code>public</code>成员在派生类中变为</th>
+<th align="center">基类 <code>protected</code>成员在派生类中变为</th>
+<th align="center">代码外部通过派生类对象访问基类成员</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong><code>public</code>继承</strong></td>
+<td align="center"><code>public</code></td>
+<td align="center"><code>protected</code></td>
+<td align="center"><strong>可以</strong>访问基类的 <code>public</code>成员</td>
+</tr>
+<tr>
+<td align="center"><strong><code>protected</code>继承</strong></td>
+<td align="center"><code>protected</code></td>
+<td align="center"><code>protected</code></td>
+<td align="center"><strong>不可</strong>访问基类的 <code>public</code>成员</td>
+</tr>
+<tr>
+<td align="center"><strong><code>private</code>继承</strong></td>
+<td align="center"><code>private</code></td>
+<td align="center"><code>private</code></td>
+<td align="center"><strong>不可</strong>访问基类的 <code>public</code>成员</td>
+</tr>
+</tbody></table>
+<p>C++11新标准允许派生类显式地注明它将使用哪个成员函数改写基类的虚函数，即在函数的形参列表之后加一个<code>override</code>关键字。</p>
+<p>在派生类对象中含有其基类对应的组成部分，所以能把派生类的对象当成基类对象使用，而且也能将基类的指针或引用绑定到派生类对象中的基类部分上。<strong>派生类到基类的类型转换</strong>。</p>
+<p>在派生类声明之前，其基类必须已经被完整定义，而不能仅仅是前向声明。这是因为编译器需要知道基类的布局和成员。</p>
+<p>派生类不能直接初始化从基类继承来的成员，而是必须通过调用基类的构造函数来完成基类部分的初始化。这通常在派生类构造函数的<strong>成员初始化列表</strong>中进行。首先初始化基类的部分（调用基类的构造函数），然后按声明的顺序依次初始化派生类的成员。</p>
+<blockquote>
+<p>遵循基类的接口：每个类负责定义各自的接口。想要与类的对象交互必须使用该类的接口，即使这个对象是派生类的基类部分也是如此。</p>
+</blockquote>
+<p>静态成员：如果基类定义了一个静态成员，则在整个继承体系中只存在该成员的唯一定义。无论从基类中派生出多少个派生类，对于每个静态成员都只存在一个实例。</p>
+<p>派生类的声明：声明中不包含它的派生列表。</p>
+<p>C++11新标准提供了一种防止继承的方法，在类名后面跟一个关键字<code>final</code>。</p>
+<h3 id="类型转换与继承"><a href="#类型转换与继承" class="headerlink" title="类型转换与继承"></a>类型转换与继承</h3><p>可以将基类的指针或引用绑定到派生类对象上。当使用基类的指针或引用时，实际上我们并不清楚该指针或引用所绑定的对象的真实类型。</p>
+<p><strong>对象本身不存在动态类型</strong>：只有通过指针或引用操作时，静态类型（变量声明时的类型）和动态类型（变量表示的内存中的对象类型）才可能不同。如果直接使用对象本身，其静态类型和动态类型总是一致的</p>
+<p>基类的指针或引用的静态类型和动态类型可能不一致。</p>
+<p><strong>类型转换规则</strong>：</p>
+<ul>
+<li>派生类到基类：存在隐式转换（通过指针、引用）。<strong>对象之间不存在类型转换。</strong></li>
+<li>基类到派生类：不存在隐式转换。必须使用强制类型转换（如 <code>dynamic_cast</code>或 <code>static_cast</code>），且只有当基类指针实际指向派生类对象时才是安全的</li>
+<li>和任何其他成员一样，派生类到基类的类型转换也可能会由于访问受限而变得不可行。</li>
+</ul>
+<h2 id="虚函数"><a href="#虚函数" class="headerlink" title="虚函数"></a>虚函数</h2><p><strong>动态绑定的触发条件</strong>：确实只有在通过<strong>基类的指针或引用</strong>调用<strong>虚函数</strong>时，才会发生动态绑定（运行时多态）。如果通过对象实例本身调用，则属于静态绑定。</p>
+<p><strong>当且仅当对通过指针或引用调用虚函数时</strong>，才会在运行时解析该调用，也只有在这种情况下对象的动态类型才有可能与静态类型不同。</p>
+<p>一旦某个函数被声明成虚函数，则在所有的派生类中它都是虚函数。</p>
+<p><strong>派生类重写虚函数</strong>：在派生类中重写虚函数时，<code>virtual</code>关键字是可选的，但函数签名（函数名、参数列表、常量性）必须与基类的虚函数严格匹配。派生类中的虚函数的返回类型也必须和基类函数匹配，存在一个例外，当类的虚函数返回类型是类本身的指针或引用。</p>
+<p><code>override</code>关键字（C++11引入）<strong>不改变</strong>程序的行为，而是<strong>强制编译器进行检查</strong>。如果函数被标记为 <code>override</code>但实际上并没有成功重写任何一个基类的虚函数（例如由于拼写错误或参数列表不匹配），编译器将报错。</p>
+<p>虚函数也可以使用默认实参。<strong>虚函数是动态绑定的，但默认实参是静态绑定的</strong>。这意味着，默认实参的值在编译阶段就根据调用该函数的指针或引用的静态类型确定了。最佳实践是：<strong>基类和派生类的虚函数应使用相同的默认实参</strong>。</p>
+<p>使用作用域运算符（<code>::</code>）可以显式指定调用哪个类的函数版本，从而绕过动态绑定。这通常用于特定场景，例如在派生类的虚函数实现中，需要调用基类的版本来完成部分工作。</p>
+<p>如果一个派生类虚函数中需要调用它的基类版本，但是没有使用作用域运算符，会导致无限递归。</p>
+<h2 id="抽象基类"><a href="#抽象基类" class="headerlink" title="抽象基类"></a>抽象基类</h2>
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C++</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/03/24/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Apromise/" rel="prev" title="C++标准库-并发：promise">
+      <i class="fa fa-chevron-left"></i> C++标准库-并发：promise
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/" rel="next" title="CMU15445(2024fall)-project#1 记录">
+      CMU15445(2024fall)-project#1 记录 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%9F%BA%E7%B1%BB%E5%92%8C%E6%B4%BE%E7%94%9F%E7%B1%BB"><span class="nav-number">2.</span> <span class="nav-text">定义基类和派生类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%9F%BA%E7%B1%BB"><span class="nav-number">2.1.</span> <span class="nav-text">定义基类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E6%B4%BE%E7%94%9F%E7%B1%BB"><span class="nav-number">2.2.</span> <span class="nav-text">定义派生类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%E4%B8%8E%E7%BB%A7%E6%89%BF"><span class="nav-number">2.3.</span> <span class="nav-text">类型转换与继承</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text">虚函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8A%BD%E8%B1%A1%E5%9F%BA%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text">抽象基类</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">148k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
