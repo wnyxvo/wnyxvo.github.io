@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="CUDA 中的异步API与同步APICUDA 的 API 分为同步和异步两大类。简单来说，同步 API 会阻塞主机线程直到操作完成，而异步 API 会立即返回，让操作在后台执行。    特性 同步 API 异步 API    阻塞行为 阻塞调用线程，直到操作完成 立即返回，不阻塞调用线程   执行位置 主机线程等待 GPU 完成 GPU 异步执行，主机继续运行   典型函数 cudaMemcpy,">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CUDA 中的异步API与同步API">
+<meta property="og:url" content="http://example.com/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="CUDA 中的异步API与同步APICUDA 的 API 分为同步和异步两大类。简单来说，同步 API 会阻塞主机线程直到操作完成，而异步 API 会立即返回，让操作在后台执行。    特性 同步 API 异步 API    阻塞行为 阻塞调用线程，直到操作完成 立即返回，不阻塞调用线程   执行位置 主机线程等待 GPU 完成 GPU 异步执行，主机继续运行   典型函数 cudaMemcpy,">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-05-02T07:41:43.000Z">
+<meta property="article:modified_time" content="2026-05-02T13:37:27.506Z">
+<meta property="article:author" content="wnyxvo">
+<meta property="article:tag" content="AI Infra">
+<meta property="article:tag" content="CUDA">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CUDA 中的异步API与同步API | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">12</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">7</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">44</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CUDA 中的异步API与同步API
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-05-02 15:41:43 / 修改时间：21:37:27" itemprop="dateCreated datePublished" datetime="2026-05-02T15:41:43+08:00">2026-05-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CUDA/" itemprop="url" rel="index"><span itemprop="name">CUDA</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="CUDA-中的异步API与同步API"><a href="#CUDA-中的异步API与同步API" class="headerlink" title="CUDA 中的异步API与同步API"></a>CUDA 中的异步API与同步API</h1><p>CUDA 的 API 分为<strong>同步</strong>和<strong>异步</strong>两大类。简单来说，同步 API 会<strong>阻塞主机线程</strong>直到操作完成，而异步 API 会<strong>立即返回</strong>，让操作在后台执行。</p>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>特性</strong></th>
+<th align="center"><strong>同步 API</strong></th>
+<th align="center"><strong>异步 API</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>阻塞行为</strong></td>
+<td align="center">阻塞调用线程，直到操作完成</td>
+<td align="center">立即返回，不阻塞调用线程</td>
+</tr>
+<tr>
+<td align="center"><strong>执行位置</strong></td>
+<td align="center">主机线程等待 GPU 完成</td>
+<td align="center">GPU 异步执行，主机继续运行</td>
+</tr>
+<tr>
+<td align="center"><strong>典型函数</strong></td>
+<td align="center"><code>cudaMemcpy</code>, <code>cudaMemset</code></td>
+<td align="center"><code>cudaMemcpyAsync</code>, <code>cudaMemsetAsync</code></td>
+</tr>
+<tr>
+<td align="center"><strong>性能影响</strong></td>
+<td align="center">主机和 GPU 不能并行工作</td>
+<td align="center">主机和 GPU 可以并行工作</td>
+</tr>
+<tr>
+<td align="center"><strong>流参数</strong></td>
+<td align="center">通常没有流参数</td>
+<td align="center">必须有流参数</td>
+</tr>
+<tr>
+<td align="center"><strong>内存要求</strong></td>
+<td align="center">可使用可分页内存</td>
+<td align="center">通常需要<strong>固定内存</strong></td>
+</tr>
+</tbody></table>
+<h2 id="同步-API"><a href="#同步-API" class="headerlink" title="同步 API"></a>同步 API</h2><p>特点：</p>
+<ol>
+<li><strong>阻塞调用</strong>：CPU 线程会挂起，直到 GPU 完成该操作</li>
+<li><strong>简单易用</strong>：无需担心同步问</li>
+<li><strong>性能较低</strong>：CPU 在等待 GPU 时处于空闲状态</li>
+</ol>
+<p>常见同步 API：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 内存操作</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemcpy</span><span class="params">(<span class="type">void</span>* dst, <span class="type">const</span> <span class="type">void</span>* src, <span class="type">size_t</span> count, cudaMemcpyKind kind)</span></span>;</span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemset</span><span class="params">(<span class="type">void</span>* devPtr, <span class="type">int</span> value, <span class="type">size_t</span> count)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 设备同步</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaDeviceSynchronize</span><span class="params">()</span></span>;  <span class="comment">// 等待所有 GPU 操作完成</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaStreamSynchronize</span><span class="params">(cudaStream_t stream)</span></span>;  <span class="comment">// 等待指定流完成</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaEventSynchronize</span><span class="params">(cudaEvent_t event)</span></span>;  <span class="comment">// 等待事件完成</span></span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主机分配内存</span></span><br><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"><span class="comment">// 设备分配内存</span></span><br><span class="line"><span class="type">float</span>* d_data;</span><br><span class="line"><span class="built_in">cudaMalloc</span>(&amp;d_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 同步拷贝：CPU 会一直阻塞，直到拷贝完成</span></span><br><span class="line"><span class="built_in">cudaMemcpy</span>(d_data, h_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaMemcpyHostToDevice);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 启动核函数（核函数启动本身是异步的！）</span></span><br><span class="line">myKernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(d_data);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 但随后的同步操作会等待核函数完成</span></span><br><span class="line"><span class="built_in">cudaMemcpy</span>(h_data, d_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaMemcpyDeviceToHost);</span><br><span class="line"><span class="comment">// 到这里，CPU 已等待 GPU 完成所有操作</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="异步API"><a href="#异步API" class="headerlink" title="异步API"></a>异步API</h2><p>特点</p>
+<ol>
+<li><strong>非阻塞调用</strong>：立即返回，操作在 GPU 上异步执行</li>
+<li><strong>需要显式同步</strong>：必须手动确保操作完成后再使用结果</li>
+<li><strong>更高性能</strong>：可实现 CPU-GPU 并行、计算-通信重叠</li>
+<li><strong>需要固定内存</strong>：异步内存传输需要主机端的<strong>固定内存</strong></li>
+</ol>
+<p>常见异步 API：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 异步内存操作（需要指定流）</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemcpyAsync</span><span class="params">(<span class="type">void</span>* dst, <span class="type">const</span> <span class="type">void</span>* src, <span class="type">size_t</span> count, </span></span></span><br><span class="line"><span class="params"><span class="function">                           cudaMemcpyKind kind, cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemsetAsync</span><span class="params">(<span class="type">void</span>* devPtr, <span class="type">int</span> value, <span class="type">size_t</span> count, </span></span></span><br><span class="line"><span class="params"><span class="function">                           cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 核函数启动（总是异步的！）</span></span><br><span class="line">kernel&lt;&lt;&lt;grid, block, sharedMem, stream&gt;&gt;&gt;(args...);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 事件记录</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaEventRecord</span><span class="params">(cudaEvent_t event, cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>重要：核函数启动总是异步的</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 核函数启动本身就是异步的！</span></span><br><span class="line">myKernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(args);  <span class="comment">// 立即返回，不阻塞 CPU</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 但后续的同步 API 会等待它</span></span><br><span class="line"><span class="built_in">cudaDeviceSynchronize</span>();  <span class="comment">// 这会阻塞 CPU，直到核函数完成</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>异步 API 的关键要求：</strong></p>
+<ol>
+<li><p>异步内存传输<strong>必须</strong>使用固定内存：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 错误：普通 malloc 分配的内存不能用于异步传输</span></span><br><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正确：使用 cudaMallocHost 或 cudaHostAlloc</span></span><br><span class="line"><span class="type">float</span>* h_pinned;</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>));  <span class="comment">// 分配固定内存</span></span><br><span class="line"><span class="comment">// 或</span></span><br><span class="line"><span class="built_in">cudaHostAlloc</span>(&amp;h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaHostAllocDefault);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 现在可以用于异步传输</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(d_data, h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), </span><br><span class="line">                cudaMemcpyHostToDevice, stream);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 别忘了释放</span></span><br><span class="line"><span class="built_in">cudaFreeHost</span>(h_pinned);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>流</p>
+</li>
+</ol>
+<h3 id="为什么异步内存传输必须使用固定内存？"><a href="#为什么异步内存传输必须使用固定内存？" class="headerlink" title="为什么异步内存传输必须使用固定内存？"></a>为什么异步内存传输必须使用固定内存？</h3><p>核心原因：DMA 与内存页锁定。异步内存传输通过 <strong>DMA</strong> 直接在 GPU 和主机内存之间传输数据，<strong>绕过 CPU</strong>。</p>
+<ol>
+<li><p><strong>DMA 需要物理地址连续性</strong></p>
+<ul>
+<li>DMA 引擎需要<strong>连续的物理内存地址</strong>来执行高效的数据传输</li>
+<li>常规的 <code>malloc</code>分配的内存是<strong>虚拟内存</strong>，物理页可能不连续</li>
+<li>操作系统随时可能移动物理页（页面交换），DMA 无法处理这种动态变化</li>
+</ul>
+</li>
+<li><p><strong>内存页锁定</strong></p>
+<p><code>cudaMallocHost</code>分配的<strong>固定内存</strong>会：</p>
+<ul>
+<li><strong>锁定物理页</strong>：防止操作系统将此内存换出到磁盘</li>
+<li><strong>保证物理连续性</strong>：DMA 引擎可以获得稳定的物理地址</li>
+<li><strong>允许直接访问</strong>：GPU 可以直接访问，无需 CPU 介入</li>
+<li>异步传输的底层流程<ul>
+<li>调用 cudaMemcpyAsync</li>
+<li>DMA 引擎获取固定内存的物理地址</li>
+<li>DMA 直接从主机内存读取数据到 GPU</li>
+<li>CPU 可以继续执行其他任务</li>
+<li>传输完成时，GPU 产生中断或通过事件通知</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>如果使用普通内存会怎样？</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(size);  <span class="comment">// 普通分页内存</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(d_data, h_data, size, cudaMemcpyHostToDevice, stream);</span><br><span class="line"><span class="comment">// 这里可能会失败，或者 CUDA 驱动会：</span></span><br><span class="line"><span class="comment">// 1. 临时锁定内存页（产生额外开销）</span></span><br><span class="line"><span class="comment">// 2. 回退到同步传输（失去异步优势）</span></span><br><span class="line"><span class="comment">// 3. 在某些情况下直接返回错误</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="cudaMallocHost-与-malloc-的详细区别"><a href="#cudaMallocHost-与-malloc-的详细区别" class="headerlink" title="cudaMallocHost 与 malloc 的详细区别"></a>cudaMallocHost 与 malloc 的详细区别</h3><h4 id="内存类型对比"><a href="#内存类型对比" class="headerlink" title="内存类型对比"></a>内存类型对比</h4><table>
+<thead>
+<tr>
+<th align="center"><strong>特性</strong></th>
+<th align="center"><strong><code>malloc</code></strong></th>
+<th align="center"><strong><code>cudaMallocHost</code></strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>内存类型</strong></td>
+<td align="center">可分页内存</td>
+<td align="center">固定内存（页锁定内存）</td>
+</tr>
+<tr>
+<td align="center"><strong>物理连续性</strong></td>
+<td align="center">不保证</td>
+<td align="center">保证物理页连续</td>
+</tr>
+<tr>
+<td align="center"><strong>可交换性</strong></td>
+<td align="center">可被交换到磁盘</td>
+<td align="center">锁定在物理内存</td>
+</tr>
+<tr>
+<td align="center"><strong>DMA 访问</strong></td>
+<td align="center">需要 CPU 介入</td>
+<td align="center">可直接 DMA 访问</td>
+</tr>
+<tr>
+<td align="center"><strong>分配速度</strong></td>
+<td align="center">较快</td>
+<td align="center">较慢（需要锁定页）</td>
+</tr>
+<tr>
+<td align="center"><strong>传输性能</strong></td>
+<td align="center">较慢（需临时锁定）</td>
+<td align="center">较快（直接 DMA）</td>
+</tr>
+<tr>
+<td align="center"><strong>异步传输</strong></td>
+<td align="center">不支持</td>
+<td align="center">支持</td>
+</tr>
+<tr>
+<td align="center"><strong>系统影响</strong></td>
+<td align="center">对系统影响小</td>
+<td align="center">占用物理内存，可能影响系统性能</td>
+</tr>
+<tr>
+<td align="center"><strong>释放函数</strong></td>
+<td align="center"><code>free()</code></td>
+<td align="center"><code>cudaFreeHost()</code></td>
+</tr>
+</tbody></table>
+<h4 id="技术细节深入"><a href="#技术细节深入" class="headerlink" title="技术细节深入"></a>技术细节深入</h4><ol>
+<li><p>内存管理方式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// malloc: 分配虚拟内存</span></span><br><span class="line"><span class="function"><span class="type">void</span>* <span class="title">malloc</span><span class="params">(<span class="type">size_t</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 从进程的虚拟地址空间分配</span></span><br><span class="line">    <span class="comment">// 2. 物理内存页在首次访问时按需分配</span></span><br><span class="line">    <span class="comment">// 3. 物理页可以不连续</span></span><br><span class="line">    <span class="comment">// 4. 操作系统可随时将页面交换到磁盘</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// cudaMallocHost: 分配固定内存</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMallocHost</span><span class="params">(<span class="type">void</span>** ptr, <span class="type">size_t</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 分配虚拟地址</span></span><br><span class="line">    <span class="comment">// 2. 立即分配物理内存页</span></span><br><span class="line">    <span class="comment">// 3. 锁定这些物理页（禁止交换）</span></span><br><span class="line">    <span class="comment">// 4. 确保物理连续性（可能重新整理）</span></span><br><span class="line">    <span class="comment">// 5. 将此内存注册到CUDA驱动</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>数据传输路径对比</p>
+<p><strong>使用 malloc + 同步传输</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 时间线: [准备数据] -&gt; [发起传输] -&gt; [等待传输] -&gt; [继续工作]</span><br><span class="line">              ↓           ↓</span><br><span class="line">GPU 时间线:               [开始传输] -&gt; [传输中] -&gt; [传输完成]</span><br><span class="line">传输路径: 数据 -&gt; CPU缓存 -&gt; 系统总线 -&gt; GPU</span><br><span class="line">问题: CPU 必须参与整个传输过程</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用 cudaMallocHost + 异步传输</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 时间线: [准备数据] -&gt; [发起传输] -&gt; [立即继续工作] ... [处理其他任务]</span><br><span class="line">              ↓</span><br><span class="line">GPU 时间线:   [DMA传输开始] -&gt; [传输中] -&gt; [传输完成]</span><br><span class="line">传输路径: 数据 -&gt; DMA引擎 -&gt; <span class="built_in">GPU</span> (CPU不参与)</span><br><span class="line">优势: CPU 和 GPU 可以并行工作</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>性能影响</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 测试代码示例</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">benchmark</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">size_t</span> N = <span class="number">100</span> * <span class="number">1024</span> * <span class="number">1024</span>;  <span class="comment">// 100MB</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 测试 malloc + 同步传输</span></span><br><span class="line">    <span class="type">float</span>* h_malloc = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N);</span><br><span class="line">    <span class="type">float</span>* d_data;</span><br><span class="line">    <span class="built_in">cudaMalloc</span>(&amp;d_data, N);</span><br><span class="line">    </span><br><span class="line">    cudaEvent_t start, stop;</span><br><span class="line">    <span class="built_in">cudaEventCreate</span>(&amp;start);</span><br><span class="line">    <span class="built_in">cudaEventCreate</span>(&amp;stop);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(start);</span><br><span class="line">    <span class="built_in">cudaMemcpy</span>(d_data, h_malloc, N, cudaMemcpyHostToDevice);  <span class="comment">// 同步</span></span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(stop);</span><br><span class="line">    <span class="built_in">cudaEventSynchronize</span>(stop);</span><br><span class="line">    <span class="type">float</span> malloc_time;</span><br><span class="line">    <span class="built_in">cudaEventElapsedTime</span>(&amp;malloc_time, start, stop);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 测试 cudaMallocHost + 异步传输</span></span><br><span class="line">    <span class="type">float</span>* h_pinned;</span><br><span class="line">    <span class="built_in">cudaMallocHost</span>(&amp;h_pinned, N);</span><br><span class="line">    cudaStream_t stream;</span><br><span class="line">    <span class="built_in">cudaStreamCreate</span>(&amp;stream);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(start, stream);</span><br><span class="line">    <span class="built_in">cudaMemcpyAsync</span>(d_data, h_pinned, N, cudaMemcpyHostToDevice, stream);</span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(stop, stream);</span><br><span class="line">    <span class="built_in">cudaStreamSynchronize</span>(stream);</span><br><span class="line">    <span class="type">float</span> pinned_time;</span><br><span class="line">    <span class="built_in">cudaEventElapsedTime</span>(&amp;pinned_time, start, stop);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;malloc 同步传输: %.3f ms\n&quot;</span>, malloc_time);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;固定内存异步传输: %.3f ms\n&quot;</span>, pinned_time);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 清理</span></span><br><span class="line">    <span class="built_in">free</span>(h_malloc);</span><br><span class="line">    <span class="built_in">cudaFreeHost</span>(h_pinned);</span><br><span class="line">    <span class="built_in">cudaFree</span>(d_data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>何时使用 cudaMallocHost？</p>
+<ul>
+<li><p>场景1：<strong>频繁传输的数据</strong>，如果需要在CPU和GPU之间频繁传输相同的数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data;</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_data, size);  <span class="comment">// ✅ 适合</span></span><br><span class="line"><span class="comment">// ... 多次异步传输</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(..., stream);</span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(..., stream);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>场景2：<strong>流水线处理</strong>，使用双缓冲或多缓冲实现计算与传输重叠</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_buffers[<span class="number">2</span>];</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_buffers[<span class="number">0</span>], size);</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_buffers[<span class="number">1</span>], size);</span><br><span class="line"><span class="comment">// 当GPU处理buffer0时，CPU填充buffer1</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>何时使用 malloc？</p>
+<ul>
+<li><p>场景1：一次性或少量传输，如果数据只传输一次，同步传输即可</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(size);</span><br><span class="line"><span class="built_in">cudaMemcpy</span>(d_data, h_data, size, cudaMemcpyHostToDevice);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>场景2：CPU端大量数据处理， 如果数据主要在CPU上使用，很少传输到GPU</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_large_dataset = (<span class="type">float</span>*)<span class="built_in">malloc</span>(large_size);</span><br><span class="line"><span class="comment">// ... 复杂CPU处理</span></span><br><span class="line"><span class="comment">// 偶尔传输到GPU</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>混合使用策略</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 最佳实践：按需选择</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">GPUBuffer</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">void</span>* host_ptr;</span><br><span class="line">    <span class="type">void</span>* device_ptr;</span><br><span class="line">    <span class="type">size_t</span> size;</span><br><span class="line">    <span class="type">bool</span> pinned;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">GPUBuffer</span>(<span class="type">size_t</span> n, <span class="type">bool</span> use_pinned = <span class="literal">false</span>) : <span class="built_in">size</span>(n), <span class="built_in">pinned</span>(use_pinned) &#123;</span><br><span class="line">        <span class="built_in">cudaMalloc</span>(&amp;device_ptr, n);</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaMallocHost</span>(&amp;host_ptr, n);  <span class="comment">// 固定内存</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            host_ptr = <span class="built_in">malloc</span>(n);  <span class="comment">// 可分页内存</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    ~<span class="built_in">GPUBuffer</span>() &#123;</span><br><span class="line">        <span class="built_in">cudaFree</span>(device_ptr);</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaFreeHost</span>(host_ptr);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">free</span>(host_ptr);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 异步传输（仅当pinned=true时有效）</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">uploadAsync</span><span class="params">(cudaStream_t stream)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaMemcpyAsync</span>(device_ptr, host_ptr, size, </span><br><span class="line">                           cudaMemcpyHostToDevice, stream);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 回退到同步</span></span><br><span class="line">            <span class="built_in">cudaMemcpy</span>(device_ptr, host_ptr, size, cudaMemcpyHostToDevice);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>零拷贝内存</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_zerocopy;</span><br><span class="line"><span class="built_in">cudaHostAlloc</span>(&amp;h_zerocopy, size, cudaHostAllocMapped);</span><br><span class="line"><span class="comment">// GPU 可以直接访问这个内存，无需显式拷贝</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 在GPU端获取对应的设备指针</span></span><br><span class="line"><span class="type">float</span>* d_ptr;</span><br><span class="line"><span class="built_in">cudaHostGetDevicePointer</span>(&amp;d_ptr, h_zerocopy, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在核函数中直接使用</span></span><br><span class="line">kernel&lt;&lt;&lt;...&gt;&gt;&gt;(d_ptr);  <span class="comment">// 直接操作主机内存</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/AI-Infra/" rel="tag"># AI Infra</a>
+              <a href="/tags/CUDA/" rel="tag"># CUDA</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/" rel="prev" title="cpp面试问题-auto与类型推导">
+      <i class="fa fa-chevron-left"></i> cpp面试问题-auto与类型推导
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2026/05/09/CUDA-reduce-%E4%BC%98%E5%8C%96%E5%AD%A6%E4%B9%A0/" rel="next" title="CUDA reduce 优化学习">
+      CUDA reduce 优化学习 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API"><span class="nav-number">1.</span> <span class="nav-text">CUDA 中的异步API与同步API</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5-API"><span class="nav-number">1.1.</span> <span class="nav-text">同步 API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5API"><span class="nav-number">1.2.</span> <span class="nav-text">异步API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E5%BC%82%E6%AD%A5%E5%86%85%E5%AD%98%E4%BC%A0%E8%BE%93%E5%BF%85%E9%A1%BB%E4%BD%BF%E7%94%A8%E5%9B%BA%E5%AE%9A%E5%86%85%E5%AD%98%EF%BC%9F"><span class="nav-number">1.2.1.</span> <span class="nav-text">为什么异步内存传输必须使用固定内存？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cudaMallocHost-%E4%B8%8E-malloc-%E7%9A%84%E8%AF%A6%E7%BB%86%E5%8C%BA%E5%88%AB"><span class="nav-number">1.2.2.</span> <span class="nav-text">cudaMallocHost 与 malloc 的详细区别</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E7%B1%BB%E5%9E%8B%E5%AF%B9%E6%AF%94"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">内存类型对比</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%80%E6%9C%AF%E7%BB%86%E8%8A%82%E6%B7%B1%E5%85%A5"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">技术细节深入</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">44</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">174k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:38</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

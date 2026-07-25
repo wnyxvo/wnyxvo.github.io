@@ -122,17 +122,17 @@
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">9</span></a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">12</span></a>
 
   </li>
         <li class="menu-item menu-item-categories">
 
-    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">5</span></a>
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">7</span></a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">37</span></a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">44</span></a>
 
   </li>
   </ul>
@@ -158,6 +158,1081 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/06/07/NVBLOG-%E9%87%8A%E6%94%BE-GPU-%E6%80%A7%E8%83%BD%EF%BC%9ACUDA-%E4%B8%AD%E7%9A%84%E5%85%A8%E5%B1%80%E5%86%85%E5%AD%98%E8%AE%BF%E9%97%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/06/07/NVBLOG-%E9%87%8A%E6%94%BE-GPU-%E6%80%A7%E8%83%BD%EF%BC%9ACUDA-%E4%B8%AD%E7%9A%84%E5%85%A8%E5%B1%80%E5%86%85%E5%AD%98%E8%AE%BF%E9%97%AE/" class="post-title-link" itemprop="url">NVBLOG 释放 GPU 性能：CUDA 中的全局内存访问</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-06-07 20:07:44 / 修改时间：22:59:50" itemprop="dateCreated datePublished" datetime="2026-06-07T20:07:44+08:00">2026-06-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CUDA/" itemprop="url" rel="index"><span itemprop="name">CUDA</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="释放-GPU-性能：CUDA-中的全局内存访问"><a href="#释放-GPU-性能：CUDA-中的全局内存访问" class="headerlink" title="释放 GPU 性能：CUDA 中的全局内存访问"></a>释放 GPU 性能：CUDA 中的全局内存访问</h1><p><a target="_blank" rel="noopener" href="https://developer.nvidia.cn/blog/unlock-gpu-performance-global-memory-access-in-cuda/">原文链接</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/675186810">参考</a></p>
+<h2 id="核心观点"><a href="#核心观点" class="headerlink" title="核心观点"></a>核心观点</h2><p><strong>90% 以上的 CUDA 程序性能瓶颈都在全局内存访问上</strong>。理解并优化全局内存访问，是提升 CUDA 程序性能的第一要务。</p>
+<p>优化全局内存访问的三大黄金法则：</p>
+<ol>
+<li><strong>合并访存（Coalescing）</strong>：让 warp 内的线程访问连续的内存地址</li>
+<li><strong>向量化访问（Vectorization）</strong>：使用 <code>float2</code>&#x2F;<code>float4</code> 等向量类型，一次传输更多数据</li>
+<li><strong>数据复用</strong>：将频繁访问的数据缓存到共享内存或寄存器中，减少全局内存访问次数</li>
+</ol>
+<h2 id="全局内存的硬件特性"><a href="#全局内存的硬件特性" class="headerlink" title="全局内存的硬件特性"></a>全局内存的硬件特性</h2><h3 id="内存架构核心层级"><a href="#内存架构核心层级" class="headerlink" title="内存架构核心层级"></a>内存架构核心层级</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">+---------------------------------------+ +---------------------------------------+</span><br><span class="line">| SM0                                   | | SM1                                   |</span><br><span class="line">|  +---------------------------------+  | |  +---------------------------------+  |</span><br><span class="line">|  |            Registers            |  | |  |            Registers            |  |</span><br><span class="line">|  +---------------------------------+  | |  +---------------------------------+  |</span><br><span class="line">|      ▲        ▲        ▲        ▲     | |      ▲        ▲        ▲        ▲     |</span><br><span class="line">|      ▼        ▼        ▼        ▼     | |      ▼        ▼        ▼        ▼     |</span><br><span class="line">|  +------+  +------+  +------+ +-----+ | |  +------+  +------+  +------+ +-----+ |</span><br><span class="line">|  | SMEM |  |  L1  |  | Read | | Con | | |  | SMEM |  |  L1  |  | Read | | Con | |</span><br><span class="line">|  |      |  |      |  | Only | | st  | | |  |      |  |      |  | Only | | st  | |</span><br><span class="line">|  +------+  +------+  +------+ +-----+ | |  +------+  +------+  +------+ +-----+ |</span><br><span class="line">+---------------------------------------+ +---------------------------------------+</span><br><span class="line">				▲  ▼                                      ▲  ▼</span><br><span class="line">    +-------------------------------------------------------------------------+</span><br><span class="line">    |                                L2 Cache                                 |</span><br><span class="line">    +-------------------------------------------------------------------------+</span><br><span class="line">   									   ▲  ▼</span><br><span class="line">    +-------------------------------------------------------------------------+</span><br><span class="line">    |                                  DRAM                                   |</span><br><span class="line">    +-------------------------------------------------------------------------+</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p>寄存器 (Registers)：</p>
+<ul>
+<li>位置：位于每个流式多处理器（SM）的最顶层。</li>
+<li>特点：速度最快，延迟最低，是<strong>线程私有的存储空间</strong>。</li>
+</ul>
+</li>
+<li><p>SM 内部本地存储 (SM0 &#x2F; SM1)</p>
+<p>每个 SM（Streaming Multiprocessor）拥有自己独立的一级存储资源</p>
+<ul>
+<li><p><strong>SMEM (Shared Memory)<strong>：共享内存，由</strong>同一个线程块（Thread Block）内的所有线程共享</strong>，速度极快。</p>
+</li>
+<li><p><strong>L1 Cache</strong>：一级缓存，每个 SM 独享，用于加速本地和全局内存的访问。</p>
+</li>
+<li><p>Read Only：只读常量缓存。</p>
+</li>
+<li><p>Constant：常量内存缓存。</p>
+</li>
+</ul>
+</li>
+<li><p>全局共享层级 (L2 Cache)</p>
+<ul>
+<li>位置：位于 SM 之外。</li>
+<li>特点：<strong>所有 SM 共用</strong>的大容量二级缓存。所有从全局内存（DRAM）读取或写入的数据都会经过 L2 Cache，用以减少对低速显存的直接访问。</li>
+</ul>
+</li>
+<li><p>外部显存 (DRAM)</p>
+<ul>
+<li>位置：架构的最底层（全局内存）。</li>
+<li>特点：容量最大，但访问延迟最高。数据无法直接从 DRAM 传送到寄存器（Registers），必须经过 L2 和 L1&#x2F;SMEM 层级。</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><strong>SM (Streaming Multiprocessor)<strong>：</strong>物理硬件单元</strong>。一个 GPU 包含多个 SM。它是执行任务的“工厂”。</p>
+<p><strong>Thread Block (线程块)<strong>：</strong>软件逻辑概念</strong>。程序员把总任务切分成多个 Block。</p>
+<ul>
+<li><strong>映射关系</strong>：一个 Block 一旦被分配，就<strong>必须整体驻留在同一个 SM 内部</strong>执行，直到全部完成。一个 SM 可以同时驻留多个 Block。</li>
+</ul>
+<p><strong>Warp (线程束)<strong>：</strong>硬件执行的基本单位</strong>。</p>
+<ul>
+<li><strong>映射关系</strong>：**1个 Warp 固定包含 32 个线程 (Threads)**。</li>
+<li><strong>运行机制</strong>：Block 内部的线程在物理执行时，会被硬件自动切分成一个个 Warp。SM 以 Warp 为单位进行调度，同一个 Warp 内的 32 个线程以 <strong>SIMT（单指令多线程）</strong> 的方式严格同步执行。</li>
+</ul>
+</blockquote>
+<h3 id="内存事务"><a href="#内存事务" class="headerlink" title="内存事务"></a>内存事务</h3><p>在 CUDA 开发中，<strong>内存事务（Memory Transaction）</strong> 是指 GPU 架构中 L1&#x2F;L2 缓存与显存（DRAM）之间进行数据传输的<strong>最小物理执行单元</strong>。</p>
+<p>当一个 Warp（32个线程）同时发起内存请求（如读取 <code>float</code> 数组）时，GPU <strong>不会</strong>发出 32 次独立的内存请求。相反，GPU 的内存控制器会尝试将这些请求<strong>合并（Coalesce）</strong>。</p>
+<ul>
+<li><strong>物理对齐</strong>：GPU 显存是以固定的块（Segment）为单位进行管理的，通常是 <strong>32 字节、64 字节或 128 字节</strong>。</li>
+<li><strong>事务触发</strong>：一个内存事务，就是指 GPU 发起了一次读取&#x2F;写入一个 Segment 的物理操作。</li>
+<li><strong>优化目标</strong>：用<strong>最少次数</strong>的内存事务，满足整个 Warp 32 个线程的数据需求。</li>
+</ul>
+<p>根据硬件架构，内存事务的尺度通常如下：</p>
+<ul>
+<li><strong>32 字节事务</strong>：最基础的粒度（对应 8 个 <code>float</code> 或 32 个 <code>char</code>）。无论线程实际请求了多少字节（比如 1 个 <code>char</code> 或 1 个 <code>float</code>），硬件都会从 DRAM 拉取至少 <strong>32 字节</strong> 的数据放入 <strong>L2 缓存</strong>。如果只读取了 4 个字节，却加载了 32 字节，这被称为带宽浪费。因此，让相邻线程访问连续内存、实现 100% 的带宽利用率是 CUDA 优化的核心。</li>
+<li><strong>128 字节事务</strong>：若内核启用了 L1 缓存（如现代 NVIDIA GPU 默认开启）且请求的数据在 L1 缓存中未命中，GPU 加载的粒度会扩大到 <strong>128 字节</strong>。</li>
+</ul>
+<h3 id="全局内存访问数据流"><a href="#全局内存访问数据流" class="headerlink" title="全局内存访问数据流"></a>全局内存访问数据流</h3><p>cuda kernel 从 global memory 读取数据的话，数据流 DRAM -&gt; L2 Cache -&gt; L1 cache(可控制)-&gt;registers（Thread）。</p>
+<p>L1 Cache(可控制) 的意思是，可以通过编译选项手动控制数据是否经过 L1 Cache，L2 Cache 是必须会使用到的。数据是无法直接从 DRAM-&gt;registers (原因是这样数据延时会非常大！)</p>
+<h2 id="合并访存（Coalescing）"><a href="#合并访存（Coalescing）" class="headerlink" title="合并访存（Coalescing）"></a>合并访存（Coalescing）</h2><p>当一个 warp 内的所有线程访问<strong>连续的、对齐的</strong>内存地址时，硬件可以将这 32 个访问合并成<strong>1 个或几个</strong>内存事务，这就是合并访存。</p>
+<h4 id="高效与低效事务对比"><a href="#高效与低效事务对比" class="headerlink" title="高效与低效事务对比"></a>高效与低效事务对比</h4><p>高效：合并访问（1 次 128 字节事务）</p>
+<p>32个线程访问连续的 128 字节内存空间，硬件只需发出 1 次事务。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">内存地址空间: |--- 128 Byte Segment (对齐) ---|</span><br><span class="line">Warp 线程:   | T0 | T1 | T2 | ... | T31 |</span><br><span class="line">物理事务:     [========== 1 次事务 ==========]  -&gt; 100% 带宽利用率</span><br></pre></td></tr></table></figure>
+
+<p>低效：非对齐&#x2F;跨步访问（多次 32 字节事务）</p>
+<p>由于数据未对齐或有跨步（Stride），导致数据分散在多个 Segment 中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">内存地址空间: |-- Seg 0 --|-- Seg 1 --|-- Seg 2 --|-- Seg 3 --|</span><br><span class="line">Warp 线程:          | T0 | T1 | .....| T15 | T16 | ... | T31 |</span><br><span class="line">物理事务:       [ 事务 1 ] [ 事务 2 ]  [ 事务 3 ]   [ 事务 4 ] -&gt; 带宽浪费，延迟高</span><br></pre></td></tr></table></figure>
+
+<h4 id="导致额外内存事务的典型场景"><a href="#导致额外内存事务的典型场景" class="headerlink" title="导致额外内存事务的典型场景"></a>导致额外内存事务的典型场景</h4><p>在编写代码时，需要极力避免以下导致“内存事务爆炸”的写法：</p>
+<ol>
+<li><strong>非结构化步长访问（Strided Access）</strong>：<ul>
+<li>现象：线程 <code>i</code> 访问 <code>ptr[i * step]</code>。当 <code>step &gt; 1</code> 时，数据在物理上断开。</li>
+<li>后果：如果 <code>step</code> 很大，Warp 内 32 个线程可能会触发 <strong>32 次</strong> 独立事务，带宽利用率跌至 1&#x2F;32。</li>
+</ul>
+</li>
+<li><strong>结构体数组（AoS） vs 数组结构体（SoA）</strong>：<ul>
+<li><strong>不要用 AoS</strong>：<code>struct Node &#123; float x, y, z; &#125; A[N];</code> -&gt; 线程访问 <code>A[i].x</code> 时会产生跳跃，引发多次事务。</li>
+<li><strong>推荐用 SoA</strong>：<code>struct Nodes &#123; float x[N], y[N], z[N]; &#125; A;</code> -&gt; 线程访问 <code>A.x[i]</code> 是完美的连续地址，只需 1 次事务。</li>
+</ul>
+</li>
+</ol>
+<h4 id="如何优化-GPU-访存"><a href="#如何优化-GPU-访存" class="headerlink" title="如何优化 GPU 访存"></a>如何优化 GPU 访存</h4><p>为了避免“加载了 32&#x2F;128 字节却只用了几个字节”造成的带宽浪费，编写 GPU 程序时需要遵循以下两个准则：</p>
+<ul>
+<li>**合并访问 (Coalesced Access)**：一个 Warp 中的连续线程要访问连续的内存地址（例如 <code>threadIdx.x</code> 对应的线程访问 <code>array[threadIdx.x]</code>)。</li>
+<li>**对齐访问 (Aligned Access)**：每次数据传输的首地址，必须是 32 字节（或 128 字节，取决于缓存机制）的整数倍</li>
+</ul>
+<h4 id="合并效率计算公式"><a href="#合并效率计算公式" class="headerlink" title="合并效率计算公式"></a>合并效率计算公式</h4><p>在 Nsight Compute 等 GPU 分析工具中，这是最核心的优化指标：$$\text{内存合并效率}&#x3D;\frac{\text{Warp 请求的实际数据量 (Bytes)}}{\text{GPU 实际触发的内存事务总量 (Bytes)}}\times 100%$$</p>
+<ul>
+<li>如果效率是 100%：说明没有带宽浪费。</li>
+<li>如果效率只有 12.5%：说明 GPU 花费了 8 倍的带宽去搬运你本来只需要的一点点数据，程序卡在显存瓶颈（Memory Bound）。</li>
+</ul>
+<h2 id="多维数组"><a href="#多维数组" class="headerlink" title="多维数组"></a>多维数组</h2>
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/06/07/CUDA-SGEMM-%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/06/07/CUDA-SGEMM-%E5%AD%A6%E4%B9%A0/" class="post-title-link" itemprop="url">CUDA SGEMM 学习</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-06-07 14:54:50 / 修改时间：14:56:15" itemprop="dateCreated datePublished" datetime="2026-06-07T14:54:50+08:00">2026-06-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CUDA/" itemprop="url" rel="index"><span itemprop="name">CUDA</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>12</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="SGEMM-学习"><a href="#SGEMM-学习" class="headerlink" title="SGEMM 学习"></a>SGEMM 学习</h1><h2 id="向量化加载"><a href="#向量化加载" class="headerlink" title="向量化加载"></a>向量化加载</h2>
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/09/CUDA-reduce-%E4%BC%98%E5%8C%96%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/05/09/CUDA-reduce-%E4%BC%98%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="post-title-link" itemprop="url">CUDA reduce 优化学习</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2026-05-09 16:37:49" itemprop="dateCreated datePublished" datetime="2026-05-09T16:37:49+08:00">2026-05-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2026-06-07 14:53:25" itemprop="dateModified" datetime="2026-06-07T14:53:25+08:00">2026-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CUDA/" itemprop="url" rel="index"><span itemprop="name">CUDA</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Reduce-优化学习"><a href="#Reduce-优化学习" class="headerlink" title="Reduce 优化学习"></a>Reduce 优化学习</h1><blockquote>
+<p>参考：</p>
+<ol>
+<li>NIVDIA <a target="_blank" rel="noopener" href="https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf">reduce优化官方博客</a> </li>
+<li><a target="_blank" rel="noopener" href="https://github.com/BBuf/how-to-optim-algorithm-in-cuda/tree/master">how-to-optim-algorithm-in-cuda&#x2F;cuda-kernels&#x2F;reduce</a></li>
+<li><a target="_blank" rel="noopener" href="https://dlog.com.cn/posts/cuda08/reduce01/">CUDA学习之路[9]：粗看规约Reduce算法</a></li>
+<li><a target="_blank" rel="noopener" href="https://space.bilibili.com/1822828582?spm_id_from=333.337.0.0">我是傅傅猪</a></li>
+</ol>
+</blockquote>
+<p>Reduce 的本质：把 N 个元素，使用某种结合运算（+ &#x2F; max &#x2F; min &#x2F; xor …）， 最终压缩成更少元素。</p>
+<h2 id="baseline"><a href="#baseline" class="headerlink" title="baseline"></a>baseline</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> BLOCK_SIZE&gt;</span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">reduce_v0</span><span class="params">(<span class="type">const</span> <span class="type">float</span>* g_idata, <span class="type">float</span>* g_odata, std::<span class="type">size_t</span> n)</span> </span>&#123;</span><br><span class="line">    __shared__ <span class="type">float</span> sdata[BLOCK_SIZE]; </span><br><span class="line"></span><br><span class="line">    <span class="comment">// Thread index within the block.</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line">    <span class="comment">// Global index of the element this thread will process.</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x * blockDim.x + threadIdx.x; </span><br><span class="line">    <span class="comment">// if n is not a multiple of blockDim.x, some threads will be out of bounds,</span></span><br><span class="line">    <span class="comment">// so we need to check before loading data to avoid out-of-bounds access.</span></span><br><span class="line">    <span class="keyword">if</span> (i &lt; n) &#123;</span><br><span class="line">        sdata[tid] = g_idata[i];</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        sdata[tid] = <span class="number">0.0f</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    __syncthreads();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// do a tree-based reduction where each step reduces pairs of elements.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> s = <span class="number">1</span>; s &lt; blockDim.x; s *= <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (tid % (<span class="number">2</span> * s) == <span class="number">0</span>) &#123;</span><br><span class="line">            sdata[tid] += sdata[tid + s];</span><br><span class="line">        &#125;</span><br><span class="line">        __syncthreads();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Write the result of this block&#x27;s reduction to the output array.</span></span><br><span class="line">    <span class="comment">// g_odata[blockIdx.x] will hold the sum of the elements processed by this block,</span></span><br><span class="line">    <span class="comment">// so that the next round of reduction can further reduce these block sums to a single value.</span></span><br><span class="line">    <span class="keyword">if</span> (tid == <span class="number">0</span>) &#123;</span><br><span class="line">        g_odata[blockIdx.x] = sdata[<span class="number">0</span>];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>树状折半规约:</strong> </p>
+<p><strong>潜在的问题:</strong> </p>
+<ul>
+<li><p>线程闲置：在规约阶段（for 循环中），随着迭代的进行，参与计算的线程数逐次减半，导致大量线程在整个归约过程中始终处于空闲状态，甚至有部分线程从始至终都没有执行过任何有效计算，<strong>是参与计算的线程数过少。</strong></p>
+</li>
+<li><p>线程束分化 <strong>Warp Divergence</strong>：</p>
+<blockquote>
+<p><strong>线程束分化（Warp Divergence）</strong> 是 GPU 并行计算（尤其是 CUDA 架构）中一个极其关键的性能瓶颈概念。简单来说，当一个线程束（Warp，通常包含 <strong>32 个线程</strong>）中的线程在执行代码时，由于逻辑分支（如 <code>if-else</code>、<code>switch</code> 或 <code>for</code> 循环次数不同）走向了<strong>不同的指令路径</strong>，就会发生分化。</p>
+</blockquote>
+<p>GPU 使用的是 <strong>SIMT（Single Instruction, Multiple Thread）</strong>，对应的一个 warp 的 32 个线程在同一时刻执行同一条指令。但是如果存在分支代码（<code>if/else</code>），一部分线程走 <code>if</code>，另一部分走 <code>else</code>，会导致执行<code>if</code>时会有一部分线程在空等，warp 内分叉非常严重。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">s = <span class="number">1</span>: tid % <span class="number">2</span> == <span class="number">0</span></span><br><span class="line">线程:</span><br><span class="line"><span class="number">0</span> active</span><br><span class="line"><span class="number">1</span> idle</span><br><span class="line"><span class="number">2</span> active</span><br><span class="line"><span class="number">3</span> idle</span><br><span class="line">...</span><br><span class="line"><span class="number">50</span>% active</span><br><span class="line">    </span><br><span class="line">s = <span class="number">2</span>: tid % <span class="number">4</span> == <span class="number">0</span></span><br><span class="line">线程:</span><br><span class="line"><span class="number">0</span> active</span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> idle</span><br><span class="line"><span class="number">4</span> active</span><br><span class="line">... </span><br><span class="line"><span class="number">25</span>% active</span><br></pre></td></tr></table></figure>
+
+<p>在一个 warp 中大量的线程是 idle 的</p>
+</li>
+<li><p>存储体冲突(bank conflict)：</p>
+<blockquote>
+<p>共享内存被划分为 <strong>32 个独立 Bank</strong>（SM 为 32），每个 Bank 每周期只能服务 <strong>1 次访问</strong></p>
+<p>按 <strong>4 字节（int&#x2F;float）</strong> 对齐，地址映射公式：<code>bank_id = (byte_addr / 4) % 32</code>。连续的 4 字节为一组被映射到 Bank 0 到 Bank 31，循环映射。</p>
+<p>示例（<code>__shared__ int s[]</code>）：</p>
+<ul>
+<li><code>s[0]</code> → bank 0</li>
+<li><code>s[1]</code> → bank 1</li>
+<li>…</li>
+<li><code>s[31]</code> → bank 31</li>
+<li><code>s[32]</code> → bank 0（循环）</li>
+</ul>
+<p>当同一个 Warp（32 线程）内<strong>多个</strong>线程<strong>同时访问同一个 Bank</strong> 的不同地址时，访问会被串行化，带宽急剧下降</p>
+<p>广播例外：多线程读<strong>同一地址</strong> → 硬件广播，<strong>无冲突</strong></p>
+</blockquote>
+<p>当 <code>s == 16</code> 且 <code>tid == 0</code> 时，线程会访问 <code>s[0]</code> 和 <code>s[16]</code>；而当 <code>tid == 1</code> 时，则会访问 <code>s[32]</code> 和 <code>s[48]</code>。这种访问模式导致了 <code>s[0]</code> 和 <code>s[32]</code> 等地址之间出现 bank 冲突，因为它们映射到了相同的共享内存 bank。也就是说不同的线程tid &#x3D; 0, tid &#x3D; 1在同一时间访问了同一个bank，也就是s[0]和s[32]所在的bank。</p>
+</li>
+<li><p>取模运算对于GPU来说消耗太大</p>
+</li>
+</ul>
+<h2 id="index-based-addressing"><a href="#index-based-addressing" class="headerlink" title="index-based addressing"></a>index-based addressing</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> s = <span class="number">1</span>; s &lt; blockDim.x; s *= <span class="number">2</span>) &#123;</span><br><span class="line">    <span class="comment">// if (tid % (2*s) == 0) &#123;</span></span><br><span class="line">    <span class="comment">//     sdata[tid] += sdata[tid + s];</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> index = <span class="number">2</span> * s * tid;</span><br><span class="line">    <span class="keyword">if</span> (index &lt; blockDim.x) &#123;</span><br><span class="line">        sdata[index] += sdata[index + s];</span><br><span class="line">    &#125;</span><br><span class="line">    __syncthreads();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>优化点 ：warp divergence 和 modulo 指令开销</p>
+<p>还没有解决：shared memory bank conflict</p>
+<p><code>index = 2 * s * tid</code></p>
+<p>本质：不再让所有线程都参与条件判断；而是：只让“可能工作的线程”去访问目标位置。</p>
+<p>尽可能让活跃的 thread 都在 同一个 warp 内，减少了线程束分化</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">假设 blockDim.x = <span class="number">256</span></span><br><span class="line">    </span><br><span class="line">s = <span class="number">1</span>:  warp0 内的 index： <span class="number">0</span> <span class="number">2</span> <span class="number">4</span> <span class="number">6</span> ... <span class="number">62</span>		    每个线程：都 active</span><br><span class="line">s = <span class="number">2</span>:  warp0 内的 index： <span class="number">0</span> <span class="number">4</span> <span class="number">8</span> <span class="number">16</span> ... <span class="number">124</span>		每个线程：都 active</span><br><span class="line">s = <span class="number">4</span>:  warp0 内的 index： <span class="number">0</span> <span class="number">8</span> <span class="number">16</span> <span class="number">32</span> ... <span class="number">248</span>   	每个线程：都 active</span><br><span class="line">s = <span class="number">8</span>:  warp0 内的 index： <span class="number">0</span> <span class="number">16</span> <span class="number">32</span> <span class="number">64</span> ...   	    </span><br><span class="line">s = <span class="number">16</span>:  warp0 内的 index： <span class="number">0</span> <span class="number">32</span> <span class="number">64</span> <span class="number">128</span> ...</span><br></pre></td></tr></table></figure>
+
+<p><strong>shared memory bank conflict 更严重了</strong>：</p>
+<p>在第一次迭代中，0号线程需要去加载 shared memory 的0号和1号地址，然后写回0号地址。此时，0号 warp 的16号线程需要加载 shared memory 的32和33号地址并且写回32号地址。所以，我们在一个warp内同时访问了一个bank的不同内存地址，发生了2路的 Bank Conflict。</p>
+<p><code>s = 1</code>，warp 0 内 thread0 访问 <code>sdata[0] sdata[1]</code>，thread16 访问 <code>sdata[32] sdata[33]</code>，造成2-way bank conflict</p>
+<p><code>s = 2</code>，warp 0 内 thread0 访问 <code>sdata[0] sdata[2]</code>，thread8 访问 <code>sdata[32] sdata[34]</code>，thread16 访问 <code>sdata[64] sdata[68]</code>，thread24 访问 <code>sdata[96] sdata[100]</code>，造成4-way bank conflict</p>
+<p>以此类推，下一次迭代会产生8路的 Bank Conflict，使得整个 Kernel 一直受到 Bank Conflict 的影响。</p>
+<p><code>s = 16</code>，warp 0 内每个 thread 都访问 bank0，出现 32-way bank conflict</p>
+<h2 id="Sequential-Addressing"><a href="#Sequential-Addressing" class="headerlink" title="Sequential Addressing"></a>Sequential Addressing</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> s = blockDim.x / <span class="number">2</span>; s &gt; <span class="number">0</span>; s &gt;&gt;= <span class="number">1</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (tid &lt; s) &#123;</span><br><span class="line">        sdata[tid] += sdata[tid + s];</span><br><span class="line">    &#125;</span><br><span class="line">    __syncthreads();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>s = 1</code>，warp 0 内 thread0 访问 <code>sdata[0] sdata[128]</code>，thread1 访问 <code>sdata[1] sdata[129]</code>…warp0 的线程刚好加载shared memory的一行数据，不会产生 bank conflict</p>
+<p><code>s = 2</code>，warp 0 内 thread0 访问 <code>sdata[0] sdata[64]</code>，thread1 访问 <code>sdata[1] sdata[65]</code>…加载shared memory的一行数据，不会产生 bank conflict</p>
+<h2 id="解决-idel-线程：First-Add-During-Load"><a href="#解决-idel-线程：First-Add-During-Load" class="headerlink" title="解决 idel 线程：First Add During Load"></a>解决 idel 线程：First Add During Load</h2><p>当前版本的 kernel 浪费了大量的线程。对于第一轮迭代只有128个线程在工作，而第二轮迭代只有64个线程工作，第三轮迭代只有32和线程工作，以此类推，在每一轮迭代中都有大量的线程是空闲的。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x * (blockDim.x * <span class="number">2</span>) + threadIdx.x;</span><br><span class="line">sdata[tid] = g_idata[i] + ((i + blockDim.x &lt; n) ? g_idata[i + blockDim.x] : <span class="number">0.0f</span>);</span><br><span class="line">__syncthreads();</span><br></pre></td></tr></table></figure>
+
+<p><strong>数据加载模块进一步优化</strong></p>
+<p>之前版本的搬运数据阶段，每个线程都只从全局内存搬运一个元素到共享内存中。 但是实际上我们可以每个线程多读取一点，例如一口气读取两个元素，并且可以直接在本地寄存器里把它们加起来。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">int idx = blockIdx.x * (blockDim.x * 2) + threadIdx.x;</span><br></pre></td></tr></table></figure>
+
+<p>注意这里全局下标的步长已经不是<code>blockDim.x</code>，而是对其乘以2。 这就意味着同样数量的线程，v3覆盖的数据是v2的两倍，这意味着Block的数据可以减半。</p>
+<p>提升了计算密度。寄存器的带宽远超共享内存，并且没有bank conflict，线程在等待全局数据内存的同时就可以做这件加法。</p>
+<blockquote>
+<p>为什么一次不读4个、8个？</p>
+<p>当然可以，而且很多高性能库就是这么干的。但是增加单线程的负载同时也会减少活跃的线程块数，可能降低硬件占用率。因此需要在“每线程工作量”和“并行度”之间找到一个平衡点。v3 的 ×2 只是一个讨巧的起步优化。</p>
+</blockquote>
+<h2 id="展开最后一个-warp"><a href="#展开最后一个-warp" class="headerlink" title="展开最后一个 warp"></a>展开最后一个 warp</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">__device__ <span class="type">void</span> <span class="title">warpReduce</span><span class="params">(<span class="keyword">volatile</span> <span class="type">float</span>* cache, <span class="type">unsigned</span> <span class="type">int</span> tid)</span></span>&#123;</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">32</span>];</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">16</span>];</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">8</span>];</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">4</span>];</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">2</span>];</span><br><span class="line">  cache[tid] += cache[tid + <span class="number">1</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FULL_MASK 0xffffffff</span></span><br><span class="line"><span class="function">__device__ <span class="type">void</span> <span class="title">warpReduceShfl</span><span class="params">(<span class="type">float</span> *cache, <span class="type">unsigned</span> <span class="type">int</span> tid)</span> </span>&#123;</span><br><span class="line">  <span class="type">int</span> v = cache[tid] + cache[tid + <span class="number">32</span>];</span><br><span class="line">  v += __shfl_down_sync(FULL_MASK, v, <span class="number">16</span>);</span><br><span class="line">  v += __shfl_down_sync(FULL_MASK, v, <span class="number">8</span>);</span><br><span class="line">  v += __shfl_down_sync(FULL_MASK, v, <span class="number">4</span>);</span><br><span class="line">  v += __shfl_down_sync(FULL_MASK, v, <span class="number">2</span>);</span><br><span class="line">  v += __shfl_down_sync(FULL_MASK, v, <span class="number">1</span>);</span><br><span class="line">  cache[tid] = v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> BLOCK_SIZE&gt;</span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">reduce_v4</span><span class="params">(<span class="type">const</span> <span class="type">float</span>* g_idata, <span class="type">float</span>* g_odata, std::<span class="type">size_t</span> n)</span> </span>&#123;</span><br><span class="line">  __shared__ <span class="type">float</span> sdata[BLOCK_SIZE];</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Each thread loads two elements from global memory to shared memory, if they arewithin bounds.</span></span><br><span class="line">  <span class="comment">// This allows us to reduce the number of threads needed for the reduction by half, as each thread</span></span><br><span class="line">  <span class="comment">// is responsible for summing two elements.</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x * (blockDim.x * <span class="number">2</span>) + threadIdx.x;</span><br><span class="line">  sdata[tid] = g_idata[i] + ((i + blockDim.x &lt; n) ? g_idata[i + blockDim.x] : <span class="number">0.0f</span>);</span><br><span class="line">  __syncthreads();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> s = blockDim.x / <span class="number">2</span>; s &gt; <span class="number">32</span>; s &gt;&gt;= <span class="number">1</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (tid &lt; s) &#123;</span><br><span class="line">      sdata[tid] += sdata[tid + s];</span><br><span class="line">    &#125;</span><br><span class="line">    __syncthreads();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid &lt; <span class="number">32</span>) &#123;</span><br><span class="line">    <span class="built_in">warpReduce</span>(sdata, tid);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid == <span class="number">0</span>) &#123;</span><br><span class="line">    g_odata[blockIdx.x] = sdata[<span class="number">0</span>];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么需要展开最后一个 warp？</strong></p>
+<p>即使只剩一个 warp，仍然 <code>__syncthreads()</code>，但 warp 内本来就同步，这是 GPU 硬件保证的。warp 内：SIMT lockstep execution、指令天然同步，所以warp 内不需要 <code>__syncthreads()</code>。</p>
+<blockquote>
+<p>从Volta 架构 (SM 7.0)开始，NVIDIA 引入了独立线程调度 (Independent Thread Scheduling)，彻底打破了传统的 “warp 同步执行” 假设</p>
+</blockquote>
+<p><strong>__syncthreads() 非常昂贵</strong></p>
+<p>它本质上是<code>block-wide barrier</code>，SM 要：</p>
+<ul>
+<li>等待同一 block 内的所有 warp</li>
+<li>flush dependency</li>
+<li>scheduler stall</li>
+</ul>
+<p>unroll last warp 优化了：</p>
+<ul>
+<li>去掉了__syncthreads()</li>
+<li>减少了 loop overhead，每次 for 循环也是需要开销的</li>
+<li>减少了 branch divergence，<code>s = 16</code>时，warp0 中已有thread0~15是活跃的</li>
+</ul>
+<p><strong>为什么用了 volatile？</strong>  防止编译器寄存器缓存。</p>
+<p>编译器会做一种非常激进的优化：把频繁访问的共享内存变量缓存在寄存器里。这会导致编译器认为寄存器中的值就是最新值，实际上不是。</p>
+<p>加上这个关键字之后，编译器不再对 cache指向的地址做任何寄存器和缓存优化。每一步累加都从共享内存里取最新的数据，算完再立刻写回去。warp 内部的线程能保证它们看到彼此的最新写入，计算也就完全正确了。</p>
+<p><strong>在CUDA编程中，<code>volatile</code>核心作用就是强制编译器每次从显存中读取变量，以避免因为优化导致的数据不一致问题。</strong></p>
+<p>一般来说它是为了进行跨线程通信与阻止编译器优化。</p>
+<p><strong>注意：</strong><code>volatile</code>并不等于同步或者原子操作。如果多个线程并发写，那么仍然会产生数据竞争。它并不能保证原子性与顺序。</p>
+<p><strong>基于 Shuffle 指令</strong></p>
+<h2 id="完全展开循环"><a href="#完全展开循环" class="headerlink" title="完全展开循环"></a>完全展开循环</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> BLOCK_SIZE&gt;</span><br><span class="line"><span class="function">__device__ <span class="type">void</span> <span class="title">warpReduce_v5</span><span class="params">(<span class="keyword">volatile</span> <span class="type">float</span>* sdata, <span class="type">int</span> tid)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">64</span>) sdata[tid] += sdata[tid + <span class="number">32</span>];</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">32</span>) sdata[tid] += sdata[tid + <span class="number">16</span>];</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">16</span>) sdata[tid] += sdata[tid + <span class="number">8</span>];</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">8</span>) sdata[tid] += sdata[tid + <span class="number">4</span>];</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">4</span>) sdata[tid] += sdata[tid + <span class="number">2</span>];</span><br><span class="line">    <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">2</span>) sdata[tid] += sdata[tid + <span class="number">1</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> BLOCK_SIZE&gt;</span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">reduce_v5</span><span class="params">(<span class="type">const</span> <span class="type">float</span>* g_idata, <span class="type">float</span>* g_odata, std::<span class="type">size_t</span> n)</span> </span>&#123;</span><br><span class="line">  __shared__ <span class="type">float</span> sdata[BLOCK_SIZE];</span><br><span class="line"></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x * (blockDim.x * <span class="number">2</span>) + threadIdx.x;</span><br><span class="line">  sdata[tid] = g_idata[i] + ((i + blockDim.x &lt; n) ? g_idata[i + blockDim.x] : <span class="number">0.0f</span>);</span><br><span class="line">  __syncthreads();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">512</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">256</span>) sdata[tid] += sdata[tid + <span class="number">256</span>]; __syncthreads(); &#125;</span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">256</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">128</span>) sdata[tid] += sdata[tid + <span class="number">128</span>]; __syncthreads(); &#125;</span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">128</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">64</span>) sdata[tid] += sdata[tid + <span class="number">64</span>]; __syncthreads(); &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid &lt; <span class="number">32</span>) &#123;</span><br><span class="line">    <span class="built_in">warpReduce_v5</span>&lt;BLOCK_SIZE&gt;(sdata, tid);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid == <span class="number">0</span>) &#123;</span><br><span class="line">    g_odata[blockIdx.x] = sdata[<span class="number">0</span>];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>之前的版本 ：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">unsigned</span> <span class="type">int</span> s = blockDim.x / <span class="number">2</span>; s &gt; <span class="number">0</span>; s &gt;&gt;= <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>v4中实际上仍然采用了for循环来进行规约。这是属于运行时循环，每次迭代GPU和CPU都需要做以下操作：</p>
+<ol>
+<li>loop branch</li>
+<li>compare</li>
+<li>shift</li>
+<li>jump</li>
+</ol>
+<p>现在 <strong>模板+编译期常量展开</strong>，blockSize 是 template parameter。</p>
+<p>例如 <code>reduce_v5&lt;256&gt;</code>，编译器看到：<code>if (256 &gt;= 512)</code>，会直接将 “512段代码” 删除，最终生成的 SASS&#x2F;PTX：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (tid &lt; <span class="number">128</span>) ...</span><br><span class="line">__syncthreads()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (tid &lt; <span class="number">64</span>) ...</span><br><span class="line">__syncthreads()</span><br></pre></td></tr></table></figure>
+
+<p>这种方法去掉 loop overhead，编译器 instruction scheduling 更容易。</p>
+<p>本质上：不是 <code>runtime if</code>，而是：<code>compile-time specialization</code>。完全展开循环默认了<code>BLOCK_SIZE</code>必须是2 的整数次幂，所有的if (BLOCK_SIZE &gt;&#x3D; X)判断都是为了在编译时根据块大小生成对应的归约步骤。用代码尺寸换性能。</p>
+<p><strong>GPU optimization 本质之一：给编译器更多静态信息</strong>。template 就是这样，<strong>template 能把 runtime 信息变 compile-time 信息</strong>。这是 CUDA 高性能代码核心。</p>
+<p><code>warpReduce_v5</code>是：warp-synchronous reduction，不需要 __syncthreads()。</p>
+<p>AI kernel 的一个核心思想：<strong>尽量把通信限制在 warp 内</strong>，因为 warp 内：synchronization free</p>
+<h2 id="Grid-Loop"><a href="#Grid-Loop" class="headerlink" title="Grid Loop"></a>Grid Loop</h2><p>核心思想：让每个线程处理多个元素，每次跳过<strong>当前 grid 中所有线程一次能处理的元素总数</strong>。</p>
+<p>为什么需要 grid loop：block 中每个线程一个处理的数据量太少，当数据量 N 很大是，就会需要海量的 block。但是由于 SM 硬件数量有限，就意味着绝大多数 block 都在排队。导致 kernel launch overhead、block scheduling overhead 开销过大。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> BLOCK_SIZE&gt;</span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">reduce_v6</span><span class="params">(<span class="type">const</span> <span class="type">float</span>* g_idata, <span class="type">float</span>* g_odata, std::<span class="type">size_t</span> n)</span> </span>&#123;</span><br><span class="line">  __shared__ <span class="type">float</span> sdata[BLOCK_SIZE];</span><br><span class="line"></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x * (blockDim.x * <span class="number">2</span>) + threadIdx.x;</span><br><span class="line">  <span class="type">int</span> gridSize = blockDim.x * <span class="number">2</span> * gridDim.x; </span><br><span class="line">  </span><br><span class="line">  <span class="type">float</span> sum = <span class="number">0.0f</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (i &lt; n) &#123;</span><br><span class="line">    sum += g_idata[i] + ((i + blockDim.x &lt; n) ? g_idata[i + blockDim.x] : <span class="number">0.0f</span>);</span><br><span class="line">    i += gridSize;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  sdata[tid] = sum;</span><br><span class="line">  __syncthreads();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">512</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">256</span>) sdata[tid] += sdata[tid + <span class="number">256</span>]; __syncthreads(); &#125;</span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">256</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">128</span>) sdata[tid] += sdata[tid + <span class="number">128</span>]; __syncthreads(); &#125;</span><br><span class="line">  <span class="keyword">if</span> (BLOCK_SIZE &gt;= <span class="number">128</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">64</span>) sdata[tid] += sdata[tid + <span class="number">64</span>]; __syncthreads(); &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid &lt; <span class="number">32</span>) &#123;</span><br><span class="line">    <span class="built_in">warpReduce_v6</span>&lt;BLOCK_SIZE&gt;(sdata, tid);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tid == <span class="number">0</span>) &#123;</span><br><span class="line">    g_odata[blockIdx.x] = sdata[<span class="number">0</span>];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>v6  的核心思想就是 thread reuse，一个线程会循环处理多个元素。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">gridDim = <span class="number">80</span></span><br><span class="line">blockSize = <span class="number">256</span></span><br><span class="line">总线程数 ： <span class="number">80</span> * <span class="number">256</span> = <span class="number">20480</span></span><br><span class="line">    </span><br><span class="line">gridSize = <span class="number">256</span> * <span class="number">2</span> * <span class="number">80</span> = <span class="number">40960</span>  <span class="comment">// First Add During Load</span></span><br><span class="line">thread0 处理：</span><br><span class="line">    <span class="number">0</span></span><br><span class="line">    <span class="number">40960</span></span><br><span class="line">    <span class="number">81920</span></span><br><span class="line">    ...</span><br><span class="line">thread0 处理：</span><br><span class="line">    <span class="number">1</span></span><br><span class="line">    <span class="number">40961</span></span><br><span class="line">    <span class="number">81921</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+
+<p><strong>本质：用较少 block 覆盖整个数据集</strong></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/" class="post-title-link" itemprop="url">CUDA 中的异步API与同步API</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-05-02 15:41:43 / 修改时间：21:37:27" itemprop="dateCreated datePublished" datetime="2026-05-02T15:41:43+08:00">2026-05-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CUDA/" itemprop="url" rel="index"><span itemprop="name">CUDA</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CUDA-中的异步API与同步API"><a href="#CUDA-中的异步API与同步API" class="headerlink" title="CUDA 中的异步API与同步API"></a>CUDA 中的异步API与同步API</h1><p>CUDA 的 API 分为<strong>同步</strong>和<strong>异步</strong>两大类。简单来说，同步 API 会<strong>阻塞主机线程</strong>直到操作完成，而异步 API 会<strong>立即返回</strong>，让操作在后台执行。</p>
+<table>
+<thead>
+<tr>
+<th align="center"><strong>特性</strong></th>
+<th align="center"><strong>同步 API</strong></th>
+<th align="center"><strong>异步 API</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>阻塞行为</strong></td>
+<td align="center">阻塞调用线程，直到操作完成</td>
+<td align="center">立即返回，不阻塞调用线程</td>
+</tr>
+<tr>
+<td align="center"><strong>执行位置</strong></td>
+<td align="center">主机线程等待 GPU 完成</td>
+<td align="center">GPU 异步执行，主机继续运行</td>
+</tr>
+<tr>
+<td align="center"><strong>典型函数</strong></td>
+<td align="center"><code>cudaMemcpy</code>, <code>cudaMemset</code></td>
+<td align="center"><code>cudaMemcpyAsync</code>, <code>cudaMemsetAsync</code></td>
+</tr>
+<tr>
+<td align="center"><strong>性能影响</strong></td>
+<td align="center">主机和 GPU 不能并行工作</td>
+<td align="center">主机和 GPU 可以并行工作</td>
+</tr>
+<tr>
+<td align="center"><strong>流参数</strong></td>
+<td align="center">通常没有流参数</td>
+<td align="center">必须有流参数</td>
+</tr>
+<tr>
+<td align="center"><strong>内存要求</strong></td>
+<td align="center">可使用可分页内存</td>
+<td align="center">通常需要<strong>固定内存</strong></td>
+</tr>
+</tbody></table>
+<h2 id="同步-API"><a href="#同步-API" class="headerlink" title="同步 API"></a>同步 API</h2><p>特点：</p>
+<ol>
+<li><strong>阻塞调用</strong>：CPU 线程会挂起，直到 GPU 完成该操作</li>
+<li><strong>简单易用</strong>：无需担心同步问</li>
+<li><strong>性能较低</strong>：CPU 在等待 GPU 时处于空闲状态</li>
+</ol>
+<p>常见同步 API：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 内存操作</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemcpy</span><span class="params">(<span class="type">void</span>* dst, <span class="type">const</span> <span class="type">void</span>* src, <span class="type">size_t</span> count, cudaMemcpyKind kind)</span></span>;</span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemset</span><span class="params">(<span class="type">void</span>* devPtr, <span class="type">int</span> value, <span class="type">size_t</span> count)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 设备同步</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaDeviceSynchronize</span><span class="params">()</span></span>;  <span class="comment">// 等待所有 GPU 操作完成</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaStreamSynchronize</span><span class="params">(cudaStream_t stream)</span></span>;  <span class="comment">// 等待指定流完成</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaEventSynchronize</span><span class="params">(cudaEvent_t event)</span></span>;  <span class="comment">// 等待事件完成</span></span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主机分配内存</span></span><br><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"><span class="comment">// 设备分配内存</span></span><br><span class="line"><span class="type">float</span>* d_data;</span><br><span class="line"><span class="built_in">cudaMalloc</span>(&amp;d_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 同步拷贝：CPU 会一直阻塞，直到拷贝完成</span></span><br><span class="line"><span class="built_in">cudaMemcpy</span>(d_data, h_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaMemcpyHostToDevice);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 启动核函数（核函数启动本身是异步的！）</span></span><br><span class="line">myKernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(d_data);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 但随后的同步操作会等待核函数完成</span></span><br><span class="line"><span class="built_in">cudaMemcpy</span>(h_data, d_data, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaMemcpyDeviceToHost);</span><br><span class="line"><span class="comment">// 到这里，CPU 已等待 GPU 完成所有操作</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="异步API"><a href="#异步API" class="headerlink" title="异步API"></a>异步API</h2><p>特点</p>
+<ol>
+<li><strong>非阻塞调用</strong>：立即返回，操作在 GPU 上异步执行</li>
+<li><strong>需要显式同步</strong>：必须手动确保操作完成后再使用结果</li>
+<li><strong>更高性能</strong>：可实现 CPU-GPU 并行、计算-通信重叠</li>
+<li><strong>需要固定内存</strong>：异步内存传输需要主机端的<strong>固定内存</strong></li>
+</ol>
+<p>常见异步 API：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 异步内存操作（需要指定流）</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemcpyAsync</span><span class="params">(<span class="type">void</span>* dst, <span class="type">const</span> <span class="type">void</span>* src, <span class="type">size_t</span> count, </span></span></span><br><span class="line"><span class="params"><span class="function">                           cudaMemcpyKind kind, cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMemsetAsync</span><span class="params">(<span class="type">void</span>* devPtr, <span class="type">int</span> value, <span class="type">size_t</span> count, </span></span></span><br><span class="line"><span class="params"><span class="function">                           cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 核函数启动（总是异步的！）</span></span><br><span class="line">kernel&lt;&lt;&lt;grid, block, sharedMem, stream&gt;&gt;&gt;(args...);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 事件记录</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaEventRecord</span><span class="params">(cudaEvent_t event, cudaStream_t stream = <span class="number">0</span>)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>重要：核函数启动总是异步的</strong></p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 核函数启动本身就是异步的！</span></span><br><span class="line">myKernel&lt;&lt;&lt;grid, block&gt;&gt;&gt;(args);  <span class="comment">// 立即返回，不阻塞 CPU</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 但后续的同步 API 会等待它</span></span><br><span class="line"><span class="built_in">cudaDeviceSynchronize</span>();  <span class="comment">// 这会阻塞 CPU，直到核函数完成</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>异步 API 的关键要求：</strong></p>
+<ol>
+<li><p>异步内存传输<strong>必须</strong>使用固定内存：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 错误：普通 malloc 分配的内存不能用于异步传输</span></span><br><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N * <span class="built_in">sizeof</span>(<span class="type">float</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正确：使用 cudaMallocHost 或 cudaHostAlloc</span></span><br><span class="line"><span class="type">float</span>* h_pinned;</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>));  <span class="comment">// 分配固定内存</span></span><br><span class="line"><span class="comment">// 或</span></span><br><span class="line"><span class="built_in">cudaHostAlloc</span>(&amp;h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), cudaHostAllocDefault);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 现在可以用于异步传输</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(d_data, h_pinned, N * <span class="built_in">sizeof</span>(<span class="type">float</span>), </span><br><span class="line">                cudaMemcpyHostToDevice, stream);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 别忘了释放</span></span><br><span class="line"><span class="built_in">cudaFreeHost</span>(h_pinned);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>流</p>
+</li>
+</ol>
+<h3 id="为什么异步内存传输必须使用固定内存？"><a href="#为什么异步内存传输必须使用固定内存？" class="headerlink" title="为什么异步内存传输必须使用固定内存？"></a>为什么异步内存传输必须使用固定内存？</h3><p>核心原因：DMA 与内存页锁定。异步内存传输通过 <strong>DMA</strong> 直接在 GPU 和主机内存之间传输数据，<strong>绕过 CPU</strong>。</p>
+<ol>
+<li><p><strong>DMA 需要物理地址连续性</strong></p>
+<ul>
+<li>DMA 引擎需要<strong>连续的物理内存地址</strong>来执行高效的数据传输</li>
+<li>常规的 <code>malloc</code>分配的内存是<strong>虚拟内存</strong>，物理页可能不连续</li>
+<li>操作系统随时可能移动物理页（页面交换），DMA 无法处理这种动态变化</li>
+</ul>
+</li>
+<li><p><strong>内存页锁定</strong></p>
+<p><code>cudaMallocHost</code>分配的<strong>固定内存</strong>会：</p>
+<ul>
+<li><strong>锁定物理页</strong>：防止操作系统将此内存换出到磁盘</li>
+<li><strong>保证物理连续性</strong>：DMA 引擎可以获得稳定的物理地址</li>
+<li><strong>允许直接访问</strong>：GPU 可以直接访问，无需 CPU 介入</li>
+<li>异步传输的底层流程<ul>
+<li>调用 cudaMemcpyAsync</li>
+<li>DMA 引擎获取固定内存的物理地址</li>
+<li>DMA 直接从主机内存读取数据到 GPU</li>
+<li>CPU 可以继续执行其他任务</li>
+<li>传输完成时，GPU 产生中断或通过事件通知</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>如果使用普通内存会怎样？</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(size);  <span class="comment">// 普通分页内存</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(d_data, h_data, size, cudaMemcpyHostToDevice, stream);</span><br><span class="line"><span class="comment">// 这里可能会失败，或者 CUDA 驱动会：</span></span><br><span class="line"><span class="comment">// 1. 临时锁定内存页（产生额外开销）</span></span><br><span class="line"><span class="comment">// 2. 回退到同步传输（失去异步优势）</span></span><br><span class="line"><span class="comment">// 3. 在某些情况下直接返回错误</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="cudaMallocHost-与-malloc-的详细区别"><a href="#cudaMallocHost-与-malloc-的详细区别" class="headerlink" title="cudaMallocHost 与 malloc 的详细区别"></a>cudaMallocHost 与 malloc 的详细区别</h3><h4 id="内存类型对比"><a href="#内存类型对比" class="headerlink" title="内存类型对比"></a>内存类型对比</h4><table>
+<thead>
+<tr>
+<th align="center"><strong>特性</strong></th>
+<th align="center"><strong><code>malloc</code></strong></th>
+<th align="center"><strong><code>cudaMallocHost</code></strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center"><strong>内存类型</strong></td>
+<td align="center">可分页内存</td>
+<td align="center">固定内存（页锁定内存）</td>
+</tr>
+<tr>
+<td align="center"><strong>物理连续性</strong></td>
+<td align="center">不保证</td>
+<td align="center">保证物理页连续</td>
+</tr>
+<tr>
+<td align="center"><strong>可交换性</strong></td>
+<td align="center">可被交换到磁盘</td>
+<td align="center">锁定在物理内存</td>
+</tr>
+<tr>
+<td align="center"><strong>DMA 访问</strong></td>
+<td align="center">需要 CPU 介入</td>
+<td align="center">可直接 DMA 访问</td>
+</tr>
+<tr>
+<td align="center"><strong>分配速度</strong></td>
+<td align="center">较快</td>
+<td align="center">较慢（需要锁定页）</td>
+</tr>
+<tr>
+<td align="center"><strong>传输性能</strong></td>
+<td align="center">较慢（需临时锁定）</td>
+<td align="center">较快（直接 DMA）</td>
+</tr>
+<tr>
+<td align="center"><strong>异步传输</strong></td>
+<td align="center">不支持</td>
+<td align="center">支持</td>
+</tr>
+<tr>
+<td align="center"><strong>系统影响</strong></td>
+<td align="center">对系统影响小</td>
+<td align="center">占用物理内存，可能影响系统性能</td>
+</tr>
+<tr>
+<td align="center"><strong>释放函数</strong></td>
+<td align="center"><code>free()</code></td>
+<td align="center"><code>cudaFreeHost()</code></td>
+</tr>
+</tbody></table>
+<h4 id="技术细节深入"><a href="#技术细节深入" class="headerlink" title="技术细节深入"></a>技术细节深入</h4><ol>
+<li><p>内存管理方式</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// malloc: 分配虚拟内存</span></span><br><span class="line"><span class="function"><span class="type">void</span>* <span class="title">malloc</span><span class="params">(<span class="type">size_t</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 从进程的虚拟地址空间分配</span></span><br><span class="line">    <span class="comment">// 2. 物理内存页在首次访问时按需分配</span></span><br><span class="line">    <span class="comment">// 3. 物理页可以不连续</span></span><br><span class="line">    <span class="comment">// 4. 操作系统可随时将页面交换到磁盘</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// cudaMallocHost: 分配固定内存</span></span><br><span class="line"><span class="function">cudaError_t <span class="title">cudaMallocHost</span><span class="params">(<span class="type">void</span>** ptr, <span class="type">size_t</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1. 分配虚拟地址</span></span><br><span class="line">    <span class="comment">// 2. 立即分配物理内存页</span></span><br><span class="line">    <span class="comment">// 3. 锁定这些物理页（禁止交换）</span></span><br><span class="line">    <span class="comment">// 4. 确保物理连续性（可能重新整理）</span></span><br><span class="line">    <span class="comment">// 5. 将此内存注册到CUDA驱动</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>数据传输路径对比</p>
+<p><strong>使用 malloc + 同步传输</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 时间线: [准备数据] -&gt; [发起传输] -&gt; [等待传输] -&gt; [继续工作]</span><br><span class="line">              ↓           ↓</span><br><span class="line">GPU 时间线:               [开始传输] -&gt; [传输中] -&gt; [传输完成]</span><br><span class="line">传输路径: 数据 -&gt; CPU缓存 -&gt; 系统总线 -&gt; GPU</span><br><span class="line">问题: CPU 必须参与整个传输过程</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用 cudaMallocHost + 异步传输</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 时间线: [准备数据] -&gt; [发起传输] -&gt; [立即继续工作] ... [处理其他任务]</span><br><span class="line">              ↓</span><br><span class="line">GPU 时间线:   [DMA传输开始] -&gt; [传输中] -&gt; [传输完成]</span><br><span class="line">传输路径: 数据 -&gt; DMA引擎 -&gt; <span class="built_in">GPU</span> (CPU不参与)</span><br><span class="line">优势: CPU 和 GPU 可以并行工作</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>性能影响</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 测试代码示例</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">benchmark</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">size_t</span> N = <span class="number">100</span> * <span class="number">1024</span> * <span class="number">1024</span>;  <span class="comment">// 100MB</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 测试 malloc + 同步传输</span></span><br><span class="line">    <span class="type">float</span>* h_malloc = (<span class="type">float</span>*)<span class="built_in">malloc</span>(N);</span><br><span class="line">    <span class="type">float</span>* d_data;</span><br><span class="line">    <span class="built_in">cudaMalloc</span>(&amp;d_data, N);</span><br><span class="line">    </span><br><span class="line">    cudaEvent_t start, stop;</span><br><span class="line">    <span class="built_in">cudaEventCreate</span>(&amp;start);</span><br><span class="line">    <span class="built_in">cudaEventCreate</span>(&amp;stop);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(start);</span><br><span class="line">    <span class="built_in">cudaMemcpy</span>(d_data, h_malloc, N, cudaMemcpyHostToDevice);  <span class="comment">// 同步</span></span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(stop);</span><br><span class="line">    <span class="built_in">cudaEventSynchronize</span>(stop);</span><br><span class="line">    <span class="type">float</span> malloc_time;</span><br><span class="line">    <span class="built_in">cudaEventElapsedTime</span>(&amp;malloc_time, start, stop);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 测试 cudaMallocHost + 异步传输</span></span><br><span class="line">    <span class="type">float</span>* h_pinned;</span><br><span class="line">    <span class="built_in">cudaMallocHost</span>(&amp;h_pinned, N);</span><br><span class="line">    cudaStream_t stream;</span><br><span class="line">    <span class="built_in">cudaStreamCreate</span>(&amp;stream);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(start, stream);</span><br><span class="line">    <span class="built_in">cudaMemcpyAsync</span>(d_data, h_pinned, N, cudaMemcpyHostToDevice, stream);</span><br><span class="line">    <span class="built_in">cudaEventRecord</span>(stop, stream);</span><br><span class="line">    <span class="built_in">cudaStreamSynchronize</span>(stream);</span><br><span class="line">    <span class="type">float</span> pinned_time;</span><br><span class="line">    <span class="built_in">cudaEventElapsedTime</span>(&amp;pinned_time, start, stop);</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;malloc 同步传输: %.3f ms\n&quot;</span>, malloc_time);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;固定内存异步传输: %.3f ms\n&quot;</span>, pinned_time);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 清理</span></span><br><span class="line">    <span class="built_in">free</span>(h_malloc);</span><br><span class="line">    <span class="built_in">cudaFreeHost</span>(h_pinned);</span><br><span class="line">    <span class="built_in">cudaFree</span>(d_data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>何时使用 cudaMallocHost？</p>
+<ul>
+<li><p>场景1：<strong>频繁传输的数据</strong>，如果需要在CPU和GPU之间频繁传输相同的数据</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data;</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_data, size);  <span class="comment">// ✅ 适合</span></span><br><span class="line"><span class="comment">// ... 多次异步传输</span></span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(..., stream);</span><br><span class="line"><span class="built_in">cudaMemcpyAsync</span>(..., stream);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>场景2：<strong>流水线处理</strong>，使用双缓冲或多缓冲实现计算与传输重叠</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_buffers[<span class="number">2</span>];</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_buffers[<span class="number">0</span>], size);</span><br><span class="line"><span class="built_in">cudaMallocHost</span>(&amp;h_buffers[<span class="number">1</span>], size);</span><br><span class="line"><span class="comment">// 当GPU处理buffer0时，CPU填充buffer1</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>何时使用 malloc？</p>
+<ul>
+<li><p>场景1：一次性或少量传输，如果数据只传输一次，同步传输即可</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_data = (<span class="type">float</span>*)<span class="built_in">malloc</span>(size);</span><br><span class="line"><span class="built_in">cudaMemcpy</span>(d_data, h_data, size, cudaMemcpyHostToDevice);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>场景2：CPU端大量数据处理， 如果数据主要在CPU上使用，很少传输到GPU</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_large_dataset = (<span class="type">float</span>*)<span class="built_in">malloc</span>(large_size);</span><br><span class="line"><span class="comment">// ... 复杂CPU处理</span></span><br><span class="line"><span class="comment">// 偶尔传输到GPU</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>混合使用策略</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 最佳实践：按需选择</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">GPUBuffer</span> &#123;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="type">void</span>* host_ptr;</span><br><span class="line">    <span class="type">void</span>* device_ptr;</span><br><span class="line">    <span class="type">size_t</span> size;</span><br><span class="line">    <span class="type">bool</span> pinned;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">GPUBuffer</span>(<span class="type">size_t</span> n, <span class="type">bool</span> use_pinned = <span class="literal">false</span>) : <span class="built_in">size</span>(n), <span class="built_in">pinned</span>(use_pinned) &#123;</span><br><span class="line">        <span class="built_in">cudaMalloc</span>(&amp;device_ptr, n);</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaMallocHost</span>(&amp;host_ptr, n);  <span class="comment">// 固定内存</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            host_ptr = <span class="built_in">malloc</span>(n);  <span class="comment">// 可分页内存</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    ~<span class="built_in">GPUBuffer</span>() &#123;</span><br><span class="line">        <span class="built_in">cudaFree</span>(device_ptr);</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaFreeHost</span>(host_ptr);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">free</span>(host_ptr);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 异步传输（仅当pinned=true时有效）</span></span><br><span class="line">    <span class="function"><span class="type">void</span> <span class="title">uploadAsync</span><span class="params">(cudaStream_t stream)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (pinned) &#123;</span><br><span class="line">            <span class="built_in">cudaMemcpyAsync</span>(device_ptr, host_ptr, size, </span><br><span class="line">                           cudaMemcpyHostToDevice, stream);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 回退到同步</span></span><br><span class="line">            <span class="built_in">cudaMemcpy</span>(device_ptr, host_ptr, size, cudaMemcpyHostToDevice);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>零拷贝内存</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">float</span>* h_zerocopy;</span><br><span class="line"><span class="built_in">cudaHostAlloc</span>(&amp;h_zerocopy, size, cudaHostAllocMapped);</span><br><span class="line"><span class="comment">// GPU 可以直接访问这个内存，无需显式拷贝</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 在GPU端获取对应的设备指针</span></span><br><span class="line"><span class="type">float</span>* d_ptr;</span><br><span class="line"><span class="built_in">cudaHostGetDevicePointer</span>(&amp;d_ptr, h_zerocopy, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在核函数中直接使用</span></span><br><span class="line">kernel&lt;&lt;&lt;...&gt;&gt;&gt;(d_ptr);  <span class="comment">// 直接操作主机内存</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/" class="post-title-link" itemprop="url">cpp面试问题-auto与类型推导</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-03-08 21:07:28 / 修改时间：22:03:38" itemprop="dateCreated datePublished" datetime="2026-03-08T21:07:28+08:00">2026-03-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98%E9%9B%86%E9%94%A6/" itemprop="url" rel="index"><span itemprop="name">C++面试问题集锦</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本章内容来自 <a target="_blank" rel="noopener" href="https://cppguide.cn/pages/cppinterviewmostaskedquestions01/">CPPGuide社区</a>，添加了一些个人理解。</p>
+<h1 id="第一章-auto与类型推导"><a href="#第一章-auto与类型推导" class="headerlink" title="第一章 auto与类型推导"></a>第一章 auto与类型推导</h1><h2 id="问题1：解释auto类型推导！"><a href="#问题1：解释auto类型推导！" class="headerlink" title="问题1：解释auto类型推导！"></a>问题1：解释auto类型推导！</h2><p><code>auto</code>类型推导通常与模板类型推导相同，但<code>auto</code>类型推导假定用大括号括起来的初始化器代表<code>std::initializer_list</code>，而模板类型推导并不持有这样的前提。</p>
+<blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">class</span> <span class="title class_">T</span>&gt; <span class="keyword">class</span> <span class="title class_">initializer_list</span>;</span><br></pre></td></tr></table></figure>
+
+<p>This type is used to access the values in a C++ initialization list, which is a list of elements of type <code>const T</code>.</p>
+<p>C++11 引入的轻量级模板类（定义于 <code>&lt;initializer_list&gt;</code>头文件）</p>
+<p>本质是对底层数组的引用，不拥有数据所有权，拷贝时仅复制指针而非数据。元素为 <code>const</code>类型，不可修改、所有元素类型必须相同、初始化后元素数量固定，运行时无法增删</p>
+<p>用途：</p>
+<ul>
+<li>容器初始化</li>
+<li>自定义类的初始化</li>
+<li>函数参数传递：支持可变数量的同类型参数</li>
+<li>操作符重载</li>
+</ul>
+<p>注意事项</p>
+<ol>
+<li><p><strong>构造函数重载优先级</strong></p>
+<ul>
+<li><p>若类同时定义了普通构造函数和 <code>std::initializer_list</code>构造函数，<strong>花括号初始化优先匹配后者</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Ambiguous</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Ambiguous</span>(<span class="type">int</span> x);                      <span class="comment">// 构造函数 1</span></span><br><span class="line">    <span class="built_in">Ambiguous</span>(std::initializer_list&lt;<span class="type">int</span>&gt;);  <span class="comment">// 构造函数 2</span></span><br><span class="line">&#125;;</span><br><span class="line">Ambiguous a&#123;<span class="number">5</span>&#125;;  <span class="comment">// 调用构造函数 2（而非构造函数 1）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>解决方案</strong>：用 <code>explicit</code>标记初始化列表构造函数避免隐式转换。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>生命周期管理</strong></p>
+<ul>
+<li><p><code>std::initializer_list</code>仅持有底层临时数组的引用，需确保原始数组在其使用期间有效：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::initializer_list&lt;<span class="type">int</span>&gt; <span class="title">getList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;;  <span class="comment">// 危险：临时数组在函数返回后销毁</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>以下是几个示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>* ip;</span><br><span class="line"><span class="keyword">auto</span>  aip = ip;       <span class="comment">// aip是一个指向整数的指针</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* cip;</span><br><span class="line"><span class="keyword">auto</span>  acip = cip;      <span class="comment">// acip是一个指向常量整数的指针（值不能修改，但它所指向的内存地址可以修改）</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* <span class="type">const</span>  cicp = ip;</span><br><span class="line"><span class="keyword">auto</span>  acicp = cicp;    <span class="comment">// acicp仍然是一个指向常量整数的指针，指针的常量性被丢弃</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span>  x = <span class="number">27</span>;          <span class="comment">// （x既不是指针也不是引用），x的类型是int</span></span><br><span class="line"><span class="type">const</span>  <span class="keyword">auto</span>  cx = x;   <span class="comment">// （cx既不是指针也不是引用），cx的类型是const int</span></span><br><span class="line"><span class="type">const</span>  <span class="keyword">auto</span>&amp; rx = x;   <span class="comment">// （rx是一个非万能引用），rx的类型是指向const int的引用</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref1 = x;      <span class="comment">// x是int且为左值，所以uref1的类型是int&amp;</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref2 = cx;     <span class="comment">// cx是const int且为左值，所以uref2的类型是const int&amp;</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref3 = <span class="number">27</span>;     <span class="comment">// 27是int且为右值，所以uref3的类型是int&amp;&amp;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span>  x3 = &#123; <span class="number">27</span> &#125;;     <span class="comment">// 类型是std::initializer_list&lt;int&gt;，值是&#123;27&#125;</span></span><br><span class="line"><span class="keyword">auto</span>  x4&#123; <span class="number">27</span> &#125;;        <span class="comment">// 类型是std::initializer_list&lt;int&gt;，值是&#123;27&#125;</span></span><br><span class="line"><span class="comment">// 在某些编译器中，类型可能会被推导为int，值为27。更多信息见注释。</span></span><br><span class="line"><span class="keyword">auto</span>  x5 = &#123; <span class="number">1</span>, <span class="number">2.0</span> &#125;; <span class="comment">// 错误！无法为std::initializer_list&lt;T&gt;推导T的类型</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>* ip;</span><br><span class="line"><span class="keyword">auto</span>  aip = ip;       <span class="comment">// aip是一个指向整数的指针</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* cip;</span><br><span class="line"><span class="keyword">auto</span>  acip = cip;      <span class="comment">// acip是一个指向常量整数的指针（值不能修改，但它所指向的内存地址可以修改）</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* <span class="type">const</span>  cicp = ip;</span><br><span class="line"><span class="keyword">auto</span>  acicp = cicp;    <span class="comment">// acicp仍然是一个指向常量整数的指针，指针的常量性被丢弃</span></span><br></pre></td></tr></table></figure>
+
+<p>含<code>const</code>的复杂变量类型，自由向左理解即可。</p>
+<p><code>const int* const cicp</code>包含两个const修饰符：</p>
+<ul>
+<li>左侧 const：<strong>底层</strong>常量性（指向的数据不可修改 → const int*）。</li>
+<li>右侧 const：<strong>顶层</strong>常量性（指针本身不可修改 → * const）。</li>
+</ul>
+<p><strong>auto会忽略顶层 const（即指针本身的常量性），但保留底层 const（指向的数据的常量性）</strong>；<strong>auto默认忽略引用</strong></p>
+<p>若需完全保留双重常量性，使用 <code>decltype</code>显式声明：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">decltype</span>(cicp) acicp = ip;  <span class="comment">// 类型为 const int* const</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>可以看出，如果使用大括号初始化器，<code>auto</code>会强制创建一个<code>std::initializer_list</code>类型的变量。如果它无法推导出<code>T</code>的类型，代码就会被拒绝。</p>
+<p>我们也看到，<code>auto</code>可以为指针推导出正确的类型，但为了得到引用，我们必须写成<code>auto&amp;</code>。为了保持一致性，如果我们期望得到一个指针，也可以写成<code>auto*</code>。</p>
+<p>在函数返回类型或lambda参数中使用<code>auto</code>意味着进行模板类型推导，而非<code>auto</code>类型推导。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/02/25/Cpp-%E7%BC%96%E7%A8%8B%E9%A3%8E%E6%A0%BC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/02/25/Cpp-%E7%BC%96%E7%A8%8B%E9%A3%8E%E6%A0%BC/" class="post-title-link" itemprop="url">Cpp 编程风格</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2026-02-25 22:25:11" itemprop="dateCreated datePublished" datetime="2026-02-25T22:25:11+08:00">2026-02-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2026-06-07 14:52:52" itemprop="dateModified" datetime="2026-06-07T14:52:52+08:00">2026-06-07</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>0</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/02/25/C-%E6%96%B0%E7%89%B9%E6%80%A7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2026/02/25/C-%E6%96%B0%E7%89%B9%E6%80%A7/" class="post-title-link" itemprop="url">C++ 新特性</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-02-25 18:14:42 / 修改时间：22:23:03" itemprop="dateCreated datePublished" datetime="2026-02-25T18:14:42+08:00">2026-02-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>522</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="17"><a href="#17" class="headerlink" title="17"></a>17</h2><p>结构化绑定： 在 C++17 中，结构化绑定（<code>auto [a, b] = ...</code>）创建的变量 <strong>不能</strong> 在 lambda 中通过 <code>[&amp;]</code>捕获。</p>
+<h3 id="为什么-C-17-中结构化绑定不能捕获"><a href="#为什么-C-17-中结构化绑定不能捕获" class="headerlink" title="为什么 C++17 中结构化绑定不能捕获"></a>为什么 C++17 中结构化绑定不能捕获</h3><p>在 C++17 中，结构化绑定（<code>auto [x, y] = pair</code>）<strong>不是一个变量声明</strong>，而是<strong>一组绑定</strong>。编译器将其展开为对底层对象的引用，而不是创建独立的变量。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 结构化绑定</span></span><br><span class="line"><span class="keyword">auto</span> [a, b] = std::<span class="built_in">make_pair</span>(<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line"><span class="comment">// 实际上被编译器处理为：</span></span><br><span class="line"><span class="keyword">auto</span> __pair = std::<span class="built_in">make_pair</span>(<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line"><span class="type">int</span>&amp; a = __pair.first;   <span class="comment">// 只是引用，不是独立变量</span></span><br><span class="line"><span class="type">int</span>&amp; b = __pair.second;  <span class="comment">// 只是引用，不是独立变量</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// lambda 捕获 [&amp;] 只能捕获&quot;变量&quot;，不能捕获&quot;引用绑定&quot;</span></span><br><span class="line"><span class="keyword">auto</span> lambda = [&amp;]() &#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;  <span class="comment">// 错误：a 和 b 不是真正的变量</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>std::tie 是引用元组</strong>：创建已有变量的引用，可被 lambda 捕获</p>
+<p>std::tie是 C++11 标准库 <tuple>中的一个函数模板，用于创建一个引用元组，通常用于解包&#x2F;打包值。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -875,1464 +1950,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/05/09/CMU15445-2024fall-project-2-%E8%AE%B0%E5%BD%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/05/09/CMU15445-2024fall-project-2-%E8%AE%B0%E5%BD%95/" class="post-title-link" itemprop="url">CMU15445(2024fall)-project#2 记录</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-05-09 14:17:05" itemprop="dateCreated datePublished" datetime="2025-05-09T14:17:05+08:00">2025-05-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-09-17 17:29:35" itemprop="dateModified" datetime="2025-09-17T17:29:35+08:00">2025-09-17</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.3k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="Task-1-B-Tree-Pages"><a href="#Task-1-B-Tree-Pages" class="headerlink" title="Task #1 - B+Tree Pages"></a>Task #1 - B+Tree Pages</h2><p>实现三个页面类来存储 B+Tree 的数据。</p>
-<ol>
-<li><p>BPlusTreePage(Base Page)</p>
-<p>这个类作为后面两个类的基类，存储一些两者都需要的信息，逻辑上是两种类型页面的头部，包括页面类型、当前实际存储的键值对、最大容量。</p>
-<p><code>GetMinSize()</code>：一般来时需要分别考虑根结点、内部结点和叶子结点，但是结合后续系统的实际逻辑，用于判断结点是否 underflow，只需要返回半满状态时的size就可以了。</p>
-</li>
-<li><p>BPlusTreeInternalPage(Internal Page)</p>
-<p>这个类对应 B+ 树中的内部结点，比基类多了两个数组分别用于存放K-V对。由于内部结点的特性，子指针的个数比键的个数多一个，<code>key_array_[0]</code> 是无效的。<code>page_id</code>指向的子页面中包含比当前键大与等于的键。</p>
-<p><code>size_</code>：表示当前页中有效键值对的数量，或者说是有效子指针的个数。</p>
-<p><code>init()</code>：有默认的参数，是用页面大小 4KB 减去头部信息后计算来的最大容量。对于一个具体的B+树结构需要设置逻辑上的“最大容量”，这就需要在创建页面init()时传入参数。</p>
-</li>
-<li><p>BPlusTreeLeafPage(Leaf Page)</p>
-<p>这个类对应 B+ 树中的叶子结点，头部信息多了一个字段：指向下一个叶子页面的指针，用于将叶节点串成单向链表。 <code>RID</code>指向实际数据的位置。</p>
-</li>
-</ol>
-<h2 id="Task-2-B-Tree-Operations"><a href="#Task-2-B-Tree-Operations" class="headerlink" title="Task #2 - B+Tree Operations"></a>Task #2 - B+Tree Operations</h2><p>几点提醒：</p>
-<ol>
-<li><code>BPlusTree::header_page_id_</code>指向的不是<code>root_page</code>，而是<code>BPlusTreeHeaderPage</code>，这个类中保存了<code>root_page_id_</code>。为什么不在<code>BPlusTree</code>设置一个字段直接保存<code>root_page_id_</code>？</li>
-<li></li>
-</ol>
-<p>由于内部结点和叶子结点的结构不一样，查找算法也就需要各自实现。</p>
-<p>叶子结点在插入操作完成后检查是否溢出，</p>
-<p>内部结点的分裂时将中间键上升到父节点，接就是说在分裂产生的两个结点中都不包含中间键。</p>
-<h3 id="搜索"><a href="#搜索" class="headerlink" title="搜索"></a>搜索</h3><h3 id="插入"><a href="#插入" class="headerlink" title="插入"></a>插入</h3><h3 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h3><h2 id="Task-3-Index-Iterator"><a href="#Task-3-Index-Iterator" class="headerlink" title="Task #3 - Index Iterator"></a>Task #3 - Index Iterator</h2><h2 id="Task-4-Concurrency-Control"><a href="#Task-4-Concurrency-Control" class="headerlink" title="Task #4 - Concurrency Control"></a>Task #4 - Concurrency Control</h2><p><strong>WritePageGuard&#x2F;ReadPageGuard中已经有读写锁了，为什么还要在 BPlusTreePage中加入读写锁？</strong></p>
-<p>这两组锁使用不当会造成死锁。</p>
-<p>在<code>BPlusTreePage</code>中加入读写锁，<code>BusTub</code>中已经实现了<code>ReaderWriterLatch</code>。在<code>FindLeafPage()</code>中搜索过程中加读锁时，拥有的是<code>const BPlusTreePage *</code>，默认无法调用非 <code>const</code>成员函数或修改成员变量。需要修改 <code>BPlusTreePage</code>类，将读写锁标记为 <code>mutable</code>，通过 <code>const</code>方法调用锁操作。</p>
-<p>乐观锁：在<code>FindLeafPageOptimistic()</code>中</p>
-<p>在<code>FindLeafPageWithWrite()</code>中重新设置<code>ctx</code>，防止在函数调用的锁真空期时其他线程更新了B+树。</p>
-<p><code>SEARCH</code> &#x2F; <code>INSERT</code> &#x2F; <code>DELETE</code> 都需要读取 <code>header_page</code>，这里拿 <strong>Read</strong> 就够；只有真正<strong>更新</strong> root（分裂&#x2F;合并）时才需要拿 <strong>Write</strong>。由于采用了乐观的蟹行锁，需要改动的节点会被锁住。</p>
-<table>
-<thead>
-<tr>
-<th align="left"><strong>函数</strong></th>
-<th align="center"><strong>适用操作</strong></th>
-<th align="center"><strong>锁策略</strong></th>
-<th align="center"><strong>特点</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left"><code>FindLeafPageOptimistic</code></td>
-<td align="center"><code>SEARCH</code>（读）</td>
-<td align="center">乐观路径：先读锁，必要时升级写锁</td>
-<td align="center">减少锁竞争，但可能重试</td>
-</tr>
-<tr>
-<td align="left"><code>FindLeafPageWithWrite</code></td>
-<td align="center"><code>INSERT</code>&#x2F;<code>REMOVE</code>（写）</td>
-<td align="center">悲观路径：直接获取写锁</td>
-<td align="center">避免重试开销，但锁粒度大，可能影响并发性</td>
-</tr>
-</tbody></table>
-<p>ctx 与 锁 的关系</p>
-<p>如果某个线程在迭代器获取 RLatch 时失败（说明页面被别的线程 WLatch 住了），那就直接释放当前所有资源，重新从头构造迭代器。这其实就是把乐观锁思想应用到迭代器：失败就自杀并重试。</p>
-<p>为什么迭代器遍历时需要失败就自杀？考虑一个场景：线程A遍历叶子节点，线程B执行<code>Remove()</code>。线程A下一个要遍历的叶子节点的写锁被线程B持有；而线程B需要从左兄弟中借出键值对，要请求该叶子节点的写锁。导致死锁。迭代器遍历叶子节点不需要获取叶子节点的父节点。</p>
-<p>为什么在 <code>Begin()</code> 也需要处理“读锁拿不到就放弃”？保证最左叶子节点的一致性与稳定性。假设 <code>Begin()</code> 想访问最左叶子 <code>L0</code>，但并发线程正在分裂 <code>L0</code>：</p>
-<ul>
-<li>写线程持有 <code>WLatch(L0)</code>，还没更新完成。</li>
-<li>这时 <code>Begin()</code> 如果直接用无锁方式返回迭代器：<ul>
-<li>迭代器拿到的是 <code>L0</code> 的旧内容，下一步 <code>next_page_id</code> 可能错误。</li>
-</ul>
-</li>
-<li>如果 <code>Begin()</code> 等待写锁释放：<ul>
-<li>会阻塞，吞吐量下降。</li>
-</ul>
-</li>
-<li>如果 <code>Begin()</code> 检测到拿不到 <code>RLatch</code> → 放弃并重启：<ul>
-<li>等写线程完成后，重启时一定能读到 <strong>一致的最左叶子</strong>。</li>
-</ul>
-</li>
-</ul>
-<p>遇到的一些细节问题：</p>
-<ol>
-<li>在<code>Insert</code>中，代码里有一段特殊逻辑：如果 <code>root_page_id_ == INVALID_PAGE_ID</code>，会新建 root。<ul>
-<li>如果两个线程几乎同时看到 <code>INVALID_PAGE_ID</code>，可能会同时创建 root。</li>
-<li>但由于更新 <code>header_page-&gt;root_page_id_</code> 时要拿 <code>WritePageGuard</code>，所以最终只有一个 root 会被成功写入，另一个会被覆盖。</li>
-<li>不会导致“没有 root”，需要额外逻辑避免浪费掉一个新建的 root page。</li>
-</ul>
-</li>
-<li>在<code>Insert</code>中，有一个场景：多个节点都想向 leaf  L 插入，且此时 L 是安全的，它们都在读 L 父节点，都被路由到 L，拿到了 L 的 page_id。线程A率先拿到写锁，顺利插入后释放写锁，此时 L 已经处于不安全的状态。但是线程 B C 并不知情，它们已经被路由到 L，在等待写锁。这种情况就会导致 L 出现值溢出。</li>
-<li></li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/04/23/CMU15445-2024fall-Lecture-7-Hashtables/" class="post-title-link" itemprop="url">CMU15445(2024fall)-Lecture#7:Hashtables</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-04-23 21:08:02" itemprop="dateCreated datePublished" datetime="2025-04-23T21:08:02+08:00">2025-04-23</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-24 15:57:26" itemprop="dateModified" datetime="2025-04-24T15:57:26+08:00">2025-04-24</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.9k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>接下来将讨论如何支持 DBMS 的执行引擎从 page 中读写数据。介绍两类结构：Hash Tables(Unordered)、Trees(Ordered)。</p>
-<h2 id="Data-Structures"><a href="#Data-Structures" class="headerlink" title="Data Structures"></a>Data Structures</h2><p>在数据库系统中，<strong>存储结构的类型</strong>可以根据用途划分为以下几大类，它们共同组成了数据库系统的“内部世界”：</p>
-<ul>
-<li>Internal Meta-Data（内部元数据）：这是数据库系统用于<strong>管理自身状态和结构信息</strong>的数据。用于记录数据库对象的布局、位置、映射信息等，如页表、页目录等。</li>
-<li>Core Data Storage（核心数据存储）：这是用来<strong>实际存储表中的数据（Tuples）</strong>的结构。以页为单位将表的数据组织在磁盘中，如NSM&#x2F;DSM&#x2F;PAX、Slotted Page。</li>
-<li>Temporary Data Structures（临时数据结构）：为了提高查询效率，DBMS <strong>在查询运行时构造的临时结构</strong>。如哈希表（用于 hash join 或去重）、排序缓冲区、物化表。这些结构在查询结束后通常会被释放。</li>
-<li>Table Indices（表索引）：数据库系统为了<strong>加速特定查询</strong>而维护的<strong>辅助数据结构</strong>。如 B+ 树索引、哈希索引。索引通常是冗余的，会占用额外空间，但能显著提升性能。</li>
-</ul>
-<p>在实现数据结构时还需要考虑以下两个设计决策：数据结构的布局对性能的影响、并发性。</p>
-<h2 id="Hash-Tables"><a href="#Hash-Tables" class="headerlink" title="Hash Tables"></a>Hash Tables</h2><p>哈希表实现了一种关联数组抽象类型，能将键映射到值。平均运算复杂度 O(1)，最坏为 O(n)；存储复杂度为 O(n)。即使平均运算复杂度为 O(1)，但仍有常数因子，这在现实世界中非常重要。哈希表中没有访问顺序，即无法按任何特定顺序浏览元素。</p>
-<p>哈希表的实现由两部分组成：</p>
-<ul>
-<li>哈希函数： 如何将一个大的键空间映射到一个较小的域。在其中要权衡运算速度和冲突率。</li>
-<li>哈希方案： 如何处理哈希冲突。在其中要权衡分配哈希表的规模和 get&#x2F;put 键值的开销</li>
-</ul>
-<h2 id="Hash-Function"><a href="#Hash-Function" class="headerlink" title="Hash Function"></a>Hash Function</h2><p>哈希函数接受任何长度的输出，输出固定长度的整数(32bits or 64bits)。DBMS 中不需要使用加密类型的哈希函数（如 SHA-256），只关心速度和冲突率。</p>
-<p>现在 state-of-the-art 的哈希函数时Facebook XXHash3。</p>
-<h2 id="Static-Hash-Schemes"><a href="#Static-Hash-Schemes" class="headerlink" title="Static Hash Schemes"></a>Static Hash Schemes</h2><p>Static Hash Schemes 是指哈希表的大小是固定的，并且是已知的。这意味着，如果数据库管理系统的哈希表存储空间用完，就必须从头开始重建一个更大的哈希表，而这是非常昂贵的。通常情况下，新的哈希表是原始哈希表的两倍。</p>
-<h3 id="Linear-Probe-Hashing"><a href="#Linear-Probe-Hashing" class="headerlink" title="Linear Probe Hashing"></a>Linear Probe Hashing</h3><p>对于插入操作，当发生碰撞时，我线性搜索随后的插槽，直到找到开放的插槽为止，必要时会从数组的末尾循环到起始位置。</p>
-<p>对于查找操作，可以检查密钥哈希值所对应的插槽，然后进行线性搜索，直到找到所需的条目。如果找到的是空槽，或者遍历了 hashtable 中的所有槽，则说明表中没有该键。请注意，这意味着我们必须在槽中同时存储键和值，以便检查条目是否为所需条目。</p>
-<p>对于删除操作：</p>
-<ul>
-<li>直接删除会有点问题，如何之前发生过哈希冲突，会有本该映射到此的键值A被映射到了后方，当后续检索A时发现此处为空返回不存在。</li>
-<li>另一种方法是在删除条目后移动相邻数据，以填补现在的空槽。不过当键的数量较多时，这种方法的成本极高。</li>
-<li>最常见的方法是使用 “墓碑”。我们不是删除条目，而是用一个 “墓碑 ”条目取代它，告诉未来的查找继续扫描。</li>
-</ul>
-<p>如何存储键值：</p>
-<ul>
-<li>固定长度：直接存储在哈希表页面中。也可选择将密钥的哈希值与之一起存储，以加快比较速度。</li>
-<li>不定长度：将键&#x2F;值数据插入一个单独的临时表中。然后，哈希表将哈希值作为键存储，将指向临时表中相应条目的记录 ID 作为值存储。</li>
-</ul>
-<p>如何处理键值不唯一：</p>
-<ul>
-<li>独立的链接列表： 不是将值与键一起存储，而是存储一个指向单独存储区的指针，该存储区包含一个包含所有值的链接列表，可能会溢出到多个页面。</li>
-<li>冗余键： 更常见的方法是在表中多次存储相同的键。即使我们这样做，线性探测的所有功能仍然有效。</li>
-</ul>
-<h3 id="Cuckoo-Hashing"><a href="#Cuckoo-Hashing" class="headerlink" title="Cuckoo Hashing"></a>Cuckoo Hashing</h3><p>Cuckoo Hashing 使用 <strong>两个（或多个）哈希函数</strong>，每个 key 可以存放在两个可能的位置之一。如果插入的位置被占用了，就“驱逐”（evict）原来的 key，并将其移动到它的另一个位置，可能会引发 <strong>连锁搬移</strong>。</p>
-<p>Cuckoo Hashing  花费 O(1) 的代价查找和删除，但是插入操作可能高代价。</p>
-<h2 id="Dynamic-Hash-Schemes"><a href="#Dynamic-Hash-Schemes" class="headerlink" title="Dynamic Hash Schemes"></a>Dynamic Hash Schemes</h2><p>Dynamic Hashing Schemes（动态哈希方案） 是一类支持数据动态增长（或缩减）的哈希方法，主要为了解决传统静态哈希（Static Hashing）在面对数据量增长时可能导致大量冲突或重建开销大的问题。目标是<strong>自动扩容</strong>（或收缩）哈希桶、保证查询性能（接近 O(1)）、减少全局重哈希（rehashing）的代价。</p>
-<h3 id="Chained-Hashing"><a href="#Chained-Hashing" class="headerlink" title="Chained Hashing"></a>Chained Hashing</h3><p>这是最常见的动态散列方案。DBMS 为哈希表的每个槽维护一个桶的链表。哈希到同一槽的键被简单地插入到该槽的链表中。要查找一个元素，我们先散列到它的桶，然后在链表中扫描查找。</p>
-<h3 id="Extendible-Hashing"><a href="#Extendible-Hashing" class="headerlink" title="Extendible Hashing"></a>Extendible Hashing</h3><p>Extendible Hashing 通过引入 <strong>目录（Directory）+ 局部桶（Bucket）</strong> 的结构来实现 局部扩容、动态调整、按需增长。</p>
-<p>目录：</p>
-<ul>
-<li>是一个数组，保存指向 Bucket 的指针；</li>
-<li>它的大小为 <code>2^global_depth</code>，即目录的大小由全局深度决定；</li>
-<li>每个目录项通过哈希函数得到的一部分<strong>前缀位</strong>定位。</li>
-</ul>
-<p>局部桶：</p>
-<ul>
-<li>存储实际的数据项；</li>
-<li>每个桶有自己的<strong>局部深度（local depth）</strong>；</li>
-<li>表示该桶共享的前缀位数。</li>
-</ul>
-<p><strong>插入流程：</strong></p>
-<ol>
-<li>对 key 使用哈希函数，得到一个 hash 值；</li>
-<li>根据 <code>global_depth</code> 取前缀位，定位到目录项；</li>
-<li>找到对应的 Bucket，尝试插入数据：<ul>
-<li>若 Bucket 未满，直接插入；</li>
-<li>若 Bucket 满：<ul>
-<li>检查 <code>local_depth == global_depth</code>：<ul>
-<li>是：<strong>扩展目录</strong>（global_depth+1，目录大小 ×2）；</li>
-<li>否：只<strong>分裂桶</strong>（Bucket Split）；</li>
-</ul>
-</li>
-<li>然后重新分配数据。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-<p>缺点：</p>
-<ul>
-<li>空间浪费，部分目录项可能指向同一个桶，造成冗余</li>
-<li>删除复杂，删除后可能需要合并桶（bucket merge）和收缩目录</li>
-<li>实现复杂相比线性哈希实现难度更高，需要维护 local&#x2F;global depth 和共享桶关系</li>
-</ul>
-<h3 id="Linear-Hashing"><a href="#Linear-Hashing" class="headerlink" title="Linear Hashing"></a>Linear Hashing</h3><p>不用一次性重建整个哈希表，而是在数据插入时逐步扩展桶（Bucket），线性地重分布数据，实现渐进扩容。</p>
-<p>Linear Hashing 的设计基于：</p>
-<ul>
-<li><strong>两个哈希函数</strong>：<code>h_i(key) = key mod 2^i</code> 和 <code>h_&#123;i+1&#125;(key) = key mod 2^&#123;i+1&#125;</code></li>
-<li>一个递增的分裂指针 <code>n</code>：表示当前需要分裂扩容的桶编号</li>
-<li>一组 <strong>桶 Bucket[]</strong></li>
-</ul>
-<p>插入过程：</p>
-<ol>
-<li>设当前使用哈希函数 <code>h_i</code>；</li>
-<li>插入 key 时计算 <code>h_i(key)</code>：<ul>
-<li>若结果 &lt; <code>n</code>，说明这个桶已经被分裂过，改用 <code>h_&#123;i+1&#125;(key)</code></li>
-</ul>
-</li>
-<li>把数据插入对应桶中；</li>
-<li>若桶满，则进行<strong>分裂操作</strong>：<ul>
-<li>分裂编号为 <code>n</code> 的桶；</li>
-<li>将桶中数据按 <code>h_&#123;i+1&#125;</code> 重分布；</li>
-<li>分裂指针 <code>n++</code></li>
-<li>若 <code>n == 2^i</code>，则：<ul>
-<li><code>i++</code>，进入下一轮哈希；</li>
-<li><code>n</code> 归零，继续分裂新一轮的桶。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-<p>删除可能导致桶删除和分裂指针回移。</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/04/21/CMU15445-2024fall-Lecture-5-Storage-Models-and-Compression/" class="post-title-link" itemprop="url">CMU15445(2024fall)-Lecture#5:Storage Models and Compression</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-04-21 20:32:03" itemprop="dateCreated datePublished" datetime="2025-04-21T20:32:03+08:00">2025-04-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-23 11:12:21" itemprop="dateModified" datetime="2025-04-23T11:12:21+08:00">2025-04-23</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Problem #1: How the DBMS represents the database in files on disk.</p>
-<h2 id="Database-Workload"><a href="#Database-Workload" class="headerlink" title="Database Workload"></a>Database Workload</h2><ul>
-<li><p>OLTP: Online Transaction Processing （联机事务处理）。特点：高频小型读写操作，事务量大、单次延迟低、更新频繁。场景：网购中用户可以在购物车中添加物品并进行购买，但这些操作只会影响他们的账户。</p>
-</li>
-<li><p>OLAP: Online Analytical Processing （联机分析处理）。特点：大规模复杂查询，主要以读为主，聚合分析、多表联结、批处理操作。场景：网购平台分析从用户购物车和购物历史中收集的所有数据，然后为不同用户推荐不同的广告。</p>
-</li>
-<li><p>HTAP: Hybrid Transaction + Analytical Processing （混合事务分析处理）</p>
-</li>
-</ul>
-<h2 id="Storage-Models"><a href="#Storage-Models" class="headerlink" title="Storage Models"></a>Storage Models</h2><p>DBMS 的存储模型指定它如何在磁盘和内存中物理组织元组。对于不同的存储模型在不同的数据库工作负载中有不同的性能表现。</p>
-<h3 id="N-ary-Storage-Model-NSM"><a href="#N-ary-Storage-Model-NSM" class="headerlink" title="N-ary Storage Model(NSM)"></a>N-ary Storage Model(NSM)</h3><p><strong>N-Ary Storage Model</strong>，又叫<strong>行存储模型（Row Store）</strong>，是数据库表的传统存储方式。在 NSM 中，每一行（tuple &#x2F; record）作为一个整体被连续存储在磁盘或内存中，行内包含表的所有列数据。<strong>每一行是一个完整的存储单元，所有列的数据被打包存放</strong>。</p>
-<p>这种方法非常适合 <strong>OLTP</strong> ，因为在这种情况下请求的写入量很大，访问的大多是单个实体。它之所以理想，是因为只需一次获取就能获得单个元组的所有属性。NSM 页面通常是 4KB 硬件页面的某个恒定倍数。</p>
-<p>优点：</p>
-<ul>
-<li>快速插入、更新和删除</li>
-<li>可使用面向索引的物理存储进行集群</li>
-</ul>
-<p>缺点：</p>
-<ul>
-<li>不利于扫描表的大部分和&#x2F;或属性子集。</li>
-<li>访问模式的内存位置性很差。</li>
-<li>由于单个页面中存在多个值域，因此不适合进行压缩。</li>
-</ul>
-<h3 id="Decomposition-Storage-Model（DSM）"><a href="#Decomposition-Storage-Model（DSM）" class="headerlink" title="Decomposition Storage Model（DSM）"></a>Decomposition Storage Model（DSM）</h3><p>DSM一般被称为：<strong>列存储模型（Column Store）</strong>。它的核心思想是：<strong>把表中的每一列分别独立存储</strong>，而不是像 NSM 那样按“行”连续存储。<strong>适合OLAP</strong>。</p>
-<p>优点：</p>
-<ul>
-<li>减少每次查询浪费的 I&#x2F;O 量，因为 DBMS 只读取查询所需的数据。</li>
-<li>由于增加了局部性和缓存数据的重复使用，因此查询处理效果更好（更快）。</li>
-<li>更好的数据压缩。</li>
-</ul>
-<p>缺点： </p>
-<ul>
-<li>由于元组分割&#x2F;缝合，元组查询、插入、更新和删除速度较慢。</li>
-</ul>
-<p>快速检索或重新拼接元组的方法：</p>
-<ul>
-<li><p>固定长度偏移。在这种情况下，给定列中的值将与处于相同偏移量的另一列中的值属于同一个元组。因此，列中的每个列中的每个值都必须具有相同的长度。</p>
-</li>
-<li><p>嵌入式元组 id（不推荐）。为列中的每个属性存储一个元组 ID（例如：主键）。然后，系统还会存储一个映射，告诉它如何跳转到具有该 id 的每个属性。请注意，这种方法的存储开销很大，因为它需要为每个属性条目存储一个元组 ID。</p>
-</li>
-</ul>
-<h3 id="Partition-Attributes-Across-PAX"><a href="#Partition-Attributes-Across-PAX" class="headerlink" title="Partition Attributes Across (PAX)"></a>Partition Attributes Across (PAX)</h3><p><strong>Partition Attributes Across</strong>跨属性划分存储，是一种<strong>页内列式存储、页间行式存储</strong>的模型。</p>
-<p>优点：</p>
-<ul>
-<li>在传统NSM中，读一列的所有值会带上很多不需要的字段，浪费缓存。而 PAX 的页内列式划分，能够大幅提高 CPU cache 的利用效率。</li>
-<li>每页内相同列的数据集中存储，压缩算法（如RLE）效果更好。</li>
-</ul>
-<h2 id="Compression"><a href="#Compression" class="headerlink" title="Compression"></a>Compression</h2><p>压缩设计原则：</p>
-<ul>
-<li>必须产生固定长度的值。快速通过偏移量定位数据，优化CPU缓存访问，兼容字对齐。</li>
-<li>支持延迟解压。在查询执行计划中，只有真正需要用到数据（如返回给用户或计算聚合）时，才进行解压。 Late Materialization（延迟物化）</li>
-<li>必须是无损压缩。数据完整性保障，不能在存储层丢失精度，任何有损压缩应留给应用层处理。</li>
-</ul>
-<p>压缩粒度：</p>
-<table>
-<thead>
-<tr>
-<th align="center">粒度等级</th>
-<th align="center">说明</th>
-<th align="center">特点</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong>Tuple-level（元组级）</strong></td>
-<td align="center">每一行单独压缩</td>
-<td align="center">灵活，但压缩率低</td>
-</tr>
-<tr>
-<td align="center"><strong>Page-level（页级）</strong></td>
-<td align="center">每页（通常4KB-8KB）作为压缩单位</td>
-<td align="center">常见于行存储，压缩率较高，解压局部性好</td>
-</tr>
-<tr>
-<td align="center"><strong>Block-level（块级）</strong></td>
-<td align="center">多页或特定大小的数据块（如 Parquet 的 RowGroup）</td>
-<td align="center">压缩率高，但解压成本较大</td>
-</tr>
-<tr>
-<td align="center"><strong>Column-level（列级）</strong></td>
-<td align="center">某一列的一段连续数据压缩</td>
-<td align="center">非常适合列存储，压缩率最高</td>
-</tr>
-</tbody></table>
-<h2 id="Columnar-Compression"><a href="#Columnar-Compression" class="headerlink" title="Columnar Compression"></a>Columnar Compression</h2><table>
-<thead>
-<tr>
-<th align="center">压缩方式</th>
-<th align="center">说明</th>
-<th align="center">适用场景</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong>Run-Length Encoding (RLE)</strong></td>
-<td align="center">连续相同的值用 (Value, Count) 表示</td>
-<td align="center">有大量重复值的列（如性别、状态码）</td>
-</tr>
-<tr>
-<td align="center"><strong>Dictionary Encoding</strong></td>
-<td align="center">用一个索引表将字符串替换成短编号，存储编号</td>
-<td align="center">字符串或离散值较多的列</td>
-</tr>
-<tr>
-<td align="center"><strong>Delta Encoding</strong></td>
-<td align="center">只存储数值变化的“差值”</td>
-<td align="center">连续递增&#x2F;时间戳&#x2F;ID字段</td>
-</tr>
-<tr>
-<td align="center"><strong>Bit-Packing</strong></td>
-<td align="center">用尽可能少的二进制位来存储数值，节省空间</td>
-<td align="center">数值范围已知、稀疏分布的数据</td>
-</tr>
-<tr>
-<td align="center"><strong>Bitmap Encoding</strong></td>
-<td align="center">为每个不同取值创建一个 bit vector用于表示特定值</td>
-<td align="center">取值低基数</td>
-</tr>
-</tbody></table>
-<ul>
-<li>Bit-Packing ：可以有少量值远大于要压缩成的范围时，使用特殊标识表明要去另一个表中检索。</li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/27/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Ashared-mutex/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/03/27/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Ashared-mutex/" class="post-title-link" itemprop="url">C++标准库-并发：shared_mutex</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-03-27 16:10:19" itemprop="dateCreated datePublished" datetime="2025-03-27T16:10:19+08:00">2025-03-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-29 17:25:16" itemprop="dateModified" datetime="2025-03-29T17:25:16+08:00">2025-03-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>3.2k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="RAII-风格锁"><a href="#RAII-风格锁" class="headerlink" title="RAII 风格锁"></a>RAII 风格锁</h1><h2 id="std-shared-mutex"><a href="#std-shared-mutex" class="headerlink" title="std::shared_mutex"></a>std::shared_mutex</h2><p><code>std::shared_mutex</code> 是 C++17 标准库中引入的一种<strong>读写锁</strong>，用于在<strong>多线程环境</strong>中控制对共享资源的访问。它允许：</p>
-<ul>
-<li><strong>多个线程同时读取</strong>（获取<strong>共享锁</strong>，也称为读锁）。</li>
-<li><strong>一个线程独占写入</strong>（获取<strong>独占锁</strong>，也称为写锁）。</li>
-</ul>
-<p>与 <code>std::mutex</code> 不同，<code>std::shared_mutex</code> 提供了<strong>更高的并发性</strong>，因为读者不会阻塞其他读者。</p>
-<h3 id="基本特性"><a href="#基本特性" class="headerlink" title="基本特性"></a>基本特性</h3><ul>
-<li>头文件 <code>&lt;shared_mutex&gt;</code></li>
-<li>允许多个线程同时持有读锁（<code>shared_lock</code>）</li>
-<li>只允许一个线程持有写锁（<code>unique_lock</code>）</li>
-<li>适用于读多写少的场景</li>
-<li>不可递归，线程不能多次获取同一种锁</li>
-<li>需配合 RAII 包装类，如 <code>shared_lock</code> 和 <code>unique_lock</code></li>
-</ul>
-<h3 id="接口函数"><a href="#接口函数" class="headerlink" title="接口函数"></a>接口函数</h3><table>
-<thead>
-<tr>
-<th align="center"><strong>成员函数</strong></th>
-<th align="center"><strong>功能</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><code>lock()</code></td>
-<td align="center">获取独占（写）锁，若锁被占用则阻塞</td>
-</tr>
-<tr>
-<td align="center"><code>try_lock()</code></td>
-<td align="center">尝试获取独占锁，立即返回 <code>true</code>（成功）或 <code>false</code>（失败）</td>
-</tr>
-<tr>
-<td align="center"><code>unlock()</code></td>
-<td align="center">释放独占（写）锁</td>
-</tr>
-<tr>
-<td align="center"><code>lock_shared()</code></td>
-<td align="center">获取共享（读）锁，若锁被占用则阻塞</td>
-</tr>
-<tr>
-<td align="center"><code>try_lock_shared()</code></td>
-<td align="center">尝试获取共享锁，立即返回 <code>true</code> 或 <code>false</code></td>
-</tr>
-<tr>
-<td align="center"><code>unlock_shared()</code></td>
-<td align="center">释放共享（读）锁</td>
-</tr>
-</tbody></table>
-<h2 id="std-shared-lock"><a href="#std-shared-lock" class="headerlink" title="std::shared_lock"></a>std::shared_lock</h2><p><code>std::shared_lock</code> 是 C++17 标准库中提供的<strong>RAII 风格</strong>锁管理器，专门用于<strong>管理共享（读）锁</strong>的生命周期。它与<code>std::shared_mutex</code>或<code>std::shared_timed_mutex</code>类型配合使用，允许多个线程同时获取共享锁，从而实现并发读取。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt; <span class="keyword">class</span> <span class="title class_">Mutex</span> &gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">shared_lock</span>;</span><br></pre></td></tr></table></figure>
-
-<p><strong>构造时加锁，析构时解锁（RAII机制）。</strong></p>
-<p>轻量级且可移动（可通过 <code>std::move</code> 转移所有权）。</p>
-<h3 id="构造函数"><a href="#构造函数" class="headerlink" title="构造函数"></a>构造函数</h3><table>
-<thead>
-<tr>
-<th align="center"><strong>构造函数</strong></th>
-<th align="center"><strong>说明</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><code>shared_lock()</code></td>
-<td align="center">默认构造，不加锁。</td>
-</tr>
-<tr>
-<td align="center"><code>explicit shared_lock(mutex_type &amp;m)</code></td>
-<td align="center"><strong>立即获取共享锁</strong>，阻塞直到锁可用。</td>
-</tr>
-<tr>
-<td align="center"><code>shared_lock(mutex_type &amp;m, std::defer_lock_t)</code></td>
-<td align="center">构造但<strong>不加锁</strong>，可延迟调用 <code>lock()</code> 加锁。</td>
-</tr>
-<tr>
-<td align="center"><code>shared_lock(mutex_type &amp;m, std::try_to_lock_t)</code></td>
-<td align="center"><strong>尝试</strong>获取共享锁，立即返回是否成功。</td>
-</tr>
-<tr>
-<td align="center"><code>shared_lock(mutex_type &amp;m, std::adopt_lock_t)</code></td>
-<td align="center"><strong>接管</strong>已加锁的共享锁，避免再次加锁。</td>
-</tr>
-</tbody></table>
-<h3 id="成员函数"><a href="#成员函数" class="headerlink" title="成员函数"></a>成员函数</h3><table>
-<thead>
-<tr>
-<th align="center"><strong>函数</strong></th>
-<th align="center"><strong>功能</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><code>lock()</code></td>
-<td align="center">阻塞，获取共享（读）锁。</td>
-</tr>
-<tr>
-<td align="center"><code>try_lock()</code></td>
-<td align="center">尝试获取共享锁，立即返回 <code>true</code>（成功）或 <code>false</code>（失败）。</td>
-</tr>
-<tr>
-<td align="center"><code>unlock()</code></td>
-<td align="center">释放共享锁。</td>
-</tr>
-<tr>
-<td align="center"><code>owns_lock()</code></td>
-<td align="center">判断当前是否持有锁，返回 <code>true</code> 或 <code>false</code>。</td>
-</tr>
-<tr>
-<td align="center"><code>mutex()</code></td>
-<td align="center">返回底层使用的 <code>mutex</code> 指针。</td>
-</tr>
-<tr>
-<td align="center"><code>release()</code></td>
-<td align="center">释放对 mutex 的所有权，不会自动解锁。</td>
-</tr>
-</tbody></table>
-<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><ul>
-<li><p>局部变量锁（作用域内自动释放）</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">SomeFunction</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::shared_lock&lt;std::shared_mutex&gt; <span class="title">latch</span><span class="params">(frame_-&gt;rwlatch_)</span></span>;</span><br><span class="line">    <span class="comment">// 只在该函数作用域内持锁</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 离开作用域，自动释放锁</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p>类成员变量锁（对象销毁时才释放）</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ReadPageGuard</span> &#123;</span><br><span class="line"> <span class="keyword">public</span>:</span><br><span class="line">  std::shared_lock&lt;std::shared_mutex&gt; latch_;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ReadPageGuard</span>(std::shared_mutex &amp;rw_lock) &#123;</span><br><span class="line">    latch_ = std::<span class="built_in">shared_lock</span>&lt;std::shared_mutex&gt;(rw_lock);</span><br><span class="line">  &#125;</span><br><span class="line">  ~<span class="built_in">ReadPageGuard</span>() = <span class="keyword">default</span>;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">// 在 ReadPageGuard 对象生命周期内持锁</span></span><br></pre></td></tr></table></figure></li>
-</ul>
-<p><strong>基本用法</strong></p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;shared_mutex&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line">std::shared_mutex rw_mutex;  <span class="comment">// 读写锁</span></span><br><span class="line"><span class="type">int</span> shared_data = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 读线程</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Read</span><span class="params">(<span class="type">int</span> id)</span> </span>&#123;</span><br><span class="line">    <span class="function">std::shared_lock&lt;std::shared_mutex&gt; <span class="title">lock</span><span class="params">(rw_mutex)</span></span>;  <span class="comment">// 共享锁</span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Reader &quot;</span> &lt;&lt; id &lt;&lt; <span class="string">&quot; reads: &quot;</span> &lt;&lt; shared_data &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 写线程</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Write</span><span class="params">(<span class="type">int</span> id)</span> </span>&#123;</span><br><span class="line">    <span class="function">std::unique_lock&lt;std::shared_mutex&gt; <span class="title">lock</span><span class="params">(rw_mutex)</span></span>;  <span class="comment">// 独占锁</span></span><br><span class="line">    shared_data += <span class="number">1</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Writer &quot;</span> &lt;&lt; id &lt;&lt; <span class="string">&quot; writes: &quot;</span> &lt;&lt; shared_data &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">(Read, <span class="number">1</span>)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">t2</span><span class="params">(Read, <span class="number">2</span>)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">t3</span><span class="params">(Write, <span class="number">1</span>)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">t4</span><span class="params">(Read, <span class="number">3</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    t1.<span class="built_in">join</span>();</span><br><span class="line">    t2.<span class="built_in">join</span>();</span><br><span class="line">    t3.<span class="built_in">join</span>();</span><br><span class="line">    t4.<span class="built_in">join</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Reader 1 reads: 0</span></span><br><span class="line"><span class="comment">// Reader 2 reads: 0</span></span><br><span class="line"><span class="comment">// Writer 1 writes: 1</span></span><br><span class="line"><span class="comment">// Reader 3 reads: 1</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>延迟加锁（defer_lock）</strong></p>
-<p>使用 <code>defer_lock</code> 标志来延迟加锁，之后手动调用 <code>lock()</code>。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cpp复制编辑<span class="function">std::shared_lock&lt;std::shared_mutex&gt; <span class="title">lock</span><span class="params">(rw_mutex, std::defer_lock)</span></span>;</span><br><span class="line"><span class="comment">// 手动加锁</span></span><br><span class="line">lock.<span class="built_in">lock</span>();</span><br><span class="line"><span class="comment">// 访问共享资源</span></span><br><span class="line">std::cout &lt;&lt; <span class="string">&quot;Accessing shared resource&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">lock.<span class="built_in">unlock</span>();</span><br></pre></td></tr></table></figure>
-
-<p><strong>尝试加锁（try_to_lock）</strong></p>
-<p>立即返回是否获取到锁，避免阻塞线程。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::shared_lock&lt;std::shared_mutex&gt; <span class="title">lock</span><span class="params">(rw_mutex, std::try_to_lock)</span></span>;</span><br><span class="line"><span class="keyword">if</span> (lock.<span class="built_in">owns_lock</span>()) &#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Successfully acquired the lock!&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;Failed to acquire the lock.&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="std-unique-lock"><a href="#std-unique-lock" class="headerlink" title="std::unique_lock"></a>std::unique_lock</h2><table>
-<thead>
-<tr>
-<th align="center"><strong>特性</strong></th>
-<th align="center"><code>std::lock_guard</code></th>
-<th align="center"><code>std::unique_lock</code></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong>锁的所有权</strong></td>
-<td align="center">不可转移或释放</td>
-<td align="center">可转移、可手动释放</td>
-</tr>
-<tr>
-<td align="center"><strong>锁模式</strong></td>
-<td align="center">仅支持立即加锁</td>
-<td align="center">支持延迟加锁 (<code>std::defer_lock</code>)</td>
-</tr>
-<tr>
-<td align="center"><strong>锁操作灵活性</strong></td>
-<td align="center">仅自动加锁&#x2F;解锁</td>
-<td align="center">支持手动加锁&#x2F;解锁 (<code>lock()/unlock()</code>)</td>
-</tr>
-<tr>
-<td align="center"><strong>性能开销</strong></td>
-<td align="center">无额外开销（更轻量）</td>
-<td align="center">略高（因支持更多功能）</td>
-</tr>
-<tr>
-<td align="center"><strong>适用场景</strong></td>
-<td align="center">简单临界区保护</td>
-<td align="center">复杂锁管理（如条件变量、死锁避免）</td>
-</tr>
-</tbody></table>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/03/26/C-%E6%A0%87%E5%87%86%E5%BA%93-%E5%B9%B6%E5%8F%91%EF%BC%9Aatomic/" class="post-title-link" itemprop="url">C++标准库-并发：atomic</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-03-26 21:08:29" itemprop="dateCreated datePublished" datetime="2025-03-26T21:08:29+08:00">2025-03-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-27 16:14:33" itemprop="dateModified" datetime="2025-03-27T16:14:33+08:00">2025-03-27</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>4.1k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h2><p>在多线程编程中，<strong>可见性（Visibility）</strong> 指一个线程对共享数据的修改能够被其他线程及时感知的特性。本质来源于现代计算机的<strong>多级缓存架构</strong>和编译器的<strong>指令重排序优化</strong>：</p>
-<h4 id="1-硬件层面：CPU-缓存不一致性"><a href="#1-硬件层面：CPU-缓存不一致性" class="headerlink" title="1. 硬件层面：CPU 缓存不一致性"></a>1. <strong>硬件层面：CPU 缓存不一致性</strong></h4><ul>
-<li><strong>多核 CPU 的缓存结构</strong>：每个 CPU 核心有独立缓存（L1&#x2F;L2），共享 L3 缓存和主内存。</li>
-<li><strong>写缓冲区（Store Buffer）</strong>：CPU 不会直接写入主存，而是先写入缓冲区，异步刷回内存。</li>
-<li><strong>导致问题</strong>：线程 A 修改数据后，可能仅更新了本地缓存，未同步到主存，线程 B 读取旧值。</li>
-</ul>
-<h4 id="2-编译器-运行时层面：指令重排序"><a href="#2-编译器-运行时层面：指令重排序" class="headerlink" title="2. 编译器&#x2F;运行时层面：指令重排序"></a>2. <strong>编译器&#x2F;运行时层面：指令重排序</strong></h4><ul>
-<li><strong>优化重排序</strong>：编译器或 CPU 为了提高性能，可能调整指令顺序（如先读后写）。</li>
-<li><strong>导致问题</strong>：代码书写顺序 ≠ 实际执行顺序，其他线程观测到不一致状态。</li>
-</ul>
-<p>可见性关注的是数据更新的传播，而原子性关注的是操作的不可分割性。</p>
-<p><strong>强制可见性的解决方案</strong>：</p>
-<ul>
-<li>使用原子操作（<code>std::atomic</code>）：原子变量会插入<strong>内存屏障（Memory Barrier）</strong>，阻止重排序并强制缓存同步。</li>
-<li>使用原子操作（<code>std::atomic</code>）：锁的加&#x2F;解锁操作隐含内存屏障。</li>
-<li>使用 <code>volatile</code>（有限场景）：阻止编译器优化，但<strong>不解决 CPU 缓存一致性问题</strong>。<code>volatile</code> <strong>不能替代原子变量或锁</strong>，无法保证多线程安全。</li>
-</ul>
-<h2 id="std-atomic"><a href="#std-atomic" class="headerlink" title="std::atomic"></a>std::atomic</h2><p><code>std::atomic</code> 是 C++11 引入的用于实现<strong>原子操作（Atomic Operation）</strong>的模板类，主要用于并发编程。 它能够在无锁（lock-free）或最小锁的情况下，保证线程安全地读写变量，避免数据竞争（Data Race）。</p>
-<p>关键特性：</p>
-<ul>
-<li><strong>线程安全</strong>：多个线程同时访问不会导致未定义行为。</li>
-<li><strong>无锁（Lock-Free）</strong>：如果底层硬件支持，<code>std::atomic</code> 会使用 CPU 指令实现无锁操作。</li>
-<li><strong>内存顺序</strong>：支持不同的<strong>内存顺序模型（Memory Order Models）</strong>。</li>
-</ul>
-<p><strong>无锁：</strong>是一种并发编程的设计模式，旨在避免使用传统的锁（lock）（如 <code>std::mutex</code>），从而减少线程阻塞、上下文切换，提升程序的并发性能。</p>
-<p><strong>常见操作:</strong></p>
-<table>
-<thead>
-<tr>
-<th align="center"><strong>函数</strong></th>
-<th align="center"><strong>描述</strong></th>
-<th align="center"><strong>示例</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><code>load()</code></td>
-<td align="center">原子读取当前值</td>
-<td align="center"><code>int x = a.load();</code></td>
-</tr>
-<tr>
-<td align="center"><code>store()</code></td>
-<td align="center">原子存储新值</td>
-<td align="center"><code>a.store(42);</code></td>
-</tr>
-<tr>
-<td align="center"><code>exchange()</code></td>
-<td align="center">原子交换值，返回旧值</td>
-<td align="center"><code>int old = a.exchange(100);</code></td>
-</tr>
-<tr>
-<td align="center"><code>compare_exchange_weak()</code></td>
-<td align="center">弱式 CAS，可能会意外失败</td>
-<td align="center"><code>a.compare_exchange_weak(expected, 10)</code></td>
-</tr>
-<tr>
-<td align="center"><code>compare_exchange_strong()</code></td>
-<td align="center">强式 CAS，持续尝试直到成功</td>
-<td align="center"><code>a.compare_exchange_strong(expected, 10)</code></td>
-</tr>
-<tr>
-<td align="center"><code>fetch_add()</code></td>
-<td align="center">原子加法，返回旧值</td>
-<td align="center"><code>a.fetch_add(1);</code></td>
-</tr>
-<tr>
-<td align="center"><code>fetch_sub()</code></td>
-<td align="center">原子减法，返回旧值</td>
-<td align="center"><code>a.fetch_sub(1);</code></td>
-</tr>
-<tr>
-<td align="center"><code>fetch_or()</code></td>
-<td align="center">原子或</td>
-<td align="center"><code>a.fetch_or(0x01);</code></td>
-</tr>
-<tr>
-<td align="center"><code>fetch_and()</code></td>
-<td align="center">原子与</td>
-<td align="center"><code>a.fetch_and(0x01);</code></td>
-</tr>
-</tbody></table>
-<p>**内存顺序模型: **在并发编程中，内存顺序模型（Memory Order Model）定义了多个线程在读写共享内存时的可见性规则和指令重排行为。</p>
-<table>
-<thead>
-<tr>
-<th align="center"><strong>内存顺序</strong></th>
-<th align="center"><strong>关键词</strong></th>
-<th align="center"><strong>描述</strong></th>
-<th align="center"><strong>适用场景</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><code>memory_order_relaxed</code></td>
-<td align="center"><strong>无序模型</strong></td>
-<td align="center">不提供顺序保证，只保证原子性</td>
-<td align="center">性能优先，对顺序无要求的场景</td>
-</tr>
-<tr>
-<td align="center"><code>memory_order_consume</code></td>
-<td align="center"><strong>消费模型</strong></td>
-<td align="center">只保证数据依赖顺序，编译器不常用</td>
-<td align="center">读取依赖少，现代编译器几乎不实现</td>
-</tr>
-<tr>
-<td align="center"><code>memory_order_acquire</code></td>
-<td align="center"><strong>获取模型</strong></td>
-<td align="center">保证之前的读写顺序，但之后的操作可重排</td>
-<td align="center">线程读取同步，适用于“获取”数据场景</td>
-</tr>
-<tr>
-<td align="center"><code>memory_order_release</code></td>
-<td align="center"><strong>释放模型</strong></td>
-<td align="center">保证之后的读写顺序，但之前的操作可重排</td>
-<td align="center">线程写入同步，适用于“发布”数据场景</td>
-</tr>
-<tr>
-<td align="center"><code>memory_order_acq_rel</code></td>
-<td align="center"><strong>获取-释放模型</strong></td>
-<td align="center">结合 Acquire 和 Release，双向屏障</td>
-<td align="center">线程同步，适用于读写混合场景</td>
-</tr>
-<tr>
-<td align="center"><code>memory_order_seq_cst</code></td>
-<td align="center"><strong>严格顺序一致模型</strong></td>
-<td align="center">全局严格顺序，所有线程看到相同的顺序</td>
-<td align="center">最安全但最慢，适用于高可靠性场景</td>
-</tr>
-</tbody></table>
-<ul>
-<li><code>memory_order_acquire</code>（获取语义）: 在原子操作之后的所有内存读写操作（非原子操作）<strong>不会被重排序到该原子操作之前</strong>。确保当前线程能看到其他线程通过 <code>release</code> 操作之前的所有修改。</li>
-<li><code>memory_order_release</code>（释放语义）: 在原子操作之前的所有内存读写操作（非原子操作）<strong>不会被重排序到该原子操作之后</strong>。确保当前线程的修改对其他线程的 <code>acquire</code> 操作可见。</li>
-</ul>
-<p>同步原理：<code>release</code> 操作会在原子写之前插入<strong>释放屏障</strong>（防止之前的操作被重排到写之后）。<code>acquire</code> 操作会在原子读之后插入<strong>获取屏障</strong>（防止之后的操作被重排到读之前）。这种配对形成了一个「同步点」，确保共享数据的可见性。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;thread&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cassert&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> data = <span class="number">0</span>;</span><br><span class="line"><span class="function">std::atomic&lt;<span class="type">bool</span>&gt; <span class="title">flag</span><span class="params">(<span class="literal">false</span>)</span></span>;  <span class="comment">// 原子标志位</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_A</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    data = <span class="number">42</span>;                          <span class="comment">// 1. 写入非原子数据</span></span><br><span class="line">    flag.<span class="built_in">store</span>(<span class="literal">true</span>, std::memory_order_release);  <span class="comment">// 2. 发布标志位（release）</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">thread_B</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (!flag.<span class="built_in">load</span>(std::memory_order_acquire)) &#123;&#125; <span class="comment">// 3. 等待标志位（acquire）</span></span><br><span class="line">    <span class="built_in">assert</span>(data == <span class="number">42</span>);                  <span class="comment">// 4. 断言成立：data 的值一定为 42</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="function">std::thread <span class="title">t1</span><span class="params">(thread_A)</span></span>;</span><br><span class="line">    <span class="function">std::thread <span class="title">t2</span><span class="params">(thread_B)</span></span>;</span><br><span class="line">    t1.<span class="built_in">join</span>();</span><br><span class="line">    t2.<span class="built_in">join</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="CAS（Compare-And-Swap，比较并交换）"><a href="#CAS（Compare-And-Swap，比较并交换）" class="headerlink" title="CAS（Compare-And-Swap，比较并交换）"></a>CAS（Compare-And-Swap，比较并交换）</h2><p><strong>CAS（Compare-And-Swap）</strong> 是一种用于<strong>实现原子操作</strong>的并发原语，广泛应用于无锁（lock-free）数据结构中。它通过硬件指令原子地完成三个操作：</p>
-<ol>
-<li><strong>比较（Compare）</strong>：检查内存中当前的值是否等于期望值（<code>expected</code>）。</li>
-<li><strong>交换（Swap）</strong>：如果相等，则将内存中的值替换为新值（<code>desired</code>）。</li>
-<li><strong>返回结果</strong>：返回是否成功交换。</li>
-</ol>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">compare_exchange_strong</span><span class="params">(T&amp; expected, T desired, memory_order success, memory_order failure)</span></span>;</span><br></pre></td></tr></table></figure>
-
-<p>将当前值与<code>expected</code>期望值按位对比，相等就将当前值换为<code>desired</code>值，不相等就将<code>expected</code>值变为当前值。</p>
-<table>
-<thead>
-<tr>
-<th align="center"><strong>属性</strong></th>
-<th align="center"><strong>compare_exchange_strong</strong></th>
-<th align="center"><strong>compare_exchange_weak</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong>伪失败（spurious failure）</strong></td>
-<td align="center"><strong>不会</strong>产生伪失败（除非硬件故障）</td>
-<td align="center"><strong>可能</strong>产生伪失败，即使值相同也可能返回 <code>false</code></td>
-</tr>
-<tr>
-<td align="center"><strong>是否必须用于循环重试</strong></td>
-<td align="center"><strong>不需要</strong>，失败表示值真的不同</td>
-<td align="center"><strong>需要</strong>，因为可能由于伪失败需要多次重试</td>
-</tr>
-<tr>
-<td align="center"><strong>性能</strong></td>
-<td align="center"><strong>略低</strong>，因为需要避免伪失败</td>
-<td align="center"><strong>略高</strong>，更适合用于循环中</td>
-</tr>
-<tr>
-<td align="center"><strong>适用场景</strong></td>
-<td align="center"><strong>单次交换</strong>，例如某些一次性操作</td>
-<td align="center"><strong>循环重试</strong>，例如无锁（lock-free）数据结构</td>
-</tr>
-</tbody></table>
-<p><strong>为什么会有伪失败？</strong></p>
-<ul>
-<li><strong>伪失败（spurious failure）</strong> 是<strong>硬件层面</strong>或<strong>编译器优化</strong>造成的现象。</li>
-<li>在一些 CPU 架构（如 ARM）上，<strong>weak</strong> 版本的 CAS 指令为了优化性能，可能在没有实际数据竞争的情况下也返回失败。</li>
-<li>解决方法：在无锁（lock-free）结构中，使用循环重试。</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th align="center"><strong>场景</strong></th>
-<th align="center"><strong>推荐使用</strong></th>
-<th align="center"><strong>原因</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong>一次性交换，性能不敏感</strong></td>
-<td align="center"><code>compare_exchange_strong</code></td>
-<td align="center">不会有伪失败，简单明了</td>
-</tr>
-<tr>
-<td align="center"><strong>高频率交换，需高性能</strong></td>
-<td align="center"><code>compare_exchange_weak</code></td>
-<td align="center">可能有伪失败，但整体性能更高</td>
-</tr>
-<tr>
-<td align="center"><strong>无锁（lock-free）数据结构</strong></td>
-<td align="center"><code>compare_exchange_weak</code> + 循环</td>
-<td align="center">在循环中重试，优化高并发场景</td>
-</tr>
-</tbody></table>
-<p><strong>ABA 问题</strong>是 CAS 的常见陷阱:</p>
-<p>场景：</p>
-<ul>
-<li>线程 <strong>T1</strong> 读取了共享变量的值 <strong>A</strong>。</li>
-<li>在 <strong>T1</strong> 进行 CAS 操作之前，另一个线程 <strong>T2</strong> 将该值从 <strong>A → B → A</strong>。</li>
-<li>当 <strong>T1</strong> 再次比较时，发现值依然是 <strong>A</strong>，以为它从未改变，于是继续执行<strong>错误逻辑</strong>。</li>
-</ul>
-<p>解决：</p>
-<ul>
-<li>版本号（Version Tagging）：每次修改共享值时，增加一个版本号，确保每次 CAS 比较时同时检查版本号和值。</li>
-<li>用指针或高位地址（Tagged Pointer）：在 64 位系统中，指针通常低位对齐，可用高位或额外空间存储版本信息。</li>
-</ul>
-<h2 id="无锁栈示例"><a href="#无锁栈示例" class="headerlink" title="无锁栈示例"></a>无锁栈示例</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;atomic&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Node</span> &#123;</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">    Node* next;</span><br><span class="line">    <span class="built_in">Node</span>(<span class="type">int</span> d) : <span class="built_in">data</span>(d), <span class="built_in">next</span>(<span class="literal">nullptr</span>) &#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">std::atomic&lt;Node*&gt; <span class="title">head</span><span class="params">(<span class="literal">nullptr</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">push</span><span class="params">(<span class="type">int</span> value)</span> </span>&#123;</span><br><span class="line">    Node* new_node = <span class="keyword">new</span> <span class="built_in">Node</span>(value);</span><br><span class="line">    new_node-&gt;next = head.<span class="built_in">load</span>(); </span><br><span class="line">    <span class="comment">// 使用 CAS 原子操作</span></span><br><span class="line">    <span class="keyword">while</span> (!head.<span class="built_in">compare_exchange_weak</span>(new_node-&gt;next, new_node)) &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">pop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Node* old_head = head.<span class="built_in">load</span>();</span><br><span class="line">    <span class="keyword">while</span> (old_head &amp;&amp; !head.<span class="built_in">compare_exchange_weak</span>(old_head, old_head-&gt;next)) &#123;&#125;</span><br><span class="line">    <span class="type">int</span> value = old_head ? old_head-&gt;data : <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">delete</span> old_head;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-
-
-
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/03/26/CMU15445-2024fall-project-1-%E8%AE%B0%E5%BD%95/" class="post-title-link" itemprop="url">CMU15445(2024fall)-project#1 记录</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-03-26 16:51:59" itemprop="dateCreated datePublished" datetime="2025-03-26T16:51:59+08:00">2025-03-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-05-08 22:29:49" itemprop="dateModified" datetime="2025-05-08T22:29:49+08:00">2025-05-08</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.8k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="Task-1-LRU-K-Replacement-Policy"><a href="#Task-1-LRU-K-Replacement-Policy" class="headerlink" title="Task #1- LRU-K Replacement Policy"></a>Task #1- LRU-K Replacement Policy</h2><p>实现一个组件来负责跟踪缓冲池中的页面使用情况，用以确定在缓冲池满时该驱逐哪些帧。</p>
-<p><strong>LRU-K 算法</strong>会淘汰所有帧中<strong>后向 k 距离</strong>最大的帧。后向 k 距离<code>backward k-distance</code>的计算方式是当前时间戳与前 k 次访问时间戳之间的时间差。历史访问次数少于 k 次的帧的后向 k 距离被赋值为 +inf。如果多个帧的后向 k 距离均为 +inf，则替换器会淘汰 帧（不会在意到底访问了几次）。</p>
-<p>当 k &#x3D; 1时就是一般的 LRU 替换算法了。可以使用第前 k 次访问的时间<code>kth_prev_timestamp_</code>戳来替代后向 k 距离，效果是一样的。</p>
-<p>优化：添加<code>AccessTpye</code>标签。</p>
-<table>
-<thead>
-<tr>
-<th>AccessType</th>
-<th align="center">操作示例</th>
-<th align="center">特征</th>
-<th align="center">缓存策略建议</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Unknown</td>
-<td align="center">无法识别访问</td>
-<td align="center">不明确</td>
-<td align="center">默认处理</td>
-</tr>
-<tr>
-<td>Lookup</td>
-<td align="center">主键查找</td>
-<td align="center">高频访问，命中率高</td>
-<td align="center">保留时间长</td>
-</tr>
-<tr>
-<td>Scan</td>
-<td align="center">全表扫描</td>
-<td align="center">一次性读取，大批量</td>
-<td align="center">快速淘汰</td>
-</tr>
-<tr>
-<td>Index</td>
-<td align="center">索引导航</td>
-<td align="center">高命中率，结构关键</td>
-<td align="center">优先保留</td>
-</tr>
-</tbody></table>
-<h2 id="Task-2-Disk-Scheduler"><a href="#Task-2-Disk-Scheduler" class="headerlink" title="Task #2 - Disk Scheduler"></a>Task #2 - Disk Scheduler</h2><h2 id="Task-3-Buffer-Pool-Manager"><a href="#Task-3-Buffer-Pool-Manager" class="headerlink" title="Task #3 - Buffer Pool Manager"></a>Task #3 - Buffer Pool Manager</h2><h3 id="有关锁的策略"><a href="#有关锁的策略" class="headerlink" title="有关锁的策略"></a>有关锁的策略</h3><p>1. </p>
-<h3 id="test"><a href="#test" class="headerlink" title="test"></a>test</h3><ol>
-<li><p><code>local:page_guard_test</code> ：line 109，问题描述：向磁盘<code>flush()</code>时有时成功时失败 。线程间的同步问题，<code>disk_scheduler_</code>中会另起一个线程来调度磁盘，如果<code>frame</code>中的<code>data_</code>先被覆盖的话，会使得<code>disk_scheduler_-&gt;Schedule()</code>中的参数事实上无效。</p>
-</li>
-<li><p><code>Gradescope:PageGuardTest.DropTest</code> 问题描述：通过最新的<code>BusTub</code>提交 <code>3e93325</code> 和 <code>a47baef</code> 实现了磁盘自动扩容，但 Gradescope 未部署这些改动。<a target="_blank" rel="noopener" href="https://discord.com/channels/724929902075445281/1337834722948153379">参考</a></p>
-</li>
-<li><p><code>local:EvictableTest</code> ：line 397 锁管理问题。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/home/w/15445/test/buffer/buffer_pool_manager_test.cpp:397: Failure</span><br><span class="line">Value of: bpm-&gt;CheckedReadPage(loser_pid).has_value()</span><br><span class="line">  Actual: true</span><br><span class="line">Expected: false</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">./test/buffer_pool_manager_test 2&gt;&amp;1 | grep -c <span class="string">&#x27;buffer_pool_manager_test.cpp:397&#x27;</span></span></span><br><span class="line">123</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">./test/buffer_pool_manager_test 2&gt;&amp;1 | grep -c <span class="string">&#x27;buffer_pool_manager_test.cpp:397&#x27;</span></span></span><br><span class="line">86</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><code>Gracescope:BufferPoolManagerTest.ConcurrentReaderWriterTest</code> 锁管理问题。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">   /autograder/source/bustub/test/buffer/grading_buffer_pool_manager_test.cpp:1051: Failure</span><br><span class="line">   19: Expected equality of these values:</span><br><span class="line">19:   page_ids[i]</span><br><span class="line">   19:     Which is: 59</span><br><span class="line">   19:   data-&gt;page_id_</span><br><span class="line">   19:     Which is: 57</span><br><span class="line">   19: </span><br><span class="line">   19: /autograder/source/bustub/test/buffer/grading_buffer_pool_manager_test.cpp:1051: Failure</span><br><span class="line">   19: Expected equality of these values:</span><br><span class="line">   19:   page_ids[i]</span><br><span class="line">   19:     Which is: 62</span><br><span class="line">   19:   data-&gt;page_id_</span><br><span class="line">   19:     Which is: 58</span><br><span class="line">   19: ...</span><br></pre></td></tr></table></figure></li>
-</ol>
-<h2 id="读代码"><a href="#读代码" class="headerlink" title="读代码"></a>读代码</h2><h3 id="disk-manager-新版本"><a href="#disk-manager-新版本" class="headerlink" title="disk_manager(新版本)"></a>disk_manager(新版本)</h3><p>DiskManager的主要职责是管理数据库文件的页面分配和释放，包括读写页面、删除页面以及日志处理。它使用了懒分配策略，只在页面首次访问时分配空间。数据库文件的管理基于操作系统提供的文件系统。</p>
-<p>关键成员变量：</p>
-<ul>
-<li><code>pages_</code> ： <code>unordered_map&lt;page_id_t, size_t&gt;</code>，记录页面 ID 到文件偏移的映射。</li>
-<li><code>free_slots_</code> ： <code>vector&lt;size_t&gt;</code>，存储被删除页面的偏移，供后续分配复用</li>
-<li><code>page_capacity_</code> ：数据库文件的当前容量（以页数为单位），初始值为 <code>DEFAULT_DB_IO_SIZE</code></li>
-</ul>
-<p>主要成员函数：</p>
-<ul>
-<li><code>WritePage</code>&#x2F;<code>ReadPage</code>：首先检查请求页是否被分配（遍历<code>pages_</code> ，懒分配策略），不存在就先分配页。<code>pages_</code> 是在此处更新，而不是在<code>Allocate</code>。</li>
-<li><code>Allocate</code>：返回被分配页相对文件开头的偏移量。分配的基本单位是页。优先尝试使用<code>free_slots</code>中空闲页。若当前的文件空间不足，翻倍扩容。</li>
-<li><code>DeletePage</code>：将其偏移加入 <code>free_slots_</code>，并从 <code>pages_</code> 中移除映射。</li>
-</ul>
-<h3 id="pageguard"><a href="#pageguard" class="headerlink" title="pageguard"></a>pageguard</h3><ol>
-<li><p>在 <code>ReadPageGuard</code>类中：</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ReadPageGuard</span>(<span class="type">const</span> ReadPageGuard &amp;) = <span class="keyword">delete</span>;</span><br><span class="line"><span class="keyword">auto</span> <span class="keyword">operator</span>=(<span class="type">const</span> ReadPageGuard &amp;) -&gt; ReadPageGuard &amp; = <span class="keyword">delete</span>;</span><br><span class="line"><span class="built_in">ReadPageGuard</span>(ReadPageGuard &amp;&amp;that) <span class="keyword">noexcept</span>;</span><br><span class="line"><span class="keyword">auto</span> <span class="keyword">operator</span>=(ReadPageGuard &amp;&amp;that) <span class="keyword">noexcept</span> -&gt; ReadPageGuard &amp;;</span><br></pre></td></tr></table></figure>
-
-<p>删除 <code>ReadPageGuard</code> 类的拷贝构造函数和拷贝赋值运算符，目的是为了防止对象被拷贝。默认的拷贝构造函数和拷贝赋值运算符执行的都是浅拷贝，会导致双重释放。允许移动构造和移动赋值，表示资源所有权可以在对象之间转移，但不能复制。</p>
-<p><strong>五法则</strong>：要求显式管理资源相关的所有特殊成员函数。如果类需要管理资源（如动态内存、文件句柄等），必须显式定义或删除以下五个函数：析构函数、拷贝构造函数、拷贝赋值运算符、移动构造函数、移动赋值运算符，其核心是避免依赖编译器默认生成的函数可能导致的资源管理错误。</p>
-</li>
-<li><p>在 <code>ReadPageGuard</code>类中：</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> <span class="title class_">T</span>&gt;</span><br><span class="line">    <span class="function"><span class="keyword">auto</span> <span class="title">As</span><span class="params">()</span> <span class="type">const</span> -&gt; <span class="type">const</span> T * </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">reinterpret_cast</span>&lt;<span class="type">const</span> T *&gt;(<span class="built_in">GetData</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p> <code>**reinterpret_cast</code> 是最「底层」且最危险的类型转换操作符，它允许在任意指针类型、整数类型和引用类型之间进行<strong>二进制级别的重新解释</strong>。这里强制将 <code>char*</code> 指针转换为指定类型 <code>T *</code>。</p>
-</li>
-<li><p>在 <code>ReadPageGuard</code>类中为什么需要<code>is_valid_</code>?</p>
-</li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="wnyxvo">
-      <meta itemprop="description" content="战战兢兢，如履薄冰">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wnyxvo的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/03/26/C-%E7%B1%BB%E8%AE%BE%E8%AE%A1%E8%80%85%E7%9A%84%E5%B7%A5%E5%85%B7-%E9%9D%A2%E5%AF%B9%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1/" class="post-title-link" itemprop="url">C++类设计者的工具-面对对象程序设计</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-03-26 14:48:12" itemprop="dateCreated datePublished" datetime="2025-03-26T14:48:12+08:00">2025-03-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-11-30 16:39:24" itemprop="dateModified" datetime="2025-11-30T16:39:24+08:00">2025-11-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.8k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>本章内容来自《C++ Primer》、<a target="_blank" rel="noopener" href="https://github.com/applenob/Cpp_Primer_Practice">GitHub - applenob&#x2F;Cpp_Primer_Practice: 搞定 C++👊。C++ Primer 中文版第 5 版学习仓库，包括笔记和课后练习答案。</a></p>
-<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><ul>
-<li><p>面向对象程序设计（object-oriented programming）的核心思想是数据抽象、继承和动态绑定。</p>
-</li>
-<li><p>继承</p>
-<p>（inheritance）：</p>
-<ul>
-<li>通过继承联系在一起的类构成一种层次关系。</li>
-<li>通常在层次关系的根部有一个<strong>基类</strong>（base class）。</li>
-<li>其他类直接或者简介从基类继承而来，这些继承得到的类成为<strong>派生类</strong>（derived class）。</li>
-<li>基类负责定义在层次关系中所有类共同拥有的成员，而每个派生类定义各自特有的成员。</li>
-<li>对于某些函数，基类希望它的派生类个自定义适合自己的版本，此时基类就将这些函数声明成<strong>虚函数</strong>（virtual function）。</li>
-<li>派生类必须通过使用<strong>类派生列表</strong>（class derivation list）明确指出它是从哪个基类继承而来。形式：一个冒号，后面紧跟以逗号分隔的基类列表，每个基类前都可以有访问说明符。<code>class Bulk_quote : public Quote&#123;&#125;;</code></li>
-<li>派生类必须在其内部对所有重新定义的虚函数进行声明。可以在函数之前加上<code>virtual</code>关键字，也可以不加。C++11新标准允许派生类显式地注明它将使用哪个成员函数改写基类的虚函数，即在函数的形参列表之后加一个<code>override</code>关键字。</li>
-</ul>
-</li>
-<li><p>动态绑定</p>
-<p>（dynamic binding，又称运行时绑定）：</p>
-<ul>
-<li>使用同一段代码可以分别处理基类和派生类的对象。</li>
-<li>函数的运行版本由实参决定，即在运行时选择函数的版本。</li>
-</ul>
-</li>
-</ul>
-<h2 id="定义基类和派生类"><a href="#定义基类和派生类" class="headerlink" title="定义基类和派生类"></a>定义基类和派生类</h2><h3 id="定义基类"><a href="#定义基类" class="headerlink" title="定义基类"></a>定义基类</h3><p>基类通常都应该定义一个虚析构函数，即使该函数不执行任何实际操作也是如此。</p>
-<p>基类通过在其成员函数的声明语句前加上关键字<code>virtual</code>使得该函数执行<strong>动态绑定</strong>。成员函数没有被声明为虚函数，其解析过程发生在编译器。反之发生在运行时。</p>
-<p><strong>除了构造函数和静态成员函数之外，普通的非静态成员函数（包含析构函数）都可以声明为虚函数。</strong></p>
-<ul>
-<li>析构函数当然可以 <code>virtual</code>，但它的作用是特殊的（用于实现多态删除）</li>
-<li>因为虚函数依赖对象的 vptr，而静态函数不属于对象。</li>
-<li>以下不能是虚函数：构造函数、友元函数（不是成员函数）、模板函数实例化时不能改变其“是否虚”属性</li>
-</ul>
-<p>如果基类把一个函数声明为虚函数，则该函数在派生类中隐式地也是虚函数</p>
-<p>访问控制：</p>
-<ul>
-<li><code>protected</code> ： 基类和其派生类还有友元可以访问。</li>
-<li><code>private</code> ： 只有基类本身和友元可以访问。</li>
-</ul>
-<h3 id="定义派生类"><a href="#定义派生类" class="headerlink" title="定义派生类"></a>定义派生类</h3><p>派生类必须通过类派生列表（class derivation list）明确指出它是从哪个基类继承而来。形式：冒号，后面紧跟以逗号分隔的基类列表，每个基类前面可以有一下三种访问说明符的一个：<code>public</code>、<code>protected</code>、<code>private</code>。</p>
-<table>
-<thead>
-<tr>
-<th align="center">继承方式</th>
-<th align="center">基类 <code>public</code>成员在派生类中变为</th>
-<th align="center">基类 <code>protected</code>成员在派生类中变为</th>
-<th align="center">代码外部通过派生类对象访问基类成员</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center"><strong><code>public</code>继承</strong></td>
-<td align="center"><code>public</code></td>
-<td align="center"><code>protected</code></td>
-<td align="center"><strong>可以</strong>访问基类的 <code>public</code>成员</td>
-</tr>
-<tr>
-<td align="center"><strong><code>protected</code>继承</strong></td>
-<td align="center"><code>protected</code></td>
-<td align="center"><code>protected</code></td>
-<td align="center"><strong>不可</strong>访问基类的 <code>public</code>成员</td>
-</tr>
-<tr>
-<td align="center"><strong><code>private</code>继承</strong></td>
-<td align="center"><code>private</code></td>
-<td align="center"><code>private</code></td>
-<td align="center"><strong>不可</strong>访问基类的 <code>public</code>成员</td>
-</tr>
-</tbody></table>
-<p>C++11新标准允许派生类显式地注明它将使用哪个成员函数改写基类的虚函数，即在函数的形参列表之后加一个<code>override</code>关键字。</p>
-<p>在派生类对象中含有其基类对应的组成部分，所以能把派生类的对象当成基类对象使用，而且也能将基类的指针或引用绑定到派生类对象中的基类部分上。<strong>派生类到基类的类型转换</strong>。</p>
-<p>在派生类声明之前，其基类必须已经被完整定义，而不能仅仅是前向声明。这是因为编译器需要知道基类的布局和成员。</p>
-<p>派生类不能直接初始化从基类继承来的成员，而是必须通过调用基类的构造函数来完成基类部分的初始化。这通常在派生类构造函数的<strong>成员初始化列表</strong>中进行。首先初始化基类的部分（调用基类的构造函数），然后按声明的顺序依次初始化派生类的成员。</p>
-<blockquote>
-<p>遵循基类的接口：每个类负责定义各自的接口。想要与类的对象交互必须使用该类的接口，即使这个对象是派生类的基类部分也是如此。</p>
-</blockquote>
-<p>静态成员：如果基类定义了一个静态成员，则在整个继承体系中只存在该成员的唯一定义。无论从基类中派生出多少个派生类，对于每个静态成员都只存在一个实例。</p>
-<p>派生类的声明：声明中不包含它的派生列表。</p>
-<p>C++11新标准提供了一种防止继承的方法，在类名后面跟一个关键字<code>final</code>。</p>
-<h3 id="类型转换与继承"><a href="#类型转换与继承" class="headerlink" title="类型转换与继承"></a>类型转换与继承</h3><p>可以将基类的指针或引用绑定到派生类对象上。当使用基类的指针或引用时，实际上我们并不清楚该指针或引用所绑定的对象的真实类型。</p>
-<p><strong>对象本身不存在动态类型</strong>：只有通过指针或引用操作时，静态类型（变量声明时的类型）和动态类型（变量表示的内存中的对象类型）才可能不同。如果直接使用对象本身，其静态类型和动态类型总是一致的</p>
-<p>基类的指针或引用的静态类型和动态类型可能不一致。</p>
-<p><strong>类型转换规则</strong>：</p>
-<ul>
-<li>派生类到基类：存在隐式转换（通过指针、引用）。<strong>对象之间不存在类型转换。</strong></li>
-<li>基类到派生类：不存在隐式转换。必须使用强制类型转换（如 <code>dynamic_cast</code>或 <code>static_cast</code>），且只有当基类指针实际指向派生类对象时才是安全的</li>
-<li>和任何其他成员一样，派生类到基类的类型转换也可能会由于访问受限而变得不可行。</li>
-</ul>
-<h2 id="虚函数"><a href="#虚函数" class="headerlink" title="虚函数"></a>虚函数</h2><p><strong>动态绑定的触发条件</strong>：确实只有在通过<strong>基类的指针或引用</strong>调用<strong>虚函数</strong>时，才会发生动态绑定（运行时多态）。如果通过对象实例本身调用，则属于静态绑定。</p>
-<p><strong>当且仅当对通过指针或引用调用虚函数时</strong>，才会在运行时解析该调用，也只有在这种情况下对象的动态类型才有可能与静态类型不同。</p>
-<p>一旦某个函数被声明成虚函数，则在所有的派生类中它都是虚函数。</p>
-<p><strong>派生类重写虚函数</strong>：在派生类中重写虚函数时，<code>virtual</code>关键字是可选的，但函数签名（函数名、参数列表、常量性）必须与基类的虚函数严格匹配。派生类中的虚函数的返回类型也必须和基类函数匹配，存在一个例外，当类的虚函数返回类型是类本身的指针或引用。</p>
-<p><code>override</code>关键字（C++11引入）<strong>不改变</strong>程序的行为，而是<strong>强制编译器进行检查</strong>。如果函数被标记为 <code>override</code>但实际上并没有成功重写任何一个基类的虚函数（例如由于拼写错误或参数列表不匹配），编译器将报错。</p>
-<p>虚函数也可以使用默认实参。<strong>虚函数是动态绑定的，但默认实参是静态绑定的</strong>。这意味着，默认实参的值在编译阶段就根据调用该函数的指针或引用的静态类型确定了。最佳实践是：<strong>基类和派生类的虚函数应使用相同的默认实参</strong>。</p>
-<p>使用作用域运算符（<code>::</code>）可以显式指定调用哪个类的函数版本，从而绕过动态绑定。这通常用于特定场景，例如在派生类的虚函数实现中，需要调用基类的版本来完成部分工作。</p>
-<p>如果一个派生类虚函数中需要调用它的基类版本，但是没有使用作用域运算符，会导致无限递归。</p>
-<h2 id="抽象基类"><a href="#抽象基类" class="headerlink" title="抽象基类"></a>抽象基类</h2>
-      
-    </div>
-
-    
-    
-    
-
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2398,20 +2019,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">37</span>
+          <span class="site-state-item-count">44</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-count">12</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2438,7 +2059,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2025</span>
+  <span itemprop="copyrightYear">2026</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -2447,12 +2068,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">148k</span>
+    <span title="站点总字数">174k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">2:14</span>
+    <span title="站点阅读时长">2:38</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

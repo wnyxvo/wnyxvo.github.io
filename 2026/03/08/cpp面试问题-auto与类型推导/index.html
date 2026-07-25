@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本章内容来自 CPPGuide社区，添加了一些个人理解。 第一章 auto与类型推导问题1：解释auto类型推导！auto类型推导通常与模板类型推导相同，但auto类型推导假定用大括号括起来的初始化器代表std::initializer_list，而模板类型推导并不持有这样的前提。  1template&lt;class T&gt; class initializer_list;  This ty">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cpp面试问题-auto与类型推导">
+<meta property="og:url" content="http://example.com/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/index.html">
+<meta property="og:site_name" content="wnyxvo的博客">
+<meta property="og:description" content="本章内容来自 CPPGuide社区，添加了一些个人理解。 第一章 auto与类型推导问题1：解释auto类型推导！auto类型推导通常与模板类型推导相同，但auto类型推导假定用大括号括起来的初始化器代表std::initializer_list，而模板类型推导并不持有这样的前提。  1template&lt;class T&gt; class initializer_list;  This ty">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-03-08T13:07:28.000Z">
+<meta property="article:modified_time" content="2026-03-08T14:03:38.333Z">
+<meta property="article:author" content="wnyxvo">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>cpp面试问题-auto与类型推导 | wnyxvo的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">wnyxvo的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">12</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">7</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">44</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2026/03/08/cpp%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="wnyxvo">
+      <meta itemprop="description" content="战战兢兢，如履薄冰">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wnyxvo的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          cpp面试问题-auto与类型推导
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-03-08 21:07:28 / 修改时间：22:03:38" itemprop="dateCreated datePublished" datetime="2026-03-08T21:07:28+08:00">2026-03-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98%E9%9B%86%E9%94%A6/" itemprop="url" rel="index"><span itemprop="name">C++面试问题集锦</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本章内容来自 <a target="_blank" rel="noopener" href="https://cppguide.cn/pages/cppinterviewmostaskedquestions01/">CPPGuide社区</a>，添加了一些个人理解。</p>
+<h1 id="第一章-auto与类型推导"><a href="#第一章-auto与类型推导" class="headerlink" title="第一章 auto与类型推导"></a>第一章 auto与类型推导</h1><h2 id="问题1：解释auto类型推导！"><a href="#问题1：解释auto类型推导！" class="headerlink" title="问题1：解释auto类型推导！"></a>问题1：解释auto类型推导！</h2><p><code>auto</code>类型推导通常与模板类型推导相同，但<code>auto</code>类型推导假定用大括号括起来的初始化器代表<code>std::initializer_list</code>，而模板类型推导并不持有这样的前提。</p>
+<blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">class</span> <span class="title class_">T</span>&gt; <span class="keyword">class</span> <span class="title class_">initializer_list</span>;</span><br></pre></td></tr></table></figure>
+
+<p>This type is used to access the values in a C++ initialization list, which is a list of elements of type <code>const T</code>.</p>
+<p>C++11 引入的轻量级模板类（定义于 <code>&lt;initializer_list&gt;</code>头文件）</p>
+<p>本质是对底层数组的引用，不拥有数据所有权，拷贝时仅复制指针而非数据。元素为 <code>const</code>类型，不可修改、所有元素类型必须相同、初始化后元素数量固定，运行时无法增删</p>
+<p>用途：</p>
+<ul>
+<li>容器初始化</li>
+<li>自定义类的初始化</li>
+<li>函数参数传递：支持可变数量的同类型参数</li>
+<li>操作符重载</li>
+</ul>
+<p>注意事项</p>
+<ol>
+<li><p><strong>构造函数重载优先级</strong></p>
+<ul>
+<li><p>若类同时定义了普通构造函数和 <code>std::initializer_list</code>构造函数，<strong>花括号初始化优先匹配后者</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Ambiguous</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Ambiguous</span>(<span class="type">int</span> x);                      <span class="comment">// 构造函数 1</span></span><br><span class="line">    <span class="built_in">Ambiguous</span>(std::initializer_list&lt;<span class="type">int</span>&gt;);  <span class="comment">// 构造函数 2</span></span><br><span class="line">&#125;;</span><br><span class="line">Ambiguous a&#123;<span class="number">5</span>&#125;;  <span class="comment">// 调用构造函数 2（而非构造函数 1）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>解决方案</strong>：用 <code>explicit</code>标记初始化列表构造函数避免隐式转换。</p>
+</li>
+</ul>
+</li>
+<li><p><strong>生命周期管理</strong></p>
+<ul>
+<li><p><code>std::initializer_list</code>仅持有底层临时数组的引用，需确保原始数组在其使用期间有效：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::initializer_list&lt;<span class="type">int</span>&gt; <span class="title">getList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;;  <span class="comment">// 危险：临时数组在函数返回后销毁</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>以下是几个示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>* ip;</span><br><span class="line"><span class="keyword">auto</span>  aip = ip;       <span class="comment">// aip是一个指向整数的指针</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* cip;</span><br><span class="line"><span class="keyword">auto</span>  acip = cip;      <span class="comment">// acip是一个指向常量整数的指针（值不能修改，但它所指向的内存地址可以修改）</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* <span class="type">const</span>  cicp = ip;</span><br><span class="line"><span class="keyword">auto</span>  acicp = cicp;    <span class="comment">// acicp仍然是一个指向常量整数的指针，指针的常量性被丢弃</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span>  x = <span class="number">27</span>;          <span class="comment">// （x既不是指针也不是引用），x的类型是int</span></span><br><span class="line"><span class="type">const</span>  <span class="keyword">auto</span>  cx = x;   <span class="comment">// （cx既不是指针也不是引用），cx的类型是const int</span></span><br><span class="line"><span class="type">const</span>  <span class="keyword">auto</span>&amp; rx = x;   <span class="comment">// （rx是一个非万能引用），rx的类型是指向const int的引用</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref1 = x;      <span class="comment">// x是int且为左值，所以uref1的类型是int&amp;</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref2 = cx;     <span class="comment">// cx是const int且为左值，所以uref2的类型是const int&amp;</span></span><br><span class="line"><span class="keyword">auto</span>&amp;&amp; uref3 = <span class="number">27</span>;     <span class="comment">// 27是int且为右值，所以uref3的类型是int&amp;&amp;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span>  x3 = &#123; <span class="number">27</span> &#125;;     <span class="comment">// 类型是std::initializer_list&lt;int&gt;，值是&#123;27&#125;</span></span><br><span class="line"><span class="keyword">auto</span>  x4&#123; <span class="number">27</span> &#125;;        <span class="comment">// 类型是std::initializer_list&lt;int&gt;，值是&#123;27&#125;</span></span><br><span class="line"><span class="comment">// 在某些编译器中，类型可能会被推导为int，值为27。更多信息见注释。</span></span><br><span class="line"><span class="keyword">auto</span>  x5 = &#123; <span class="number">1</span>, <span class="number">2.0</span> &#125;; <span class="comment">// 错误！无法为std::initializer_list&lt;T&gt;推导T的类型</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>* ip;</span><br><span class="line"><span class="keyword">auto</span>  aip = ip;       <span class="comment">// aip是一个指向整数的指针</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* cip;</span><br><span class="line"><span class="keyword">auto</span>  acip = cip;      <span class="comment">// acip是一个指向常量整数的指针（值不能修改，但它所指向的内存地址可以修改）</span></span><br><span class="line"><span class="type">const</span>  <span class="type">int</span>* <span class="type">const</span>  cicp = ip;</span><br><span class="line"><span class="keyword">auto</span>  acicp = cicp;    <span class="comment">// acicp仍然是一个指向常量整数的指针，指针的常量性被丢弃</span></span><br></pre></td></tr></table></figure>
+
+<p>含<code>const</code>的复杂变量类型，自由向左理解即可。</p>
+<p><code>const int* const cicp</code>包含两个const修饰符：</p>
+<ul>
+<li>左侧 const：<strong>底层</strong>常量性（指向的数据不可修改 → const int*）。</li>
+<li>右侧 const：<strong>顶层</strong>常量性（指针本身不可修改 → * const）。</li>
+</ul>
+<p><strong>auto会忽略顶层 const（即指针本身的常量性），但保留底层 const（指向的数据的常量性）</strong>；<strong>auto默认忽略引用</strong></p>
+<p>若需完全保留双重常量性，使用 <code>decltype</code>显式声明：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">decltype</span>(cicp) acicp = ip;  <span class="comment">// 类型为 const int* const</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>可以看出，如果使用大括号初始化器，<code>auto</code>会强制创建一个<code>std::initializer_list</code>类型的变量。如果它无法推导出<code>T</code>的类型，代码就会被拒绝。</p>
+<p>我们也看到，<code>auto</code>可以为指针推导出正确的类型，但为了得到引用，我们必须写成<code>auto&amp;</code>。为了保持一致性，如果我们期望得到一个指针，也可以写成<code>auto*</code>。</p>
+<p>在函数返回类型或lambda参数中使用<code>auto</code>意味着进行模板类型推导，而非<code>auto</code>类型推导。</p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div>
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+      </div>
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/02/25/Cpp-%E7%BC%96%E7%A8%8B%E9%A3%8E%E6%A0%BC/" rel="prev" title="Cpp 编程风格">
+      <i class="fa fa-chevron-left"></i> Cpp 编程风格
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2026/05/02/CUDA-%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5API%E4%B8%8E%E5%90%8C%E6%AD%A5API/" rel="next" title="CUDA 中的异步API与同步API">
+      CUDA 中的异步API与同步API <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E7%AB%A0-auto%E4%B8%8E%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC"><span class="nav-number">1.</span> <span class="nav-text">第一章 auto与类型推导</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%981%EF%BC%9A%E8%A7%A3%E9%87%8Aauto%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC%EF%BC%81"><span class="nav-number">1.1.</span> <span class="nav-text">问题1：解释auto类型推导！</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">wnyxvo</p>
+  <div class="site-description" itemprop="description">战战兢兢，如履薄冰</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">44</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wnyxvo</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">174k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:38</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
